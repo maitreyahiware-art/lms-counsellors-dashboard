@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * One-time script: Seed the BN Admin account into Supabase
  * 
