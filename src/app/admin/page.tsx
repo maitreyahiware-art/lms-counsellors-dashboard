@@ -139,6 +139,7 @@ function AdminDashboardContent() {
     const [creatingUser, setCreatingUser] = useState(false);
     const [userSuccess, setUserSuccess] = useState("");
     const [userError, setUserError] = useState("");
+    const [resettingUser, setResettingUser] = useState(false);
 
     const [contentForm, setContentForm] = useState({
         moduleId: "",
@@ -311,6 +312,28 @@ function AdminDashboardContent() {
         }
     };
 
+    const handleResetUser = async (userId: string) => {
+        if (!confirm("⚠️ CAUTION: This will permanently delete all activity logs, quiz scores, progress, and audits for this user. The account itself will remain active. Proceed?")) return;
+
+        setResettingUser(true);
+        try {
+            await Promise.all([
+                supabase.from('mentor_activity_logs').delete().eq('user_id', userId),
+                supabase.from('mentor_progress').delete().eq('user_id', userId),
+                supabase.from('assessment_logs').delete().eq('user_id', userId),
+                supabase.from('summary_audits').delete().eq('user_id', userId)
+            ]);
+
+            alert("Account history has been cleared.");
+            refreshData();
+        } catch (err: any) {
+            console.error("Reset Error:", err);
+            alert("Failed to reset account data: " + err.message);
+        } finally {
+            setResettingUser(false);
+        }
+    };
+
     if (loading) return (
         <div className="flex items-center justify-center h-screen">
             <Loader2 className="w-12 h-12 text-[#00B6C1] animate-spin" />
@@ -386,6 +409,17 @@ function AdminDashboardContent() {
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="text-gray-400 font-bold uppercase tracking-widest text-[9px]">Access Level</span>
                                             <span className="badge-teal text-[8px] uppercase">{selectedProfile.role}</span>
+                                        </div>
+
+                                        <div className="pt-6 mt-6 border-t border-red-50">
+                                            <button
+                                                onClick={() => handleResetUser(selectedProfile.id)}
+                                                disabled={resettingUser}
+                                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-red-100 text-red-500 text-[9px] font-black uppercase tracking-widest hover:bg-red-50 transition-all"
+                                            >
+                                                {resettingUser ? <Loader2 size={12} className="animate-spin" /> : <><Trash2 size={12} /> Clear Activity History</>}
+                                            </button>
+                                            <p className="text-[7px] text-gray-300 font-medium mt-3 text-center uppercase tracking-widest">Resets logs, progress, and scores</p>
                                         </div>
                                     </div>
                                 </div>
