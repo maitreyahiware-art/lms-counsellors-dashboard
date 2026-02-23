@@ -17,11 +17,16 @@ import {
   Briefcase,
   ListChecks,
   ShoppingBag,
-  Globe
+  Globe,
+  Phone,
+  Mail,
+  X,
+  ExternalLink,
+  Info
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { syllabusData } from "@/data/syllabus";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -33,6 +38,8 @@ export default function Home() {
   const [userName, setUserName] = useState<string>("");
   const [trainingBuddy, setTrainingBuddy] = useState<string>("");
   const [dynamicContent, setDynamicContent] = useState<any[]>([]);
+  const [allMentors, setAllMentors] = useState<any[]>([]);
+  const [showBuddyModal, setShowBuddyModal] = useState(false);
 
   useEffect(() => {
     const fetchPersonalStats = async () => {
@@ -113,6 +120,14 @@ export default function Home() {
         setUserStats(prev => ({ ...prev, progress: compositeProgress }));
       }
 
+      // 4. Fetch All Mentors (Admins/Moderators)
+      const { data: mentors } = await supabase
+        .from('profiles')
+        .select('full_name, email, role')
+        .in('role', ['admin', 'moderator']);
+
+      setAllMentors(mentors || []);
+
       setLoading(false);
     };
     fetchPersonalStats();
@@ -167,15 +182,21 @@ export default function Home() {
 
           {/* Top Stats Cards */}
           <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
-            <div className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-[#0E5858]/5 flex items-center gap-4 min-w-[170px]">
+            <button
+              onClick={() => setShowBuddyModal(true)}
+              className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-[#0E5858]/5 flex items-center gap-4 min-w-[170px] hover:border-[#00B6C1]/30 hover:shadow-md transition-all text-left"
+            >
               <div className="w-10 h-10 rounded-2xl bg-[#00B6C1]/10 text-[#00B6C1] flex items-center justify-center">
                 <Briefcase size={18} />
               </div>
               <div>
                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Mentor Buddy</p>
-                <p className="text-lg font-serif text-[#0E5858] truncate max-w-[100px]">{trainingBuddy || 'Unassigned'}</p>
+                <div className="flex items-center gap-1">
+                  <p className="text-lg font-serif text-[#0E5858] truncate max-w-[100px]">{trainingBuddy || 'Unassigned'}</p>
+                  <Info size={10} className="text-[#00B6C1]" />
+                </div>
               </div>
-            </div>
+            </button>
             <div className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-[#0E5858]/5 flex items-center gap-4 min-w-[170px]">
               <div className="w-10 h-10 rounded-2xl bg-[#00B6C1]/10 text-[#00B6C1] flex items-center justify-center">
                 <Trophy size={18} />
@@ -327,7 +348,67 @@ export default function Home() {
             </button>
           ))}
         </motion.section>
-      </motion.div >
-    </main >
+        {/* Modal: Training Buddies */}
+        <AnimatePresence>
+          {showBuddyModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowBuddyModal(false)}
+                className="absolute inset-0 bg-[#0E5858]/40 backdrop-blur-md"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative bg-white w-full max-w-lg rounded-[3rem] p-10 shadow-3xl overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-8">
+                  <button onClick={() => setShowBuddyModal(false)} className="text-gray-300 hover:text-[#0E5858] transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <header className="mb-10">
+                  <div className="w-16 h-16 bg-[#0E5858] rounded-[2rem] flex items-center justify-center text-white mb-6 shadow-xl">
+                    <User size={28} />
+                  </div>
+                  <h3 className="text-4xl font-serif text-[#0E5858]">Training Buddies</h3>
+                  <p className="text-sm text-gray-400 font-medium italic mt-2">Connecting you withclinical experts for guidance.</p>
+                </header>
+
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-4 custom-scrollbar">
+                  {allMentors.length > 0 ? allMentors.map((mentor, i) => (
+                    <div key={i} className="p-6 bg-gray-50 rounded-3xl border border-gray-100 group flex items-center justify-between hover:bg-white hover:shadow-xl hover:shadow-gray-200/50 transition-all">
+                      <div>
+                        <h4 className="text-lg font-serif text-[#0E5858] mb-0.5">{mentor.full_name}</h4>
+                        <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-[0.2em]">{mentor.role}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a href={`mailto:${mentor.email}`} className="p-3 bg-white rounded-xl text-gray-400 hover:text-[#0E5858] hover:shadow-md transition-all">
+                          <Mail size={16} />
+                        </a>
+                        <a href={`tel:+910000000000`} className="p-3 bg-white rounded-xl text-gray-400 hover:text-[#00B6C1] hover:shadow-md transition-all">
+                          <Phone size={16} />
+                        </a>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-center text-gray-400 italic py-10">No mentors assigned yet.</p>
+                  )}
+                </div>
+
+                <div className="mt-10 pt-8 border-t border-gray-100 flex items-center gap-4 text-gray-400">
+                  <Info size={16} />
+                  <p className="text-[10px] font-medium leading-relaxed">Contact your assigned buddy for clinical doubts or protocol clarifications.</p>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </main>
   );
 }
