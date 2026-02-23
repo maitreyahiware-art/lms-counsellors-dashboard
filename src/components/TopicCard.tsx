@@ -617,47 +617,49 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
 
                                     setIsSyncing(true);
                                     try {
+                                        // Immediate UI feedback for internal states
                                         setVideoCompleted(true);
                                         setSimulationCompleted(true);
                                         setAssignmentCompleted(true);
+
+                                        // Trigger DB sync
                                         await onToggleComplete();
-                                        // Auto-advance after sync
-                                        onMoveNext?.(topic.code);
+
+                                        // Optional: log specific activity
+                                        logActivity('complete_quiz', { topicCode: topic.code, contentTitle: topic.title });
+                                    } catch (err) {
+                                        console.error("Completion Sync Failed:", err);
                                     } finally {
-                                        setIsSyncing(false);
+                                        setTimeout(() => setIsSyncing(false), 1000);
                                     }
                                 }}
                                 disabled={isSyncing}
-                                className={`group flex items-center gap-4 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.25em] transition-all duration-500 relative ${isCompleted
+                                className={`group flex items-center gap-4 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.25em] transition-all duration-500 relative transform active:scale-95 ${isCompleted
                                     ? 'bg-[#00B6C1] text-white hover:bg-[#0E5858] hover:-translate-y-1 shadow-2xl scale-105'
-                                    : (isSyncing ? 'bg-gray-100 text-gray-400 cursor-wait' : 'bg-[#0E5858] text-white hover:bg-[#00B6C1] hover:-translate-y-1 shadow-2xl shadow-[#0E5858]/30 scale-105')
+                                    : (isSyncing ? 'bg-green-500 text-white shadow-xl shadow-green-500/20' : 'bg-[#0E5858] text-white hover:bg-[#00B6C1] hover:-translate-y-1 shadow-2xl shadow-[#0E5858]/30 scale-105')
                                     }`}
                             >
-                                {!isCompleted && (
+                                {!isCompleted && !isSyncing && (
                                     <div className="absolute inset-0 bg-white/20 rounded-2xl animate-pulse pointer-events-none"></div>
                                 )}
                                 {isCompleted ? (
                                     <>
-                                        {isLastTopic ? (
-                                            <>
-                                                <ArrowRight size={20} className="animate-pulse" />
-                                                Next Module
-                                            </>
-                                        ) : (
-                                            <>
-                                                <ArrowRight size={20} className="animate-pulse" />
-                                                Move Next
-                                            </>
-                                        )}
+                                        <ArrowRight size={20} className="animate-pulse" />
+                                        {isLastTopic ? "Next Module" : "Move Next"}
                                     </>
                                 ) : (
                                     <>
                                         {isSyncing ? (
-                                            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                            <>
+                                                <CheckCircle2 size={20} className="animate-bounce" />
+                                                Verified!
+                                            </>
                                         ) : (
-                                            <CheckCircle size={20} className="animate-bounce" />
+                                            <>
+                                                <CheckCircle size={20} />
+                                                Complete Segment
+                                            </>
                                         )}
-                                        {isSyncing ? 'Syncing...' : 'Completed Segment'}
                                     </>
                                 )}
                             </button>

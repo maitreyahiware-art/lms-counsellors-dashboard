@@ -258,18 +258,44 @@ export default function ModulePage() {
 
             if (!error) {
                 setCompletedTopics(completedTopics.filter(t => t !== topicCode));
+            } else {
+                console.error("Failed to unmark topic:", error.message);
             }
         } else {
+            // First check if it already exists to avoid conflict errors if the constraint is weird
+            const { data: existing } = await supabase
+                .from('mentor_progress')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .eq('topic_code', topicCode)
+                .single();
+
+            if (existing) {
+                setCompletedTopics([...completedTopics, topicCode]);
+                return;
+            }
+
             const { error } = await supabase
                 .from('mentor_progress')
-                .upsert([{
+                .insert([{
+                    user_id: session.user.id,
+                    topic_code: topicCode,
+                    module_id: moduleId
+                }]);
+
+            if (!error) {
+                setCompletedTopics([...completedTopics, topicCode]);
+            } else {
+                console.error("Failed to mark topic complete:", error.message);
+                // Fallback: try upsert if insert failed (maybe it was created in the millisecond since check)
+                await supabase.from('mentor_progress').upsert([{
                     user_id: session.user.id,
                     topic_code: topicCode,
                     module_id: moduleId
                 }], { onConflict: 'user_id,topic_code' });
 
-            if (!error) {
-                setCompletedTopics([...completedTopics, topicCode]);
+                // Still update local state if we reached here
+                setCompletedTopics(prev => prev.includes(topicCode) ? prev : [...prev, topicCode]);
             }
         }
     };
