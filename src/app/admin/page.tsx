@@ -40,6 +40,7 @@ import {
     Trash2,
     ExternalLink,
     ChevronLeft,
+    BrainCircuit,
     CheckCircle,
     Star,
     Layout
@@ -85,8 +86,12 @@ interface SummaryAudit {
     topic_code: string;
     score: number;
     feedback: string;
+    summary_text?: string;
+    ai_feedback?: string;
     created_at: string;
 }
+
+const TOTAL_SYLLABUS_TOPICS = syllabusData.reduce((acc, mod) => acc + mod.topics.length, 0);
 
 interface DynamicContent {
     id: string;
@@ -120,6 +125,7 @@ function AdminDashboardContent() {
 
     // Detail Views
     const [selectedQuiz, setSelectedQuiz] = useState<AssessmentRecord | null>(null);
+    const [selectedAudit, setSelectedAudit] = useState<SummaryAudit | null>(null);
     const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
 
     // Form States
@@ -342,6 +348,33 @@ function AdminDashboardContent() {
                                     </div>
 
                                     <div className="space-y-4 border-t border-gray-50 pt-8">
+                                        <div className="bg-[#FAFCEE] p-4 rounded-2xl border border-[#0E5858]/5 text-center mb-4">
+                                            {(() => {
+                                                const userProgress = progress.filter(pr => pr.user_id === selectedProfile.id);
+                                                const userActivity = activity.filter(a => a.user_id === selectedProfile.id);
+                                                const globalPercent = Math.min(100, Math.round((userProgress.length / (TOTAL_SYLLABUS_TOPICS || 1)) * 100));
+                                                const lastAct = userActivity[0];
+
+                                                return (
+                                                    <>
+                                                        <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-[0.2em] mb-1">Global Training Efficiency</p>
+                                                        <p className="text-3xl font-serif text-[#0E5858] mb-2">{globalPercent}%</p>
+                                                        <div className="flex flex-col gap-2 items-center">
+                                                            {lastAct && (
+                                                                <div className="px-3 py-1 bg-[#0E5858] text-white rounded-full text-[7px] font-black uppercase tracking-widest flex items-center gap-2">
+                                                                    <div className="w-1 h-1 rounded-full bg-[#00B6C1] animate-pulse"></div>
+                                                                    Active: {new Date(lastAct.created_at).toLocaleDateString()}
+                                                                </div>
+                                                            )}
+                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{userActivity.length} Total Engagements Recorded</p>
+                                                        </div>
+                                                        <div className="w-full h-1 bg-gray-200 rounded-full mt-3 overflow-hidden">
+                                                            <div className="h-full bg-[#00B6C1]" style={{ width: `${globalPercent}%` }} />
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="text-gray-400 font-bold uppercase tracking-widest text-[9px]">Training Buddy</span>
                                             <span className="text-[#0E5858] font-bold">{selectedProfile.training_buddy || 'Unassigned'}</span>
@@ -499,9 +532,25 @@ function AdminDashboardContent() {
                                                         <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-widest">{audit.topic_code} Audit Report</p>
                                                         <p className="text-[8px] text-gray-300 font-black uppercase tracking-widest mt-0.5">{new Date(audit.created_at).toLocaleString()}</p>
                                                     </div>
-                                                    <div className="px-4 py-1.5 bg-[#0E5858] text-white rounded-lg text-[10px] font-black uppercase tracking-widest">Score: {audit.score}/100</div>
+                                                    <div className="flex gap-2">
+                                                        {audit.summary_text && (
+                                                            <button
+                                                                onClick={() => setSelectedAudit(audit)}
+                                                                className="px-4 py-1.5 bg-white text-[#0E5858] border border-[#0E5858]/10 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#00B6C1] hover:text-white transition-all"
+                                                            >
+                                                                View Input Data
+                                                            </button>
+                                                        )}
+                                                        <div className="px-4 py-1.5 bg-[#0E5858] text-white rounded-lg text-[10px] font-black uppercase tracking-widest">Score: {audit.score}/100</div>
+                                                    </div>
                                                 </div>
                                                 <p className="text-xs text-[#0E5858] leading-relaxed italic font-medium">"{audit.feedback}"</p>
+                                                {audit.ai_feedback && audit.ai_feedback !== 'AWAITING_REVIEW' && (
+                                                    <div className="mt-4 p-4 bg-white/50 rounded-xl border border-[#00B6C1]/10">
+                                                        <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest mb-1">AI System Feedback</p>
+                                                        <p className="text-[10px] text-gray-500 leading-relaxed">{audit.ai_feedback}</p>
+                                                    </div>
+                                                )}
                                                 <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-10 transition-opacity">
                                                     <Star size={40} className="text-[#FFCC00]" />
                                                 </div>
@@ -766,51 +815,93 @@ function AdminDashboardContent() {
                                             <th className="px-8 py-6">Counsellor</th>
                                             <th className="px-6 text-center">Credentials</th>
                                             <th className="px-6">Joined</th>
+                                            <th className="px-6 text-center">Avg Score</th>
+                                            <th className="px-6 text-center">Progress %</th>
                                             <th className="px-6">Role</th>
                                             <th className="px-8 text-right">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {filteredRegistry.map(p => (
-                                            <tr key={p.id} className="group hover:bg-[#FAFCEE]/50 transition-all cursor-pointer" onClick={() => setSelectedProfile(p)}>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 rounded-xl bg-[#0E5858] text-white flex items-center justify-center font-black group-hover:bg-[#00B6C1] transition-colors">{p.full_name?.[0] || 'U'}</div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-sm font-serif text-[#0E5858] font-bold truncate">{p.full_name}</p>
-                                                            <p className="text-[9px] font-bold text-gray-400 tracking-wider truncate">{p.email}</p>
+                                        {filteredRegistry.map(p => {
+                                            const userProgress = progress.filter(pr => pr.user_id === p.id);
+                                            const globalPercent = Math.min(100, Math.round((userProgress.length / (TOTAL_SYLLABUS_TOPICS || 1)) * 100));
+
+                                            return (
+                                                <tr key={p.id} className="group hover:bg-[#FAFCEE]/50 transition-all cursor-pointer" onClick={() => setSelectedProfile(p)}>
+                                                    <td className="px-8 py-6">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-xl bg-[#0E5858] text-white flex items-center justify-center font-black group-hover:bg-[#00B6C1] transition-colors">{p.full_name?.[0] || 'U'}</div>
+                                                            <div className="min-w-0">
+                                                                <p className="text-sm font-serif text-[#0E5858] font-bold truncate">{p.full_name}</p>
+                                                                <div className="flex flex-col gap-0.5 mt-0.5">
+                                                                    <p className="text-[9px] font-bold text-gray-400 tracking-wider truncate">{p.email}</p>
+                                                                    {(() => {
+                                                                        const userAct = activity.filter(a => a.user_id === p.id);
+                                                                        const lastAct = userAct[0];
+                                                                        if (!lastAct) return <p className="text-[7px] font-black text-gray-300 uppercase italic">No recent activity</p>;
+                                                                        return (
+                                                                            <div className="flex flex-col gap-0.5 mt-1">
+                                                                                <div className="flex items-center gap-1.5">
+                                                                                    <div className="w-1 h-1 rounded-full bg-[#00B6C1] animate-pulse"></div>
+                                                                                    <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-tight truncate max-w-[150px]">
+                                                                                        {lastAct.activity_type.replace('_', ' ')}: {lastAct.content_title}
+                                                                                    </p>
+                                                                                </div>
+                                                                                <p className="text-[6px] font-black text-gray-300 uppercase tracking-widest pl-2.5">+{userAct.length - 1} other actions</p>
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6">
-                                                    <div className="flex flex-col items-center gap-1">
-                                                        <div className="flex items-center gap-2 group/cred">
-                                                            <Mail size={10} className="text-[#00B6C1]" />
-                                                            <code className="text-[10px] font-mono text-[#0E5858]/60 bg-white px-2 py-0.5 rounded border border-[#0E5858]/5">{p.email}</code>
+                                                    </td>
+                                                    <td className="px-6">
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <div className="flex items-center gap-2 group/cred">
+                                                                <Mail size={10} className="text-[#00B6C1]" />
+                                                                <code className="text-[10px] font-mono text-[#0E5858]/60 bg-white px-2 py-0.5 rounded border border-[#0E5858]/5">{p.email}</code>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 group/cred">
+                                                                <BNKeyIcon size={10} className="text-orange-400" />
+                                                                <code className="text-[10px] font-mono text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">{p.temp_password || '515148'}</code>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2 group/cred">
-                                                            <BNKeyIcon size={10} className="text-orange-400" />
-                                                            <code className="text-[10px] font-mono text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">{p.temp_password || '515148'}</code>
+                                                    </td>
+                                                    <td className="px-6 text-[10px] font-bold text-[#0E5858]">
+                                                        {p.created_at ? new Date(p.created_at).toLocaleDateString() : '--'}
+                                                    </td>
+                                                    <td className="px-6 text-center">
+                                                        {(() => {
+                                                            const userAssessments = assessments.filter(a => a.user_id === p.id);
+                                                            const avg = userAssessments.length > 0
+                                                                ? Math.round(userAssessments.reduce((acc, a) => acc + (a.score / (a.total_questions || 5)), 0) / userAssessments.length * 100)
+                                                                : 0;
+                                                            return <span className={`text-[10px] font-black ${avg >= 70 ? 'text-green-500' : 'text-orange-400'}`}>{avg}%</span>;
+                                                        })()}
+                                                    </td>
+                                                    <td className="px-6">
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <span className="text-xs font-serif font-bold text-[#0E5858]">{globalPercent}%</span>
+                                                            <div className="w-20 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                                                <div className="h-full bg-[#00B6C1]" style={{ width: `${globalPercent}%` }} />
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 text-[10px] font-bold text-[#0E5858]">
-                                                    {p.created_at ? new Date(p.created_at).toLocaleDateString() : '--'}
-                                                </td>
-                                                <td className="px-6">
-                                                    <span className={`px-3 py-1 text-[8px] font-black uppercase rounded-lg border ${p.role === 'admin' ? 'bg-teal-50 text-teal-600 border-teal-100' : 'bg-gray-50 text-gray-500 border-gray-100'}`}>
-                                                        {p.role}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 text-right">
-                                                    <button
-                                                        className="p-3 rounded-lg hover:bg-[#0E5858] hover:text-white transition-all text-gray-300"
-                                                    >
-                                                        <ArrowUpRight size={16} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="px-6">
+                                                        <span className={`px-3 py-1 text-[8px] font-black uppercase rounded-lg border ${p.role === 'admin' ? 'bg-teal-50 text-teal-600 border-teal-100' : 'bg-gray-50 text-gray-500 border-gray-100'}`}>
+                                                            {p.role}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-8 text-right">
+                                                        <button
+                                                            className="p-3 rounded-lg hover:bg-[#0E5858] hover:text-white transition-all text-gray-300"
+                                                        >
+                                                            <ArrowUpRight size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>
@@ -819,62 +910,128 @@ function AdminDashboardContent() {
                 )}
             </AnimatePresence>
 
-            {/* MODAL: Quiz Detail Analysis */}
+            {/* Assessment Detail Modal */}
             <AnimatePresence>
                 {selectedQuiz && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#0E5858]/40 backdrop-blur-sm">
+                    <div className="fixed inset-0 bg-[#0E5858]/80 backdrop-blur-md z-[100] flex items-center justify-center p-8">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[85vh]"
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-[3rem] p-12 max-w-2xl w-full shadow-2xl relative overflow-hidden"
                         >
-                            <div className="p-8 border-b border-gray-100 flex items-center justify-between shrink-0">
-                                <div>
-                                    <h3 className="text-2xl font-serif text-[#0E5858]">Response Audit</h3>
-                                    <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-[0.2em] mt-1">
-                                        {selectedQuiz.topic_code} • {new Date(selectedQuiz.created_at).toLocaleDateString()}
-                                    </p>
+                            <button onClick={() => setSelectedQuiz(null)} className="absolute top-8 right-8 text-gray-300 hover:text-[#0E5858] transition-all"><XCircle size={32} /></button>
+                            <div className="mb-10 text-center">
+                                <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em] mb-2">Assessment Results</p>
+                                <h3 className="text-3xl font-serif text-[#0E5858] mb-4">{selectedQuiz.topic_code}</h3>
+                                <div className="inline-block px-8 py-4 bg-[#FAFCEE] rounded-2xl">
+                                    <p className="text-5xl font-serif text-[#0E5858] mb-1">{Math.round((selectedQuiz.score / (selectedQuiz.total_questions || 5)) * 100)}%</p>
+                                    <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest">Efficiency Rating</p>
                                 </div>
-                                <button onClick={() => setSelectedQuiz(null)} className="p-3 text-gray-400 hover:text-red-500 transition-all"><XCircle size={24} /></button>
                             </div>
-                            <div className="p-8 overflow-y-auto space-y-8">
-                                <div className="p-6 bg-[#FAFCEE] rounded-2xl flex items-center justify-between">
-                                    <div>
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Audit Score</p>
-                                        <p className="text-4xl font-serif text-[#00B6C1]">{Math.round((selectedQuiz.score / (selectedQuiz.total_questions || 5)) * 100)}%</p>
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 scrollbar-hide">
+                                {selectedQuiz.raw_data?.questions?.map((q: any, i: number) => (
+                                    <div key={i} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
+                                        <p className="text-xs font-bold text-[#0E5858] mb-3">Q{i + 1}: {q.question}</p>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-black text-[#00B6C1] uppercase">Drafted:</span>
+                                            <span className="text-[11px] font-medium text-gray-500">{selectedQuiz.raw_data.answers[i]}</span>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Accuracy</p>
-                                        <p className="text-lg font-bold text-[#0E5858]">{selectedQuiz.score} / {selectedQuiz.total_questions || 5} Correct</p>
-                                    </div>
-                                </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
-                                <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-[#0E5858] uppercase tracking-[0.2em]">Clinical Decision Analysis</h4>
-                                    {selectedQuiz.raw_data?.questions?.map((q: any, i: number) => {
-                                        const answer = selectedQuiz.raw_data.answers[i];
-                                        const isCorrect = answer === q.correctAnswer;
-                                        return (
-                                            <div key={i} className={`p-5 rounded-xl border ${isCorrect ? 'bg-green-50/20 border-green-100' : 'bg-red-50/20 border-red-100'}`}>
-                                                <p className="text-xs font-bold text-[#0E5858] mb-2">{i + 1}. {q.question}</p>
-                                                <div className="flex justify-between items-end gap-4">
-                                                    <div className="min-w-0">
-                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Counsellor Output</p>
-                                                        <p className={`text-xs font-bold ${isCorrect ? 'text-green-600' : 'text-red-500'} truncate`}>{answer || 'No Output'}</p>
-                                                    </div>
-                                                    {!isCorrect && (
-                                                        <div className="text-right shrink-0">
-                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Reference Truth</p>
-                                                            <p className="text-xs font-bold text-green-600">{q.correctAnswer}</p>
+            {/* Clinical Audit Data Modal */}
+            <AnimatePresence>
+                {selectedAudit && (
+                    <div className="fixed inset-0 bg-[#0E5858]/90 backdrop-blur-xl z-[100] flex items-center justify-center p-8 overflow-y-auto">
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 30 }}
+                            className="bg-white rounded-[4rem] p-12 max-w-5xl w-full shadow-2xl relative my-auto"
+                        >
+                            <button onClick={() => setSelectedAudit(null)} className="absolute top-10 right-10 text-gray-300 hover:text-[#0E5858] transition-all"><XCircle size={40} /></button>
+
+                            <div className="flex items-center gap-6 mb-12">
+                                <div className="w-20 h-20 bg-[#FAFCEE] rounded-[2rem] flex items-center justify-center text-[#0E5858] border border-[#0E5858]/5">
+                                    <ClipboardList size={40} />
+                                </div>
+                                <div>
+                                    <h3 className="text-4xl font-serif text-[#0E5858] mb-2">{selectedAudit.topic_code}</h3>
+                                    <p className="text-xs font-bold text-[#00B6C1] uppercase tracking-widest">Comprehensive Clinical Peer Audit Report</p>
+                                </div>
+                            </div>
+
+                            {(() => {
+                                try {
+                                    const data = JSON.parse(selectedAudit.summary_text || '{}');
+                                    return (
+                                        <div className="space-y-12">
+                                            {/* Persona Section */}
+                                            {data.metadata?.user_persona && (
+                                                <div className="grid md:grid-cols-2 gap-8">
+                                                    <div className="p-8 bg-[#0E5858] rounded-[2.5rem] text-white">
+                                                        <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-widest mb-4">Audit Identity / Persona</p>
+                                                        <p className="text-sm font-medium leading-relaxed italic opacity-80 mb-4 whitespace-pre-wrap">"{data.metadata.user_persona.story}"</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-[#00B6C1]"></div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest">Health Goal: {data.metadata.user_persona.goal}</p>
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                    <div className="p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 flex flex-col justify-center">
+                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Audit Entities Analyzed</h4>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {data.metadata.companies?.map((c: string) => (
+                                                                <span key={c} className="px-4 py-2 bg-white rounded-xl text-[10px] font-bold text-[#0E5858] border border-gray-100 shadow-sm">{c}</span>
+                                                            ))}
+                                                            {data.metadata.dieticians?.map((d: string) => (
+                                                                <span key={d} className="px-4 py-2 bg-[#00B6C1] rounded-xl text-[10px] font-bold text-white shadow-sm">{d}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Comparative Matrix */}
+                                            <div className="space-y-6">
+                                                <h4 className="text-xs font-black text-[#0E5858]/40 uppercase tracking-[0.2em] flex items-center gap-3">
+                                                    <BrainCircuit size={16} className="text-[#00B6C1]" /> Comparative Clinical Findings
+                                                </h4>
+
+                                                <div className="space-y-4">
+                                                    {data.questions?.map((q: string, qIdx: number) => {
+                                                        const answers = data.answers[qIdx];
+                                                        const brands = qIdx >= 9 && data.metadata.dieticians ? data.metadata.dieticians : (data.metadata.companies || []);
+
+                                                        return (
+                                                            <div key={qIdx} className="bg-white rounded-[2.5rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                                                <div className="p-6 bg-gray-50/50 border-b border-gray-100">
+                                                                    <p className="text-xs font-bold text-[#0E5858]">{qIdx + 1}. {q}</p>
+                                                                </div>
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                                                                    {[0, 1, 2].map(entityIdx => (
+                                                                        <div key={entityIdx} className="p-6 space-y-2">
+                                                                            <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest">{entityIdx === 0 ? "Balance Nutrition" : (brands[entityIdx - 1] || 'Entity')}</p>
+                                                                            <p className="text-[11px] text-gray-600 leading-relaxed font-medium">{answers[entityIdx] || '--'}</p>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                                        </div>
+                                    );
+                                } catch (e) {
+                                    return <p className="text-center py-20 text-red-400 font-bold uppercase tracking-widest">Data Decryption Error: Payload Malformed</p>;
+                                }
+                            })()}
                         </motion.div>
                     </div>
                 )}

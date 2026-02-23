@@ -65,10 +65,10 @@ export const syllabusData: Module[] = [
                 content: 'Study the core platform to understand the client interface.',
                 layout: 'grid',
                 links: [
-                    { label: 'BN Shop', subtitle: 'E-Commerce & Product Inventory', url: 'https://www.balancenutrition.in/' },
-                    { label: 'Nutripreneur', subtitle: 'Entrepreneurial Learning Platform', icon: 'target', url: 'https://www.balancenutrition.in/recipes' },
-                    { label: 'BN Franchise', subtitle: 'Life Centre & Franchise Operations', icon: 'globe', url: 'https://www.balancenutrition.in/health-reads' },
-                    { label: 'BN Health', subtitle: 'Clinical OS & Patient Management', icon: 'activity', url: '#', isPopup: true }
+                    { label: 'BN Website', url: 'https://www.balancenutrition.in/' },
+                    { label: 'BN Recipes', icon: 'target', url: 'https://www.balancenutrition.in/recipes' },
+                    { label: 'BN Health Reads', icon: 'globe', url: 'https://www.balancenutrition.in/health-reads' },
+                    { label: 'BN App', icon: 'activity', url: 'https://docs.google.com/document/d/13ueBq-I6O53PrHbPIkifPPZ7tE1HZ9Bl-iTExkhM2Fk/edit?tab=t.0' }
                 ]
             },
             {
@@ -144,9 +144,10 @@ export const syllabusData: Module[] = [
                 content: 'Deep dive into the specific kits and lifestyle guides provided to clients.',
                 links: [
                     { label: 'E-Kits Ecosystem', url: 'https://www.youtube.com/watch?v=lCbJs_FYueQ&t=444s' },
-                    { label: 'Eating Portions PDF', url: 'https://balancenutrition.in/media/ekits/eat_in_portions.pdf' },
-                    { label: 'Alcohol Guide PDF', url: 'https://balancenutrition.in/media/ekits/alcohol_guide.pdf' },
-                    { label: 'Restaurant Guide PDF', url: 'https://balancenutrition.in/media/ekits/restaurant_menu.pdf' }
+                    { label: 'Eating Portions', url: 'https://balancenutrition.in/media/ekits/eat_in_portions.pdf' },
+                    { label: 'Alcohol Guide', url: 'https://res.cloudinary.com/dg4wzx8c8/video/upload/v1759304799/app_images/ubegnn0cfmzazh7u15ay.mp4' },
+                    { label: 'Restaurant Guide', url: 'https://res.cloudinary.com/dg4wzx8c8/video/upload/v1759303713/app_images/rt24vbelaswemhdbessr.mp4' },
+                    { label: 'Quick Filler', url: 'https://res.cloudinary.com/dg4wzx8c8/video/upload/v1759304944/app_images/tetgjgq3lilyo5enwmaz.mp4' }
                 ]
             },
             {
