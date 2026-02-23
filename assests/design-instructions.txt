@@ -1,0 +1,241 @@
+Design Data Handbook
+Balance Nutrition
+Design Data Handbook
+Classy · Minimal · Gamified
+1. Brand Vision
+Balance Nutrition — Brand Vision
+To become the world’s most trusted, one-stop preventive healthcare ecosystem for
+Indians —
+where smart lifestyle management replaces reactive treatment, and staying healthy feels
+seamless, personalized, and effortless.
+What this means:
+● Trusted globally by Indians
+● Preventive and proactive by default
+● Health that fits into real, busy lives
+● One platform for everyday healthcare decisions
+Vision Lens:
+Balance Nutrition exists to move healthcare upstream — before illness begins — and
+make daily health choices feel intuitive, not overwhelming.
+2. Brand Mission
+Balance Nutrition — Brand Mission
+To simplify healthcare using technology, deep nutritional and medical expertise, and
+research-backed systems —
+by delivering easy, engaging, and accessible experiences that turn complex health
+science into personalized, gamified, and actionable daily habits.
+How we deliver this:
+● Deep research and expert-led guidance working quietly in the background
+● Simple, low-effort systems designed for real human behavior
+● Personalized journeys that reduce decision fatigue and improve consistency
+● Gamified content that motivates without overwhelming
+3. Brand Values
+1. Trust Over Trends
+We prioritise science, evidence, and credibility over short-term fads.
+2. Prevention First
+We design for long-term health outcomes, not reactive fixes.
+3. Simplicity Wins
+Healthcare should feel clear, calm, and doable, even in complex situations.
+4. Human-Centered Design
+We respect real lives, real schedules, and real limitations.
+5. Progress Over Perfection
+Consistency matters more than intensity. Small wins compound.
+4. Brand Voice & Tone
+Brand Voice
+Calm. Assured. Encouraging. Intelligent. Human.
+Balance Nutrition never:
+● Shames
+● Scares
+● Overcomplicates
+● Over-promises
+How we sound:
+● Like a trusted expert who explains simply
+● Like a guide, not a drill sergeant
+● Like someone who understands modern Indian lifestyles
+Tone Guidelines
+Situation Tone
+Health guidance Calm & reassuring
+Education Clear & non-technical
+Gamification Encouraging, not childish
+Errors / warnings Supportive, never
+alarming
+Success moments Warm, celebratory, subtle
+5. Design Philosophy
+Core Design Principle
+“Calm confidence with moments of delight.”
+Our design system must:
+● Build trust instantly
+● Reduce cognitive load
+● Encourage daily engagement
+● Reduce friction through clarity and simplicity
+● Motivate consistency using subtle gamification, not gimmicks
+● Celebrate progress without noise
+The experience should feel like:
+A composed wellness companion that quietly works in your favour.
+2. Visual Personality
+Attribute Expression
+Classy Editorial typography, restrained colour
+usage
+Minimal Soft backgrounds, generous spacing
+Trustworthy Muted tones, clear hierarchy
+Gamified Progress cues, rewards, micro-celebrations
+Premium Fewer colours, intentional contrast
+3. Colour System (Psychology-Driven)
+Final Colour Palette
+● Teal Blue: #00B6C1
+● Deep Teal: #0E5858
+● Warm Yellow: #FFCC00
+● Soft Cream: #FAFCEE
+Colour Role Definition
+🟤 Primary Background
+Soft Cream — #FAFCEE
+● Default app & web background
+● Reduces eye fatigue
+● Warmer than white → feels human and premium
+Use on 90–95% of screens
+🟢 Primary Brand & Action Colour
+Teal Blue — #00B6C1
+● Primary CTAs
+● Progress indicators
+Active states
+Psychology:
+● Health, balance, trust
+● Encourages action without urgency stress
+🟢 Primary Text Colour
+Deep Teal — #0E5858
+● Headings
+● Body text
+● Labels
+Why:
+● Softer than black
+● Professional and authoritative
+● High readability on light backgrounds
+🟡 Gamification & Rewards Accent
+Warm Yellow — #FFCC00
+● Streaks
+● Milestones
+● Badges
+● Wallet credits
+● Achievement states
+Rules:
+● Accent only
+● Never for body text
+● Never for primary CTAs
+● Usage < 5% of UI
+Colour Usage Ratio
+● Background & neutrals: 60–65%
+● Brand teal: 20–25%
+● Text: 10–15%
+● Gamification yellow: 3–5%
+4. Typography System
+Typography Philosophy
+“Serif for meaning. Sans for movement.”
+Primary Typeface (Headlines)
+Zodiak (Serif)
+Used to express:
+● Authority
+● Trust
+● Brand voice
+● Emotional resonance
+Use Zodiak for:
+● Hero headlines
+● Section titles
+● Motivational copy
+● Milestone messages
+Use Zodiak:
+Use Regular or Medium
+Avoid Bold
+Short, intentional headlines only
+Do NOT use Zodiak for:
+● Buttons
+● Forms
+● Body text
+● Data or numbers
+Recommended weights:
+● Regular
+● Medium
+(Avoid Bold)
+Secondary Typeface (Body & UI)
+Synonym (Sans-serif)
+Used for:
+● Body text
+● Buttons
+● Inputs
+● Navigation
+● Data & stats
+● Gamification counters
+Why:
+● Neutral and modern
+● Excellent legibility
+● Scales across app, dashboards, reports
+Typography Hierarchy (Figma-Ready)
+Element Font Weight
+Hero Title Zodiak Medium
+Section
+Heading
+Zodiak Regular
+Body Text Synonym Regular
+Button Text Synonym Medium
+Labels / Helper Synonym Regular
+Stats / Numbers Synonym SemiBold
+5. Buttons & Actions
+Primary CTA
+● Background: #00B6C1
+● Text: White
+● Usage:
+○ Start
+○ Continue
+○ Save
+○ Proceed
+Secondary CTA
+● Border: #00B6C1
+● Text: #00B6C1
+● Background: Transparent / Cream
+Tertiary Action
+● Text only
+● Colour: #0E5858
+● Used for:
+○ Skip
+○ Learn more
+○ View details
+6. Gamification Guidelines
+Gamification should feel encouraging, not childish.
+Use Colour for:
+● Achievement confirmation
+● Rewards
+● Progress completion
+Do NOT Gamify With:
+● Excess colours
+● Loud icons
+● Over-animation
+Gamification Levers:
+● Motion
+● Spacing
+● Subtle highlights
+● Typography contrast
+● Yellow accents (sparingly)
+7. Logo Usage Alignment
+● Logo teal aligns with #00B6C1
+● Logo yellow is brand signature, not UI colour
+● UI yellow reserved strictly for reward moments
+This preserves:
+● Brand consistency
+● Visual discipline
+● Premium perception
+8. Spacing & Layout Principles
+● Generous white (cream) space
+● Clear content grouping
+● Avoid heavy shadows
+● Prefer elevation via spacing, not depth
+9. Design Do & Don’t
+✅ Do
+● Use restraint
+● Let typography breathe
+● Celebrate progress subtly
+● Maintain consistency across platforms
+❌ Don’t
+● Overuse yellow
+● Mix multiple fonts
+● Use serif in functional UI
+● Add decorative clutter
+10. Final Design North Star
+“A composed wellness interface that guides gently, motivates consistently,
+and celebrates progress meaningfully.”
