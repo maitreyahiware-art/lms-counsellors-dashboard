@@ -46,7 +46,10 @@ import {
     Star,
     Layout,
     Sparkles,
-    Bell
+    Bell,
+    Edit3,
+    Activity,
+    X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,6 +85,7 @@ interface ActivityLog {
     created_at: string;
     module_id?: string;
     topic_code?: string;
+    score?: number;
 }
 
 interface SummaryAudit {
@@ -102,6 +106,7 @@ const TOTAL_SYLLABUS_TOPICS = syllabusData
 interface DynamicContent {
     id: string;
     module_id: string;
+    topic_code: string;
     title: string;
     content_type: string;
     content: string;
@@ -112,7 +117,7 @@ interface TopicProgress {
     user_id: string;
     topic_code: string;
     module_id: string;
-    created_at: string;
+    completed_at: string;
 }
 
 function AdminDashboardContent() {
@@ -153,6 +158,8 @@ function AdminDashboardContent() {
     const [currentAdmin, setCurrentAdmin] = useState<Profile | null>(null);
 
     const [contentForm, setContentForm] = useState({
+        id: "",
+        topicCode: "",
         moduleId: "",
         topicTitle: "",
         contentType: "video",
@@ -162,6 +169,8 @@ function AdminDashboardContent() {
     const [contentSuccess, setContentSuccess] = useState("");
     const [contentError, setContentError] = useState("");
     const [isCleaning, setIsCleaning] = useState(false);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [reportData, setReportData] = useState<any>(null);
     const [cleanupSuccess, setCleanupSuccess] = useState("");
     const [cleanupError, setCleanupError] = useState("");
 
@@ -226,34 +235,103 @@ function AdminDashboardContent() {
             setLoading(false);
         };
         checkAuth();
+
+        const activityChannel = supabase
+            .channel('admin-activity-updates')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'mentor_activity_logs' },
+                (payload) => {
+                    setActivity(prev => [payload.new as ActivityLog, ...prev]);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(activityChannel);
+        };
     }, [router]);
 
     const refreshData = async () => {
         try {
+            console.log("Master Sync Started...");
             const [
-                { data: pData },
-                { data: aData },
-                { data: actData },
-                { data: audData },
-                { data: cData },
-                { data: prData }
+                { data: pData, error: pError },
+                { data: aData, error: aError },
+                { data: actData, error: actError },
+                { data: audData, error: audError },
+                { data: cData, error: cError },
+                { data: prData, error: prError }
             ] = await Promise.all([
                 supabase.from('profiles').select('*').order('created_at', { ascending: false }),
                 supabase.from('assessment_logs').select('*').order('created_at', { ascending: false }),
                 supabase.from('mentor_activity_logs').select('*').order('created_at', { ascending: false }),
                 supabase.from('summary_audits').select('*').order('created_at', { ascending: false }),
                 supabase.from('syllabus_content').select('*').order('module_id', { ascending: true }),
-                supabase.from('mentor_progress').select('*')
+                supabase.from('mentor_progress').select('*').order('completed_at', { ascending: false })
             ]);
+
+            if (pError) console.error("Profiles error:", pError);
+            if (prError) console.error("Progress error:", prError);
+
+            // Create a unified activity feed by merging logs, assessments, and progress
+            const combinedActivity = [
+                ...(actData || []),
+                ...(aData || []).map(a => {
+                    // Try to find title in syllabus
+                    let title = a.topic_code;
+                    for (const mod of syllabusData) {
+                        if (a.topic_code === `MODULE_${mod.id}`) title = mod.title;
+                        const t = mod.topics?.find(top => top.code === a.topic_code);
+                        if (t) title = t.title;
+                    }
+                    return {
+                        id: `assessment-${a.id}`,
+                        user_id: a.user_id,
+                        activity_type: a.topic_code?.startsWith('MODULE_') ? 'complete_module' : 'complete_quiz',
+                        content_title: title,
+                        topic_code: a.topic_code,
+                        created_at: a.created_at,
+                        score: a.score
+                    };
+                }),
+                ...(prData || []).map(p => {
+                    // Find topic title
+                    let title = p.topic_code;
+                    const mod = syllabusData.find(m => m.id === p.module_id);
+                    if (mod) {
+                        const t = mod.topics?.find(top => top.code === p.topic_code);
+                        if (t) title = t.title;
+                    }
+                    return {
+                        id: `progress-${p.user_id}-${p.topic_code}`,
+                        user_id: p.user_id,
+                        activity_type: 'complete_segment',
+                        content_title: title,
+                        topic_code: p.topic_code,
+                        created_at: p.completed_at || p.created_at || new Date().toISOString()
+                    };
+                })
+            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+            const uniqueActivity: ActivityLog[] = [];
+            const seen = new Set();
+            combinedActivity.forEach(act => {
+                const key = `${act.user_id}-${act.topic_code || act.content_title}-${act.activity_type}`;
+                if (!seen.has(key)) {
+                    uniqueActivity.push(act as ActivityLog);
+                    seen.add(key);
+                }
+            });
 
             setProfiles(pData || []);
             setAssessments(aData || []);
-            setActivity(actData || []);
+            setActivity(uniqueActivity);
             setAudits(audData || []);
             setDynamicContent(cData || []);
             setProgress(prData || []);
+            console.log("Master Sync Complete. Profiles:", pData?.length, "Activity:", uniqueActivity.length);
         } catch (err) {
-            console.error("Master Sync Error:", err);
+            console.error("Master Sync Fatal Error:", err);
         }
     };
 
@@ -369,7 +447,7 @@ function AdminDashboardContent() {
             if (!response.ok) throw new Error('Architecture synchronization failed');
 
             setContentSuccess("Content Bank synchronized across all nodes.");
-            setContentForm({ moduleId: "", topicTitle: "", contentType: "video", contentLink: "" });
+            setContentForm({ id: "", topicCode: "", moduleId: "", topicTitle: "", contentType: "video", contentLink: "" });
             refreshData();
         } catch (err: any) {
             setContentError(err.message);
@@ -643,6 +721,23 @@ function AdminDashboardContent() {
             alert(err.message);
         } finally {
             setSendingNotification(false);
+        }
+    };
+
+    const handleGenerateReport = async () => {
+        setIsGeneratingReport(true);
+        try {
+            const res = await fetch('/api/admin/reports/daily');
+            const data = await res.json();
+            if (res.ok) {
+                setReportData(data);
+                alert("Daily Progress Report generated. View summary in console or registry.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to generate report.");
+        } finally {
+            setIsGeneratingReport(false);
         }
     };
 
@@ -1094,16 +1189,60 @@ function AdminDashboardContent() {
                                         <h4 className="text-xs font-black uppercase tracking-widest text-[#0E5858]/40 mb-6 flex items-center gap-3">
                                             <Monitor size={16} className="text-[#00B6C1]" /> Recent Activity Trail
                                         </h4>
-                                        <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
-                                            {activity.filter(a => a.user_id === selectedProfile.id).map(log => (
-                                                <div key={log.id} className="flex gap-4 group">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#00B6C1] mt-1.5 shrink-0 group-last:bg-transparent"></div>
-                                                    <div>
-                                                        <p className="text-[11px] font-bold text-[#0E5858]">{log.activity_type.replace('_', ' ')}: <span className="text-gray-400 font-medium">{log.content_title}</span></p>
-                                                        <p className="text-[8px] text-gray-300 font-black uppercase tracking-widest mt-0.5">{new Date(log.created_at).toLocaleString()}</p>
-                                                    </div>
+                                        <div className="space-y-6 relative pl-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {activity.filter(a => a.user_id === selectedProfile.id).length > 0 ? (
+                                                activity.filter(a => a.user_id === selectedProfile.id).slice(0, 20).map((log, i) => {
+                                                    const isLast = i === activity.filter(a => a.user_id === selectedProfile.id).length - 1;
+
+                                                    // Map icons to activity types
+                                                    const getIcon = (type: string) => {
+                                                        if (type.includes('module')) return <Award size={14} className="text-yellow-500" />;
+                                                        if (type.includes('quiz')) return <Brain size={14} className="text-purple-500" />;
+                                                        if (type.includes('assignment')) return <ClipboardList size={14} className="text-blue-500" />;
+                                                        if (type.includes('segment')) return <CheckCircle2 size={14} className="text-green-500" />;
+                                                        return <Clock size={14} className="text-gray-400" />;
+                                                    };
+
+                                                    return (
+                                                        <div key={log.id} className="relative pb-6 group">
+                                                            {!isLast && (
+                                                                <div className="absolute left-[-13px] top-4 bottom-0 w-[1px] bg-gray-100 group-hover:bg-[#00B6C1]/20 transition-colors" />
+                                                            )}
+                                                            <div className="absolute left-[-18.5px] top-1 w-6 h-6 rounded-lg bg-white border border-gray-100 flex items-center justify-center shadow-sm group-hover:border-[#00B6C1]/30 transition-all z-10">
+                                                                {getIcon(log.activity_type)}
+                                                            </div>
+                                                            <div className="pl-4">
+                                                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                                    <p className="text-[10px] font-black text-[#0E5858] uppercase tracking-wider">
+                                                                        {log.activity_type.replace('_', ' ')}
+                                                                    </p>
+                                                                    {log.score !== undefined && (
+                                                                        <span className="text-[10px] font-black text-[#00B6C1] bg-[#00B6C1]/5 px-2 py-0.5 rounded-full">
+                                                                            {log.score}%
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[11px] font-medium text-gray-500 leading-tight">
+                                                                    {log.content_title || log.topic_code || 'System Event'}
+                                                                </p>
+                                                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                                                                    {new Date(log.created_at).toLocaleString([], {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center py-20 opacity-20">
+                                                    <Activity size={40} className="mb-4" />
+                                                    <p className="text-[10px] font-black uppercase tracking-widest">No activity recorded yet</p>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     </div>
 
@@ -1478,15 +1617,78 @@ function AdminDashboardContent() {
                         </header>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div className="bg-[#FAFCEE] p-10 rounded-[2rem] shadow-sm border border-[#0E5858]/10 flex flex-col items-center justify-center text-center space-y-4">
-                                <ShieldCheck size={48} className="text-[#00B6C1]/40" />
-                                <div>
-                                    <h3 className="text-xl font-serif text-[#0E5858]">Content Upload: Phase 2</h3>
-                                    <p className="text-xs text-gray-500 font-medium leading-relaxed max-w-[250px] mt-2">
-                                        Dynamic syllabus updates and resource injection are scheduled for the next major release.
-                                    </p>
+                            <form onSubmit={handleUpdateContent} className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-[#0E5858]/5 space-y-8">
+                                <header className="mb-4">
+                                    <h3 className="text-xl font-serif text-[#0E5858]">Synchronize Masterclass Node</h3>
+                                    <p className="text-[10px] text-gray-400 font-medium mt-1">Deploy dynamic segments directly to the academy frontend.</p>
+                                </header>
+
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Target Module</label>
+                                        <select
+                                            value={contentForm.moduleId}
+                                            onChange={(e) => setContentForm({ ...contentForm, moduleId: e.target.value })}
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
+                                            required
+                                        >
+                                            <option value="">Select Target Module</option>
+                                            {syllabusData.map(m => (
+                                                <option key={m.id} value={m.id}>{m.title}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Topic / Segment Title</label>
+                                        <input
+                                            type="text"
+                                            value={contentForm.topicTitle}
+                                            onChange={(e) => setContentForm({ ...contentForm, topicTitle: e.target.value })}
+                                            placeholder="e.g. Deep Dive into PCOS Protocols"
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Resource Type</label>
+                                            <select
+                                                value={contentForm.contentType}
+                                                onChange={(e) => setContentForm({ ...contentForm, contentType: e.target.value as any })}
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
+                                            >
+                                                <option value="video">Video Session</option>
+                                                <option value="pdf">Protocol (PDF)</option>
+                                                <option value="link">External Resource</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Resource Link</label>
+                                            <input
+                                                type="url"
+                                                value={contentForm.contentLink}
+                                                onChange={(e) => setContentForm({ ...contentForm, contentLink: e.target.value })}
+                                                placeholder="https://..."
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+
+                                {contentError && <p className="text-red-500 text-[10px] font-bold text-center">{contentError}</p>}
+                                {contentSuccess && <p className="text-green-500 text-[10px] font-bold text-center">{contentSuccess}</p>}
+
+                                <button
+                                    type="submit"
+                                    disabled={uploadingContent}
+                                    className="w-full py-5 bg-[#0E5858] text-white rounded-xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-[#00B6C1] transition-all"
+                                >
+                                    {uploadingContent ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Synchronize Architecture"}
+                                </button>
+                            </form>
 
 
                             <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-[#0E5858]/5 overflow-hidden flex flex-col max-h-[500px]">
@@ -1500,6 +1702,19 @@ function AdminDashboardContent() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <a href={content.content} target="_blank" className="p-2 text-gray-300 hover:text-[#00B6C1] transition-all"><ExternalLink size={12} /></a>
+                                                <button
+                                                    onClick={() => setContentForm({
+                                                        id: content.id,
+                                                        topicCode: content.topic_code,
+                                                        moduleId: content.module_id,
+                                                        topicTitle: content.title,
+                                                        contentType: content.content_type || 'video',
+                                                        contentLink: content.content
+                                                    })}
+                                                    className="p-2 text-gray-300 hover:text-[#00B6C1] transition-all"
+                                                >
+                                                    <Edit3 size={12} />
+                                                </button>
                                                 <button onClick={() => handleDeleteContent(content.id)} className="p-2 text-gray-300 hover:text-red-500 transition-all"><Trash2 size={12} /></button>
                                             </div>
                                         </div>
@@ -1587,41 +1802,81 @@ function AdminDashboardContent() {
                                                                 className="w-full bg-white border border-gray-100 rounded-2xl py-4 px-6 text-sm font-medium outline-none h-24 resize-none shadow-sm"
                                                             />
                                                         </div>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            {q.options.map((opt: string, optIdx: number) => (
-                                                                <div key={optIdx} className="relative">
-                                                                    <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black transition-all ${q.correctAnswer === opt && opt !== "" ? 'bg-[#00B6C1] text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                                        {String.fromCharCode(65 + optIdx)}
-                                                                    </div>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={opt}
-                                                                        onChange={e => {
-                                                                            const oldVal = opt;
-                                                                            const newVal = e.target.value;
-                                                                            const newList = [...manualQuizQuestions];
-                                                                            newList[qIdx].options[optIdx] = newVal;
-                                                                            if (newList[qIdx].correctAnswer === oldVal) {
-                                                                                newList[qIdx].correctAnswer = newVal;
-                                                                            }
-                                                                            setManualQuizQuestions(newList);
-                                                                        }}
-                                                                        placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                                                                        className="w-full bg-white border border-gray-100 rounded-xl py-3 pl-14 pr-4 text-xs font-semibold outline-none"
-                                                                    />
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newList = [...manualQuizQuestions];
-                                                                            newList[qIdx].correctAnswer = opt;
-                                                                            setManualQuizQuestions(newList);
-                                                                        }}
-                                                                        className={`absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-widest transition-all ${q.correctAnswer === opt && opt !== "" ? 'text-[#00B6C1]' : 'text-gray-300 hover:text-[#0E5858]'}`}
-                                                                    >
-                                                                        {q.correctAnswer === opt && opt !== "" ? 'Correct' : 'Set Correct'}
-                                                                    </button>
-                                                                </div>
-                                                            ))}
+                                                        <div className="flex items-center gap-4 mb-4">
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newList = [...manualQuizQuestions];
+                                                                    newList[qIdx].type = 'mcq';
+                                                                    setManualQuizQuestions(newList);
+                                                                }}
+                                                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${q.type === 'text' ? 'bg-gray-100 text-gray-400' : 'bg-[#00B6C1] text-white shadow-lg shadow-[#00B6C1]/20'}`}
+                                                            >
+                                                                Multiple Choice
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newList = [...manualQuizQuestions];
+                                                                    newList[qIdx].type = 'text';
+                                                                    setManualQuizQuestions(newList);
+                                                                }}
+                                                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${q.type === 'text' ? 'bg-[#00B6C1] text-white shadow-lg shadow-[#00B6C1]/20' : 'bg-gray-100 text-gray-400'}`}
+                                                            >
+                                                                Text Response
+                                                            </button>
                                                         </div>
+
+                                                        {q.type === 'text' ? (
+                                                            <div className="space-y-2">
+                                                                <label className="text-[9px] font-black text-[#00B6C1] uppercase tracking-widest ml-4">Correct Exact Answer</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={q.correctAnswer}
+                                                                    onChange={e => {
+                                                                        const newList = [...manualQuizQuestions];
+                                                                        newList[qIdx].correctAnswer = e.target.value;
+                                                                        setManualQuizQuestions(newList);
+                                                                    }}
+                                                                    placeholder="Enter the exact answer for validation..."
+                                                                    className="w-full bg-white border border-gray-100 rounded-xl py-4 px-6 text-sm font-medium outline-none shadow-sm"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                {q.options.map((opt: string, optIdx: number) => (
+                                                                    <div key={optIdx} className="relative">
+                                                                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black transition-all ${q.correctAnswer === opt && opt !== "" ? 'bg-[#00B6C1] text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                                                            {String.fromCharCode(65 + optIdx)}
+                                                                        </div>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={opt}
+                                                                            onChange={e => {
+                                                                                const oldVal = opt;
+                                                                                const newVal = e.target.value;
+                                                                                const newList = [...manualQuizQuestions];
+                                                                                newList[qIdx].options[optIdx] = newVal;
+                                                                                if (newList[qIdx].correctAnswer === oldVal) {
+                                                                                    newList[qIdx].correctAnswer = newVal;
+                                                                                }
+                                                                                setManualQuizQuestions(newList);
+                                                                            }}
+                                                                            placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                                                            className="w-full bg-white border border-gray-100 rounded-xl py-3 pl-14 pr-4 text-xs font-semibold outline-none"
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const newList = [...manualQuizQuestions];
+                                                                                newList[qIdx].correctAnswer = opt;
+                                                                                setManualQuizQuestions(newList);
+                                                                            }}
+                                                                            className={`absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-black uppercase tracking-widest transition-all ${q.correctAnswer === opt && opt !== "" ? 'text-[#00B6C1]' : 'text-gray-300 hover:text-[#0E5858]'}`}
+                                                                        >
+                                                                            {q.correctAnswer === opt && opt !== "" ? 'Correct' : 'Set Correct'}
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                         <div className="space-y-2">
                                                             <label className="text-[9px] font-black text-orange-400 uppercase tracking-widest ml-4">Clinical Justification / Protocol Rationale</label>
                                                             <input
@@ -1641,7 +1896,7 @@ function AdminDashboardContent() {
                                             ))}
 
                                             <button
-                                                onClick={() => setManualQuizQuestions(prev => [...prev, { question: "", options: ["", "", "", ""], correctAnswer: "", justification: "" }])}
+                                                onClick={() => setManualQuizQuestions(prev => [...prev, { type: 'mcq', question: "", options: ["", "", "", ""], correctAnswer: "", justification: "" }])}
                                                 className="w-full py-6 border-2 border-dashed border-gray-100 rounded-[2.5rem] text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] hover:border-[#00B6C1] hover:text-[#00B6C1] transition-all bg-gray-50/30 flex items-center justify-center gap-3"
                                             >
                                                 <Plus size={18} /> Add Clinical Assessment Question
@@ -1692,6 +1947,14 @@ function AdminDashboardContent() {
                                     {isCleaning ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                                     {isCleaning ? "Performing Cleanup..." : "Cleanup Registry"}
                                 </button>
+                                <button
+                                    onClick={handleGenerateReport}
+                                    disabled={isGeneratingReport}
+                                    className={`flex items-center gap-2 px-6 py-4 rounded-2xl border ${isGeneratingReport ? 'bg-gray-100 text-gray-400' : 'bg-[#0E5858] border-[#0E5858] text-white hover:bg-[#00B6C1]'} transition-all text-[10px] font-black uppercase tracking-widest shadow-md`}
+                                >
+                                    {isGeneratingReport ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+                                    {isGeneratingReport ? "Generating..." : "Daily Progress Report"}
+                                </button>
                                 <div className="relative w-full lg:w-[400px]">
                                     <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={18} />
                                     <input
@@ -1708,6 +1971,56 @@ function AdminDashboardContent() {
                         {(cleanupSuccess || cleanupError) && (
                             <div className={`p-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest text-center ${cleanupSuccess ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                                 {cleanupSuccess || cleanupError}
+                            </div>
+                        )}
+
+                        {reportData && (
+                            <div className="bg-[#FAFCEE] p-8 rounded-[2.5rem] border border-[#0E5858]/10 animate-in fade-in slide-in-from-top-4 duration-500">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-serif text-[#0E5858]">Daily Progress Report: {reportData.date}</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#00B6C1] mt-1">Status: Ready to be emailed to {reportData.recipient}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setReportData(null)}
+                                        className="p-2 hover:bg-white rounded-full transition-colors text-gray-400"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {reportData.report.map((user: any, idx: number) => (
+                                        <div key={idx} className="bg-white p-5 rounded-2xl border border-[#0E5858]/5">
+                                            <p className="text-sm font-serif text-[#0E5858] mb-1">{user.name}</p>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                                                    <span className="text-gray-400">Segments</span>
+                                                    <span className="text-[#0E5858]">{user.segmentsCompleted}</span>
+                                                </div>
+                                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                                                    <span className="text-gray-400">Tests</span>
+                                                    <span className="text-[#0E5858]">{user.testsTaken}</span>
+                                                </div>
+                                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                                                    <span className="text-gray-400">Avg Score</span>
+                                                    <span className="text-[#00B6C1]">{user.avgScore}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const text = reportData.report.map((u: any) =>
+                                            `${u.name}: ${u.segmentsCompleted} Segments, ${u.testsTaken} Tests, Score: ${u.avgScore}%`
+                                        ).join('\n');
+                                        navigator.clipboard.writeText(text);
+                                        alert("Summary copied to clipboard!");
+                                    }}
+                                    className="mt-6 w-full py-4 bg-white border border-[#0E5858]/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5858] hover:bg-gray-50 transition-all"
+                                >
+                                    Copy Report for Email
+                                </button>
                             </div>
                         )}
 
@@ -1849,16 +2162,100 @@ function AdminDashboardContent() {
                                     <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest">Efficiency Rating</p>
                                 </div>
                             </div>
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4 scrollbar-hide">
-                                {selectedQuiz.raw_data?.questions?.map((q: any, i: number) => (
-                                    <div key={i} className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                                        <p className="text-xs font-bold text-[#0E5858] mb-3">Q{i + 1}: {q.question}</p>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black text-[#00B6C1] uppercase">Drafted:</span>
-                                            <span className="text-[11px] font-medium text-gray-500">{selectedQuiz.raw_data.answers[i]}</span>
+                            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 scrollbar-hide">
+                                {selectedQuiz.raw_data?.questions?.map((q: any, i: number) => {
+                                    const userAnswer = selectedQuiz.raw_data.answers?.[i];
+                                    const gradedResult = selectedQuiz.raw_data.gradedResults?.[i];
+                                    const isCorrect = gradedResult ? gradedResult.isCorrect : (userAnswer === q.correctAnswer);
+                                    const correctAnswer = gradedResult ? gradedResult.correctAnswer : q.correctAnswer;
+                                    const justification = gradedResult ? gradedResult.justification : q.justification;
+
+                                    return (
+                                        <div key={i} className={`p-6 rounded-[2.5rem] border transition-all ${isCorrect ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}>
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="flex flex-col gap-1 pr-8">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-black text-[#0E5858]/30 uppercase tracking-widest">Question {i + 1}</span>
+                                                        {q.type === 'text' && <span className="px-2 py-0.5 bg-blue-50 text-blue-500 rounded text-[7px] font-black uppercase">Text Response</span>}
+                                                    </div>
+                                                    <p className="text-sm font-bold text-[#0E5858] leading-relaxed">{q.question}</p>
+                                                </div>
+                                                {isCorrect ? (
+                                                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-green-500/20">
+                                                        <CheckCircle2 size={18} />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-red-500/20">
+                                                        <XCircle size={18} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                {q.type === 'text' ? (
+                                                    <div className="space-y-3">
+                                                        <div className="p-4 bg-white/50 rounded-2xl border border-[#0E5858]/5">
+                                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5">User's Submission</p>
+                                                            <p className={`text-[11px] font-bold ${isCorrect ? 'text-green-700' : 'text-red-600'}`}>{userAnswer || <span className="italic opacity-50">Empty Response</span>}</p>
+                                                        </div>
+                                                        {!isCorrect && (
+                                                            <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+                                                                <p className="text-[8px] font-black text-green-600 uppercase tracking-widest mb-1.5">Expected Answer</p>
+                                                                <p className="text-[11px] font-black text-green-700">{correctAnswer}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                                        {q.options?.map((opt: string, optIdx: number) => {
+                                                            const isUserPick = userAnswer === opt;
+                                                            const isCorrectOpt = correctAnswer === opt;
+
+                                                            let borderClass = "border-black/5 bg-white/40";
+                                                            let textClass = "text-gray-400 font-medium";
+                                                            let iconColor = "text-gray-200";
+
+                                                            if (isCorrectOpt) {
+                                                                borderClass = "border-green-500 bg-green-50/50 shadow-sm";
+                                                                textClass = "text-green-700 font-bold";
+                                                                iconColor = "text-green-500";
+                                                            } else if (isUserPick && !isCorrect) {
+                                                                borderClass = "border-red-500 bg-red-50/50 shadow-sm";
+                                                                textClass = "text-red-600 font-bold";
+                                                                iconColor = "text-red-500";
+                                                            }
+
+                                                            return (
+                                                                <div key={optIdx} className={`p-3 rounded-xl border flex items-start gap-2.5 transition-all ${borderClass}`}>
+                                                                    <div className={`shrink-0 w-5 h-5 rounded flex items-center justify-center text-[9px] font-black border ${isCorrectOpt ? 'bg-green-500 text-white border-green-500' : (isUserPick ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-400 border-black/5')}`}>
+                                                                        {String.fromCharCode(65 + optIdx)}
+                                                                    </div>
+                                                                    <span className={`text-[10px] leading-tight ${textClass}`}>{opt}</span>
+                                                                    {(isUserPick || isCorrectOpt) && (
+                                                                        <div className="ml-auto">
+                                                                            {isCorrectOpt ? <CheckCircle2 size={12} className="text-green-500" /> : <XCircle size={12} className="text-red-500" />}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {justification && (
+                                                    <div className="mt-4 p-5 bg-white/80 rounded-3xl border border-black/[0.03] shadow-inner">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <div className="w-4 h-px bg-[#00B6C1]/30"></div>
+                                                            <p className="text-[7px] font-black text-[#00B6C1] uppercase tracking-[0.2em]">Clinical Rationale & Protocol Justification</p>
+                                                            <div className="w-4 h-px bg-[#00B6C1]/30"></div>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-500 italic leading-relaxed font-medium">"{justification}"</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </motion.div>
                     </div>

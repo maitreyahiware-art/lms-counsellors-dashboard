@@ -20,12 +20,14 @@ export async function POST(req: Request) {
                 const testData = manualQuiz.questions;
                 const scoringKey = testData.map((q: any) => ({
                     correctAnswer: q.correctAnswer,
-                    justification: q.justification
+                    justification: q.justification,
+                    type: q.type || 'mcq'
                 }));
                 const answerToken = encryptData(scoringKey);
                 const clientQuestions = testData.map((q: any) => ({
                     question: q.question,
-                    options: q.options
+                    options: q.options,
+                    type: q.type || 'mcq'
                 }));
                 return NextResponse.json({ questions: clientQuestions, answerToken });
             }
@@ -82,13 +84,15 @@ export async function POST(req: Request) {
         // Secure correct answers AND justifications before sending to client
         const scoringKey = testData.map(q => ({
             correctAnswer: q.correctAnswer,
-            justification: q.justification
+            justification: q.justification,
+            type: 'mcq'
         }));
         const answerToken = encryptData(scoringKey);
 
         const clientQuestions = testData.map(q => ({
             question: q.question,
-            options: q.options
+            options: q.options,
+            type: 'mcq'
         }));
 
         return NextResponse.json({ questions: clientQuestions, answerToken });

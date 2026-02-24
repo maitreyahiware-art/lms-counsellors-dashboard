@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Send, CheckCircle2, Loader2, ClipboardList, User, Building2, ArrowRight, UserCircle2, BrainCircuit, Sparkles, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
+import { logActivity } from "@/lib/activity";
 
 interface AssignmentFormProps {
     topicCode: string;
@@ -142,6 +143,12 @@ export default function AssignmentForm({ topicCode, questions, persona, onComple
                     console.error("Audit Insert Error:", insertError);
                     throw insertError;
                 }
+
+                // Log to activity trail
+                await logActivity('submit_assignment', {
+                    topicCode,
+                    contentTitle: `Peer Audit: ${topicCode}`
+                });
 
                 setSubmitted(true);
                 if (userId) localStorage.removeItem(`bn-draft-${userId}-${topicCode}`);

@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Brain, CheckCircle2, ChevronRight, Loader2, Lock, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { logActivity } from "@/lib/activity";
 
 interface Question {
+    type?: 'mcq' | 'text';
     question: string;
     options: string[];
     correctAnswer: string;
@@ -69,10 +71,11 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                 body: JSON.stringify({ topicTitle, topicContent, topicLinks: "", topicCode }),
             });
             const data = await response.json();
-            setQuestions(data.questions);
+            const fetchedQuestions = data.questions || [];
+            setQuestions(fetchedQuestions);
             setAnswerToken(data.answerToken);
             setCurrentStep(0);
-            setAnswers([]);
+            setAnswers(new Array(fetchedQuestions.length).fill(""));
             setShowResult(false);
             setTimeLeft(600); // Reset timer
         } catch (error) {
@@ -134,6 +137,13 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                     total_questions: gradeData.total,
                     raw_data: { questions, answers: finalAnswers, gradedResults: gradeData.results, time_spent: 600 - timeLeft }
                 }]);
+
+                // Log to activity trail
+                await logActivity(topicCode.startsWith('MODULE_') ? 'complete_module' : 'complete_quiz', {
+                    topicCode,
+                    contentTitle: topicTitle,
+                    score: finalScore
+                });
             }
 
             setShowResult(true);
@@ -199,20 +209,60 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
 
                         <h4 className="text-base font-serif text-[#0E5858] mb-4 leading-snug">{questions[currentStep].question}</h4>
 
-                        <div className="space-y-2.5">
-                            {questions[currentStep].options.map((option, i) => (
+                        {questions[currentStep].type === 'text' ? (
+                            <div className="space-y-4">
+                                <input
+                                    type="text"
+                                    value={answers[currentStep] || ""}
+                                    onChange={(e) => {
+                                        const newAnswers = [...answers];
+                                        newAnswers[currentStep] = e.target.value;
+                                        setAnswers(newAnswers);
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && answers[currentStep]) {
+                                            if (currentStep < questions.length - 1) {
+                                                setCurrentStep(currentStep + 1);
+                                            } else {
+                                                submitAudit(answers);
+                                            }
+                                        }
+                                    }}
+                                    placeholder="Type your response here..."
+                                    className="w-full bg-gray-50 border border-[#00B6C1]/10 rounded-xl py-4 px-6 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00B6C1]/20 transition-all"
+                                    autoFocus
+                                />
                                 <button
-                                    key={i}
-                                    onClick={() => handleAnswer(option)}
-                                    className="w-full p-3.5 text-left bg-[#FAFCEE]/50 border border-[#0E5858]/5 rounded-xl hover:border-[#00B6C1] hover:bg-white transition-all text-xs font-medium group flex items-start gap-2.5"
+                                    onClick={() => {
+                                        if (currentStep < questions.length - 1) {
+                                            setCurrentStep(currentStep + 1);
+                                        } else {
+                                            submitAudit(answers);
+                                        }
+                                    }}
+                                    disabled={!(answers[currentStep])}
+                                    className="w-full py-4 bg-[#0E5858] text-white rounded-xl font-bold text-xs hover:bg-[#00B6C1] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    <div className="shrink-0 w-5 h-5 rounded-lg bg-white border border-[#0E5858]/10 flex items-center justify-center text-[9px] font-bold text-[#00B6C1] group-hover:bg-[#00B6C1] group-hover:text-white transition-all mt-0.5">
-                                        {String.fromCharCode(65 + i)}
-                                    </div>
-                                    <span className="text-gray-600 group-hover:text-[#0E5858] leading-tight">{option}</span>
+                                    {currentStep < questions.length - 1 ? "Next Question" : "Submit Assessment"}
+                                    <ChevronRight size={16} />
                                 </button>
-                            ))}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2.5">
+                                {questions[currentStep].options.map((option, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => handleAnswer(option)}
+                                        className="w-full p-3.5 text-left bg-[#FAFCEE]/50 border border-[#0E5858]/5 rounded-xl hover:border-[#00B6C1] hover:bg-white transition-all text-xs font-medium group flex items-start gap-2.5"
+                                    >
+                                        <div className="shrink-0 w-5 h-5 rounded-lg bg-white border border-[#0E5858]/10 flex items-center justify-center text-[9px] font-bold text-[#00B6C1] group-hover:bg-[#00B6C1] group-hover:text-white transition-all mt-0.5">
+                                            {String.fromCharCode(65 + i)}
+                                        </div>
+                                        <span className="text-gray-600 group-hover:text-[#0E5858] leading-tight">{option}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </motion.div>
                 )}
 

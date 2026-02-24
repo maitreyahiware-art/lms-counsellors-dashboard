@@ -180,7 +180,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, userName, userEma
 
             {/* User Profile - Real User */}
             <div className={`p-6 border-t border-white/5 bg-black/5 mt-auto group cursor-pointer`}>
-                <div className={`flex items-center gap-4 ${isCollapsed ? 'justify-center' : ''}`}>
+                <div className={`flex items-center gap-4 ${isCollapsed ? 'justify-center pr-2' : ''}`}>
                     <div className="relative">
                         <div className="absolute inset-0 bg-[#FFCC00] blur-md opacity-20 group-hover:opacity-60 transition-opacity"></div>
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FFCC00] to-[#E5B800] flex items-center justify-center text-[#0E5858] font-bold shrink-0 shadow-lg relative z-10 text-lg">
@@ -188,6 +188,26 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, userName, userEma
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-[#0E5858] rounded-full z-20"></div>
                     </div>
+                    {!isCollapsed && (
+                        <div className="flex-1 min-w-0 pr-4">
+                            <h4 className="font-serif font-bold truncate text-sm">{userName || 'Counsellor'}</h4>
+                            <p className="text-[10px] text-white/40 truncate font-medium">{userEmail || 'academy@balancenutrition.in'}</p>
+                        </div>
+                    )}
+                    <button
+                        onClick={handleLogout}
+                        className={`p-2 bg-white/5 rounded-xl text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-all ${isCollapsed ? 'hidden' : ''}`}
+                    >
+                        <LogOut size={18} />
+                    </button>
+                    {isCollapsed && (
+                        <button
+                            onClick={handleLogout}
+                            className={`absolute hidden group-hover:flex items-center justify-center p-2 bg-red-500 text-white rounded-xl left-24 shadow-2xl z-[100]`}
+                        >
+                            <LogOut size={16} />
+                        </button>
+                    )}
                 </div>
             </div>
         </motion.aside>

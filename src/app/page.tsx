@@ -41,6 +41,7 @@ export default function Home() {
   const [dynamicContent, setDynamicContent] = useState<any[]>([]);
   const [allMentors, setAllMentors] = useState<any[]>([]);
   const [showBuddyModal, setShowBuddyModal] = useState(false);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
 
 
   useEffect(() => {
@@ -194,6 +195,15 @@ export default function Home() {
       }
       setLastModule(targetModule);
 
+      // 6. Fetch Activity Logs
+      const { data: logs } = await supabase
+        .from('mentor_activity_logs')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(6);
+      setActivityLogs(logs || []);
+
 
       setLoading(false);
     };
@@ -335,38 +345,72 @@ export default function Home() {
           </div>
         </motion.section>
 
-        {/* Quick Access: Training Support */}
-        <motion.section variants={itemVariants} className="mb-16">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-serif text-[#0E5858]">Training Support</h3>
-            <div className="h-0.5 flex-1 bg-gray-100 mx-6 opacity-50" />
-            <button onClick={() => setShowBuddyModal(true)} className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest hover:underline transition-all">View All Mentors</button>
-          </div>
+        {/* Training Support & Activity Trail */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
+          {/* Quick Access: Training Support */}
+          <motion.section variants={itemVariants} className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-2xl font-serif text-[#0E5858]">Training Support</h3>
+              <div className="h-0.5 flex-1 bg-gray-100 mx-6 opacity-50" />
+              <button onClick={() => setShowBuddyModal(true)} className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest hover:underline transition-all">View All</button>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {allMentors.slice(0, 3).map((mentor, i) => (
-              <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-[#0E5858]/5 shadow-sm hover:shadow-xl hover:shadow-[#0E5858]/5 transition-all flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#FAFCEE] rounded-2xl flex items-center justify-center text-[#0E5858] font-black text-lg border border-[#0E5858]/5 group-hover:bg-[#0E5858] group-hover:text-white transition-colors">
-                    {mentor.full_name[0]}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {allMentors.slice(0, 4).map((mentor, i) => (
+                <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-[#0E5858]/5 shadow-sm hover:shadow-xl hover:shadow-[#0E5858]/5 transition-all flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[#FAFCEE] rounded-2xl flex items-center justify-center text-[#0E5858] font-black text-lg border border-[#0E5858]/5 group-hover:bg-[#0E5858] group-hover:text-white transition-colors">
+                      {mentor.full_name[0]}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-serif font-bold text-[#0E5858] mb-0.5">{mentor.full_name}</h4>
+                      <p className="text-[9px] font-bold text-[#00B6C1] uppercase tracking-widest opacity-70">{mentor.role}</p>
+                    </div>
                   </div>
+                  <div className="flex gap-2">
+                    <a href={`tel:${mentor.phone}`} className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all">
+                      <Phone size={14} />
+                    </a>
+                    <a href={`mailto:${mentor.email}`} className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all">
+                      <Mail size={14} />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Activity Trail */}
+          <motion.section variants={itemVariants} className="bg-white p-8 rounded-[3.5rem] border border-[#0E5858]/5 shadow-sm overflow-hidden flex flex-col h-full">
+            <h3 className="text-xl font-serif text-[#0E5858] mb-6 flex items-center gap-3">
+              <Activity size={20} className="text-[#00B6C1]" />
+              Activity Trail
+            </h3>
+            <div className="space-y-6 overflow-y-auto pr-2 scrollbar-hide flex-grow">
+              {activityLogs.length > 0 ? activityLogs.map((log, i) => (
+                <div key={log.id} className="relative pl-6 pb-2 group">
+                  {i !== activityLogs.length - 1 && (
+                    <div className="absolute left-[3px] top-4 bottom-0 w-[1px] bg-gray-100 group-last:hidden" />
+                  )}
+                  <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-[#00B6C1] ring-4 ring-[#00B6C1]/10" />
                   <div>
-                    <h4 className="text-sm font-serif font-bold text-[#0E5858] mb-0.5">{mentor.full_name}</h4>
-                    <p className="text-[9px] font-bold text-[#00B6C1] uppercase tracking-widest opacity-70">{mentor.role}</p>
+                    <p className="text-[11px] font-bold text-[#0E5858] leading-tight mb-1">
+                      {log.activity_type.replace('_', ' ')}: <span className="text-gray-400">{log.content_title || log.topic_code}</span>
+                    </p>
+                    <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest">
+                      {new Date(log.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
+                    </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <a href={`tel:${mentor.phone}`} className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all">
-                    <Phone size={14} />
-                  </a>
-                  <a href={`mailto:${mentor.email}`} className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all">
-                    <Mail size={14} />
-                  </a>
+              )) : (
+                <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                  <Clock size={40} className="mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Awaiting Activity...</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
+              )}
+            </div>
+          </motion.section>
+        </div>
 
         {/* Modules Grid */}
         <motion.section variants={itemVariants}>

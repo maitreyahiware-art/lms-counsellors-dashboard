@@ -284,7 +284,12 @@ export default function ModulePage() {
 
             if (!error) {
                 setCompletedTopics([...completedTopics, topicCode]);
-                logActivity('complete_quiz', { topicCode, moduleId });
+                const topic = moduleTopics.find(t => t.code === topicCode);
+                logActivity('complete_segment', {
+                    topicCode,
+                    moduleId,
+                    contentTitle: topic?.title || topicCode
+                });
             } else {
                 console.error("Failed to mark topic complete:", error.message);
                 // Fallback: try upsert if insert failed (maybe it was created in the millisecond since check)

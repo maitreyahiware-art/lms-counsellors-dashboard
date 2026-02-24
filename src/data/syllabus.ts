@@ -91,7 +91,8 @@ export const syllabusData: Module[] = [
                     { label: 'LinkedIn BN', url: 'https://www.linkedin.com/company/balance-nutrition-weight-loss-&-more/' },
                     { label: 'LinkedIn Khyati', url: 'https://www.linkedin.com/in/nutritionistkhyatirupani' },
                     { label: 'LinkedIn Vishal', url: 'https://www.linkedin.com/in/vishal-rupani-501a3b4' },
-                    { label: 'YouTube', url: 'https://youtube.com/c/BalanceNutrition' }
+                    { label: 'YouTube', url: 'https://youtube.com/c/BalanceNutrition' },
+                    { label: 'Facebook', url: 'https://www.facebook.com/khyati.rupani.3?mibextid=wwXIfr&rdid=lTKV6HvWFUEJtJwX&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F16re8LMXsv%2F%3Fmibextid%3DwwXIfr#' },
                 ]
             },
 

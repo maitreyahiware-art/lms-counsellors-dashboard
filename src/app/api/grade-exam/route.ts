@@ -18,13 +18,22 @@ export async function POST(req: Request) {
         let score = 0;
         const results = userAnswers.map((answer, index) => {
             const key = scoringKey[index];
-            const isCorrect = answer === key.correctAnswer;
+            const type = key.type || 'mcq';
+            let isCorrect = false;
+
+            if (type === 'text') {
+                isCorrect = answer.toLowerCase().trim() === key.correctAnswer.toLowerCase().trim();
+            } else {
+                isCorrect = answer === key.correctAnswer;
+            }
+
             if (isCorrect) score++;
             return {
                 providedAnswer: answer,
                 correctAnswer: key.correctAnswer,
                 justification: key.justification,
-                isCorrect
+                isCorrect,
+                type
             };
         });
 

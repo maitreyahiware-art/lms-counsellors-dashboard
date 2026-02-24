@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-export type ActivityType = 'view_topic' | 'view_content' | 'start_quiz' | 'complete_quiz' | 'submit_assignment';
+export type ActivityType = 'view_topic' | 'view_content' | 'start_quiz' | 'complete_quiz' | 'submit_assignment' | 'complete_segment' | 'complete_module';
 
 export async function logActivity(activityType: ActivityType, details: {
     moduleId?: string;
