@@ -329,20 +329,7 @@ export default function Home() {
                   ></motion.div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Baseline</p>
-                    <p className="text-xs font-bold text-white/80">Static 74</p>
-                  </div>
-                  <div className="text-center border-x border-white/10">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Quizzes</p>
-                    <p className="text-xs font-bold text-white/80">Active AI</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Growth</p>
-                    <p className="text-xs font-bold text-[#00B6C1]">Dynamic</p>
-                  </div>
-                </div>
+
               </div>
             </div>
           </div>
