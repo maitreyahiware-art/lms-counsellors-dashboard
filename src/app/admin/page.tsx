@@ -1325,37 +1325,7 @@ function AdminDashboardContent() {
                 ) : activeTab === 'provisioning' ? (
                     <motion.div key="provisioning" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-12 max-w-3xl mx-auto">
 
-                        {/* Admin Own Settings: Professional Identity */}
-                        <div className="bg-[#0E5858] p-10 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8 opacity-10">
-                                <ShieldCheck size={80} />
-                            </div>
-                            <div className="relative z-10">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00B6C1] mb-2">Professional Identity</p>
-                                <h2 className="text-3xl font-serif mb-6">Your Contact Information</h2>
 
-                                <div className="flex flex-col md:flex-row gap-6 items-end">
-                                    <div className="flex-1 space-y-2">
-                                        <label className="text-[9px] font-bold opacity-60 uppercase tracking-widest ml-1">Corporate Contact (Mobile)</label>
-                                        <input
-                                            type="text"
-                                            value={adminPhone}
-                                            onChange={(e) => setAdminPhone(e.target.value)}
-                                            placeholder="+91 00000 00000"
-                                            className="w-full bg-white/10 border border-white/10 rounded-xl py-3 px-6 text-sm outline-none focus:bg-white/20 transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleUpdateAdminProfile}
-                                        disabled={updatingAdmin}
-                                        className="px-8 py-3 bg-[#00B6C1] text-[#0E5858] rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg"
-                                    >
-                                        {updatingAdmin ? <Loader2 size={16} className="animate-spin" /> : "Save Identity"}
-                                    </button>
-                                </div>
-                                <p className="text-[9px] mt-4 opacity-40 font-medium">This information will be visible to counsellors assigned to you as their Training Buddy.</p>
-                            </div>
-                        </div>
 
                         <header className="text-center pt-8">
                             <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight mb-4 text-center">Provision Access</h2>
