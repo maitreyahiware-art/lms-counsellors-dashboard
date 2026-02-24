@@ -11,53 +11,102 @@ export async function GET(request: Request) {
 
         const todayStart = new Date(istNow);
         todayStart.setUTCHours(0, 0, 0, 0);
-        // Correct back to UTC for Supabase query
         const utcStart = new Date(todayStart.getTime() - istOffset).toISOString();
 
-        // 1. Fetch all counselors
-        const { data: profiles } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .in('role', ['counsellor', 'mentor']);
-
-        // 2. Fetch all activity from today
+        // 1. Fetch Global Data for Accurate Stats
         const [
-            { data: progress },
-            { data: assessments },
-            { data: logs }
+            { data: profiles },
+            { data: allProgress },
+            { data: allAssessments },
+            { data: logs },
+            { data: dynContent }
         ] = await Promise.all([
-            supabaseAdmin.from('mentor_progress').select('*').gte('created_at', utcStart),
-            supabaseAdmin.from('assessment_logs').select('*').gte('created_at', utcStart),
-            supabaseAdmin.from('mentor_activity_logs').select('*').gte('created_at', utcStart)
+            supabaseAdmin.from('profiles').select('*').in('role', ['counsellor', 'mentor']),
+            supabaseAdmin.from('mentor_progress').select('*'),
+            supabaseAdmin.from('assessment_logs').select('*'),
+            supabaseAdmin.from('mentor_activity_logs').select('*').gte('created_at', utcStart),
+            supabaseAdmin.from('syllabus_content').select('id, module_id')
         ]);
 
-        // 3. Generate Report Object
+        const totalStaticTopics = syllabusData
+            .filter(m => m.id !== 'resource-bank')
+            .reduce((acc, m) => acc + m.topics.length, 0);
+        const totalTopics = totalStaticTopics + (dynContent?.length || 0);
+
+        // 2. Generate Report Object
         const report = (profiles || []).map(p => {
-            const userProgress = (progress || []).filter(pr => pr.user_id === p.id);
-            const userAssessments = (assessments || []).filter(a => a.user_id === p.id);
+            const userGlobalProgress = (allProgress || []).filter(pr => pr.user_id === p.id);
+            const userGlobalAssessments = (allAssessments || []).filter(a => a.user_id === p.id);
+
+            const todayProgress = userGlobalProgress.filter(pr => pr.created_at >= utcStart);
+            const todayAssessments = userGlobalAssessments.filter(a => a.created_at >= utcStart);
             const userLogs = (logs || []).filter(l => l.user_id === p.id);
+
+            // Calculate Longest Time Spent Today (from raw_data.time_spent)
+            let maxTimeSpent = 0;
+            todayAssessments.forEach(a => {
+                const time = a.raw_data?.time_spent || 0;
+                if (time > maxTimeSpent) maxTimeSpent = time;
+            });
+
+            // Convert to minutes/seconds format
+            const longestTimeStr = maxTimeSpent > 0
+                ? `${Math.floor(maxTimeSpent / 60)}m ${maxTimeSpent % 60}s`
+                : "0m 0s";
+
+            // Calculate Modules Completed Today
+            let modulesCompletedToday = 0;
+            syllabusData.filter(m => m.id !== 'resource-bank').forEach(module => {
+                const moduleTopics = module.topics.map(t => t.code);
+                const moduleDynTopics = (dynContent || [])
+                    .filter(d => d.module_id === module.id)
+                    .map(d => `DYN-${d.id}`);
+
+                const allModuleCodes = [...moduleTopics, ...moduleDynTopics];
+                const userCompletedCodes = new Set(userGlobalProgress.map(pr => pr.topic_code));
+
+                const allDone = allModuleCodes.every(code => userCompletedCodes.has(code));
+                const quizPassed = userGlobalAssessments.some(a => a.topic_code === `MODULE_${module.id}`);
+
+                if (allDone && quizPassed) {
+                    // It's complete. Did it finish TODAY?
+                    const lastTopicCreated = userGlobalProgress
+                        .filter(pr => allModuleCodes.includes(pr.topic_code))
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at;
+
+                    const quizCreated = userGlobalAssessments
+                        .find(a => a.topic_code === `MODULE_${module.id}`)?.created_at;
+
+                    const completionDate = [lastTopicCreated, quizCreated]
+                        .filter(Boolean)
+                        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
+                    if (completionDate && completionDate >= utcStart) {
+                        modulesCompletedToday++;
+                    }
+                }
+            });
+
+            // Global Progress Percentage
+            const uniqueCompletedTopics = new Set(userGlobalProgress.map(pr => pr.topic_code)).size;
+            const globalProgressPercent = totalTopics > 0
+                ? Math.round((uniqueCompletedTopics / totalTopics) * 100)
+                : 0;
 
             return {
                 name: p.full_name,
                 email: p.email,
-                segmentsCompleted: userProgress.length,
-                testsTaken: userAssessments.length,
-                avgScore: userAssessments.length > 0
-                    ? Math.round(userAssessments.reduce((acc, curr) => acc + curr.score, 0) / userAssessments.length)
+                segmentsCompleted: todayProgress.length,
+                testsTaken: todayAssessments.length,
+                modulesCompletedToday,
+                longestTime: longestTimeStr,
+                globalProgress: globalProgressPercent,
+                avgScore: todayAssessments.length > 0
+                    ? Math.round(todayAssessments.reduce((acc, curr) => acc + curr.score, 0) / todayAssessments.length)
                     : 0,
-                activities: userLogs.length,
-                details: userAssessments.map(a => ({
-                    topic: a.topic_code,
-                    score: a.score,
-                    at: a.created_at
-                }))
+                activities: userLogs.length
             };
         });
-
-        // 4. Send Email placeholder 
-        // In a real prod env, we'd use Resend or SendGrid here.
-        // For now we log it and return it.
-        console.log("Daily Report Generated for workwithus@balancenutrition.in");
 
         return NextResponse.json({
             date: todayStart.toDateString(),
@@ -66,6 +115,7 @@ export async function GET(request: Request) {
         });
 
     } catch (err: any) {
+        console.error("Report Error:", err);
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }

@@ -1991,19 +1991,29 @@ function AdminDashboardContent() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     {reportData.report.map((user: any, idx: number) => (
                                         <div key={idx} className="bg-white p-5 rounded-2xl border border-[#0E5858]/5">
-                                            <p className="text-sm font-serif text-[#0E5858] mb-1">{user.name}</p>
-                                            <div className="flex flex-col gap-1">
+                                            <p className="text-sm font-serif text-[#0E5858] mb-1 font-bold">{user.name}</p>
+                                            <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-4">{user.email}</p>
+
+                                            <div className="flex flex-col gap-2">
                                                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
-                                                    <span className="text-gray-400">Segments</span>
+                                                    <span className="text-gray-400">Today's Segments</span>
                                                     <span className="text-[#0E5858]">{user.segmentsCompleted}</span>
                                                 </div>
                                                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
-                                                    <span className="text-gray-400">Tests</span>
+                                                    <span className="text-gray-400">Tests (Today)</span>
                                                     <span className="text-[#0E5858]">{user.testsTaken}</span>
                                                 </div>
                                                 <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
-                                                    <span className="text-gray-400">Avg Score</span>
-                                                    <span className="text-[#00B6C1]">{user.avgScore}%</span>
+                                                    <span className="text-gray-400">Modules Finished</span>
+                                                    <span className="text-[#00B6C1]">{user.modulesCompletedToday}</span>
+                                                </div>
+                                                <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest">
+                                                    <span className="text-gray-400">Longest Session</span>
+                                                    <span className="text-orange-500">{user.longestTime}</span>
+                                                </div>
+                                                <div className="pt-2 border-t border-gray-50 flex justify-between items-end mt-1">
+                                                    <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest">Global Program %</span>
+                                                    <span className="text-sm font-serif text-[#0E5858] font-bold">{user.globalProgress}%</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -2012,14 +2022,14 @@ function AdminDashboardContent() {
                                 <button
                                     onClick={() => {
                                         const text = reportData.report.map((u: any) =>
-                                            `${u.name}: ${u.segmentsCompleted} Segments, ${u.testsTaken} Tests, Score: ${u.avgScore}%`
+                                            `• ${u.name} (${u.email}): ${u.segmentsCompleted} Segments, ${u.testsTaken} Tests today. Modules Finished today: ${u.modulesCompletedToday}. Longest Session: ${u.longestTime}. Global Training Progress: ${u.globalProgress}%`
                                         ).join('\n');
-                                        navigator.clipboard.writeText(text);
-                                        alert("Summary copied to clipboard!");
+                                        navigator.clipboard.writeText(`DAILY TRAINING REPORT - ${reportData.date}\n\n${text}`);
+                                        alert("Full report copied to clipboard!");
                                     }}
                                     className="mt-6 w-full py-4 bg-white border border-[#0E5858]/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#0E5858] hover:bg-gray-50 transition-all"
                                 >
-                                    Copy Report for Email
+                                    Copy Comprehensive Report
                                 </button>
                             </div>
                         )}
