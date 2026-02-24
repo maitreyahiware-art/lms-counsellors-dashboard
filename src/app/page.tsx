@@ -98,7 +98,9 @@ export default function Home() {
 
         const hasContent = module.topics.length > 0 || dynamicForModule.length > 0;
 
-        if (staticTopicsDone && dynamicTopicsDone && hasContent) {
+        const quizPassed = assessments?.some(a => a.topic_code === `MODULE_${module.id}`) || false;
+
+        if (staticTopicsDone && dynamicTopicsDone && hasContent && quizPassed) {
           dbCompletedModules.push(module.id);
         }
       });

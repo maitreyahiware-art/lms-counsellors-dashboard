@@ -814,7 +814,7 @@ export default function ModulePage() {
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className={`mt-12 p-8 lg:p-12 rounded-[3.5rem] border-2 transition-all duration-1000 relative overflow-hidden group ${assessmentPassed || moduleId !== 'module-2'
+                    className={`mt-12 p-8 lg:p-12 rounded-[3.5rem] border-2 transition-all duration-1000 relative overflow-hidden group ${assessmentPassed
                         ? 'bg-[#FAFCEE] border-[#0E5858]/10'
                         : 'bg-[#0E5858] border-[#0E5858] shadow-3xl shadow-[#0E5858]/30'
                         }`}
@@ -822,62 +822,58 @@ export default function ModulePage() {
                     <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-48 -mt-48"></div>
                     <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
                         <div className="flex-1">
-                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${assessmentPassed || moduleId !== 'module-2' ? 'bg-green-100 text-green-700' : 'bg-[#00B6C1]/20 text-[#00B6C1]'
+                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${assessmentPassed ? 'bg-green-100 text-green-700' : 'bg-[#00B6C1]/20 text-[#00B6C1]'
                                 }`}>
-                                {assessmentPassed || moduleId !== 'module-2' ? <CheckCircle2 size={12} /> : <Brain size={12} />}
-                                {moduleId === 'module-2' ? (assessmentPassed ? 'Audit Mastered' : 'Achievement Unlocked') : 'Section Completed'}
+                                {assessmentPassed ? <CheckCircle2 size={12} /> : <Brain size={12} />}
+                                {assessmentPassed ? 'Mastery Achieved' : 'Pending Verification'}
                             </div>
-                            <h2 className={`text-4xl lg:text-5xl font-serif mb-4 leading-tight ${assessmentPassed || moduleId !== 'module-2' ? 'text-[#0E5858]' : 'text-white'}`}>
-                                {moduleId === 'module-2'
-                                    ? (assessmentPassed ? "Verification complete." : "Final Module Assessment")
-                                    : "Module Achievement Unlocked"
-                                }
+                            <h2 className={`text-4xl lg:text-5xl font-serif mb-4 leading-tight ${assessmentPassed ? 'text-[#0E5858]' : 'text-white'}`}>
+                                {assessmentPassed ? "Module Achievement Unlocked" : "Pending Quiz"}
                             </h2>
-                            <p className={`text-lg font-medium max-w-xl ${assessmentPassed || moduleId !== 'module-2' ? 'text-gray-500' : 'text-white/60 text-base'}`}>
-                                {moduleId === 'module-2'
-                                    ? (assessmentPassed ? "Your understanding of this training block has been verified." : "Demonstrate your clinical mastery by taking the final module quiz.")
-                                    : "Great job! You've successfully covered all sections of this module. You're now ready to move forward."
+                            <p className={`text-lg font-medium max-w-xl ${assessmentPassed ? 'text-gray-500' : 'text-white/60 text-base'}`}>
+                                {assessmentPassed
+                                    ? "Great job! You've successfully covered all sections and verified your proficiency. You're now ready for the next level."
+                                    : "Great job on completing the sections! Demonstrate your clinical mastery by taking the final module quiz."
                                 }
                             </p>
                         </div>
                         <div className="shrink-0 relative z-10">
-                            {moduleId === 'module-2' ? (
-                                assessmentPassed ? (
-                                    <div className="flex flex-col items-center gap-4">
-                                        <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl relative">
-                                            <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
-                                            <Award size={40} />
-                                        </div>
-                                        {nextModule && <button onClick={() => router.push(`/modules/${nextModule.id}`)} className="text-xs font-black text-[#00B6C1] uppercase tracking-widest hover:underline">Next Module</button>}
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => {
-                                            if (!completedTopics.includes('M2-05')) {
-                                                alert("Please complete the Peer Review (M2-05) first.");
-                                                return;
-                                            }
-                                            setShowVivaIntro(true);
-                                        }}
-                                        className="px-12 py-6 bg-[#00B6C1] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-white hover:text-[#0E5858] transition-all hover:-translate-y-2 group"
-                                    >
-                                        <span className="flex items-center gap-4">
-                                            Initialize Audit
-                                            <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                                        </span>
-                                    </button>
-                                )
-                            ) : (
+                            {!assessmentPassed ? (
                                 <button
                                     onClick={() => {
-                                        if (moduleId === 'module-4' && !simulationDone) setShowSimulation(true);
-                                        else if (nextModule) router.push(`/modules/${nextModule.id}`);
-                                        else router.push('/');
+                                        if (moduleId === 'module-4' && !simulationDone) {
+                                            setShowSimulation(true);
+                                            return;
+                                        }
+                                        if (moduleId === 'module-2' && !completedTopics.includes('M2-05')) {
+                                            alert("Please complete the Peer Review (M2-05) first.");
+                                            return;
+                                        }
+                                        setShowVivaIntro(true);
                                     }}
-                                    className="px-12 py-6 bg-white text-[#0E5858] border border-[#0E5858]/10 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl hover:bg-[#0E5858] hover:text-white transition-all transform hover:scale-105"
+                                    className="px-12 py-6 bg-[#00B6C1] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-white hover:text-[#0E5858] transition-all hover:-translate-y-2 group"
                                 >
-                                    {moduleId === 'module-4' && !simulationDone ? "Start Simulation" : (nextModule ? "Next Module" : "Return to Hub")}
+                                    <span className="flex items-center gap-4">
+                                        {moduleId === 'module-4' && !simulationDone ? "Start Simulation" : "Start Module Quiz"}
+                                        <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                                    </span>
                                 </button>
+                            ) : (
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl relative mb-4">
+                                        <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
+                                        <Award size={40} />
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (nextModule) router.push(`/modules/${nextModule.id}`);
+                                            else router.push('/');
+                                        }}
+                                        className="px-12 py-6 bg-white text-[#0E5858] border border-[#0E5858]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-[#0E5858] hover:text-white transition-all"
+                                    >
+                                        {nextModule ? "Next Module" : "Return to Hub"}
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>
