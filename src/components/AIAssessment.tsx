@@ -86,7 +86,8 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
     };
 
     const handleAnswer = async (option: string) => {
-        const newAnswers = [...answers, option];
+        const newAnswers = [...answers];
+        newAnswers[currentStep] = option;
         setAnswers(newAnswers);
 
         if (currentStep < (questions?.length || 0) - 1) {

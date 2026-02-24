@@ -16,10 +16,12 @@ export async function POST(req: Request) {
         }
 
         let score = 0;
-        const results = userAnswers.map((answer, index) => {
+        const results = userAnswers.slice(0, scoringKey.length).map((answer, index) => {
             const key = scoringKey[index];
-            const type = key.type || 'mcq';
+            const type = key?.type || 'mcq';
             let isCorrect = false;
+
+            if (!key) return null;
 
             if (type === 'text') {
                 isCorrect = answer.toLowerCase().trim() === key.correctAnswer.toLowerCase().trim();
