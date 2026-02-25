@@ -291,7 +291,37 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                         </div>
 
                         <div className="flex flex-wrap items-start gap-8">
-                            {topic.outcome && (
+                            {isEditMode ? (
+                                <div className="flex-1 min-w-[300px] flex items-start gap-4 p-5 bg-blue-50/30 rounded-3xl border border-blue-50/50">
+                                    <div className="shrink-0 w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+                                        <Sparkles size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-bold text-blue-700/60 uppercase tracking-widest mb-1.5">Configure Topic</p>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Learning Outcome</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full text-sm font-bold text-[#0E5858] bg-white p-2 rounded-lg border border-[#0E5858]/10 focus:outline-[#00B6C1]"
+                                                    value={topic.outcome || ""}
+                                                    placeholder="Define what the user will learn..."
+                                                    onChange={(e) => onEdit?.({ outcome: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Layout Type:</label>
+                                                <button
+                                                    onClick={() => onEdit?.({ layout: topic.layout === 'grid' ? undefined : 'grid' })}
+                                                    className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${topic.layout === 'grid' ? 'bg-[#00B6C1] text-white' : 'bg-gray-100 text-gray-400'}`}
+                                                >
+                                                    {topic.layout === 'grid' ? 'Card Grid' : 'Standard List'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : topic.outcome && (
                                 <div className="flex-1 min-w-[300px] flex items-start gap-4 p-5 bg-green-50/30 rounded-3xl border border-green-50/50">
                                     <div className="shrink-0 w-10 h-10 bg-white rounded-xl flex items-center justify-center text-green-600 shadow-sm">
                                         <Target size={20} />
@@ -334,17 +364,27 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                             onEdit?.({ links: newLinks });
                                                         }}
                                                     />
-                                                    <input
-                                                        type="url"
-                                                        value={link.url}
-                                                        placeholder="https://"
-                                                        className="w-full sm:flex-[2] p-3 border-2 border-dashed border-[#0E5858]/20 rounded-xl focus:border-[#00B6C1] outline-none text-sm text-gray-500"
-                                                        onChange={(e) => {
-                                                            const newLinks = [...(topic.links || [])];
-                                                            newLinks[idx] = { ...newLinks[idx], url: e.target.value };
-                                                            onEdit?.({ links: newLinks });
-                                                        }}
-                                                    />
+                                                    <div className="w-full sm:flex-[2] relative">
+                                                        <input
+                                                            type="url"
+                                                            value={link.url}
+                                                            placeholder="https://"
+                                                            className={`w-full p-3 border-2 border-dashed rounded-xl focus:border-[#00B6C1] outline-none text-sm ${(link.url.includes('youtu') || link.url.includes('drive') || link.url.includes('zoom'))
+                                                                    ? 'border-[#00B6C1]/50 text-[#00B6C1] bg-[#00B6C1]/5'
+                                                                    : 'border-[#0E5858]/20 text-gray-500'
+                                                                }`}
+                                                            onChange={(e) => {
+                                                                const newLinks = [...(topic.links || [])];
+                                                                newLinks[idx] = { ...newLinks[idx], url: e.target.value };
+                                                                onEdit?.({ links: newLinks });
+                                                            }}
+                                                        />
+                                                        {(link.url.includes('youtu') || link.url.includes('drive') || link.url.includes('zoom')) && (
+                                                            <div className="absolute top-0 right-0 -trany-full flex items-center gap-1.5 px-2 py-0.5 bg-[#00B6C1] text-white rounded-t-lg text-[7px] font-black uppercase tracking-widest">
+                                                                <Play size={8} /> Active Player Link
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                     <button
                                                         onClick={() => {
                                                             const newLinks = [...(topic.links || [])];

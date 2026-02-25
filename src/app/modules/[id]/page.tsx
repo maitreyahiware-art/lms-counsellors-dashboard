@@ -90,9 +90,12 @@ export default function ModulePage() {
         // Persist new sort_order to DB
         try {
             for (let i = 0; i < reordered.length; i++) {
+                // We need to ensure we have a title for upsert if it's the first time
+                const baseTitle = reordered[i].title || 'Untitled Segment';
                 await supabase.from('syllabus_content').upsert({
                     module_id: moduleId,
                     topic_code: reordered[i].code,
+                    title: baseTitle,
                     sort_order: i,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'topic_code' });
@@ -102,12 +105,35 @@ export default function ModulePage() {
         }
     };
 
+    const handleDeleteTopic = async (topicCode: string) => {
+        if (!confirm("Are you sure you want to delete this segment? This will remove all custom content for this topic.")) return;
+
+        try {
+            const { error } = await supabase
+                .from('syllabus_content')
+                .delete()
+                .eq('topic_code', topicCode);
+
+            if (error) throw error;
+
+            setModuleTopics(prev => prev.filter(t => t.code !== topicCode));
+            alert("Segment deleted successfully.");
+        } catch (e: any) {
+            console.error(e);
+            alert(`Deletion failed: ${e.message}`);
+        }
+    };
+
     const handleSaveEdits = async () => {
         setIsSavingEdits(true);
         const errors: string[] = [];
         try {
             for (const topicCode of Object.keys(editedTopics)) {
                 const edits = editedTopics[topicCode];
+
+                // Get the current local state of this topic (which includes any unsaved in-memory edits)
+                const localTopic = moduleTopics.find(t => t.code === topicCode);
+
                 // Fetch the existing row so we don't wipe other fields
                 const { data: existing } = await supabase
                     .from('syllabus_content')
@@ -115,15 +141,20 @@ export default function ModulePage() {
                     .eq('topic_code', topicCode)
                     .single();
 
+                // Build a robust payload. Fallback order: 
+                // 1. Current user edits 
+                // 2. Existing DB row 
+                // 3. Static/Base topic data
                 const payload: any = {
                     module_id: moduleId,
                     topic_code: topicCode,
-                    updated_at: new Date().toISOString(),
-                    ...(existing || {}),
+                    title: edits.title || existing?.title || localTopic?.title || 'Segment',
+                    content: edits.content !== undefined ? edits.content : (existing?.content || localTopic?.content || ''),
+                    links: edits.links || existing?.links || localTopic?.links || [],
+                    outcome: edits.outcome !== undefined ? edits.outcome : (existing?.outcome || localTopic?.outcome || ''),
+                    layout: edits.layout !== undefined ? edits.layout : (existing?.layout || localTopic?.layout || null),
+                    updated_at: new Date().toISOString()
                 };
-                if (edits.title !== undefined) payload.title = edits.title;
-                if (edits.content !== undefined) payload.content = edits.content;
-                if (edits.links !== undefined) payload.links = edits.links;
 
                 const { error } = await supabase
                     .from('syllabus_content')
@@ -159,12 +190,17 @@ export default function ModulePage() {
         setIsSavingSegment(true);
         try {
             const topicCode = `DYN-${Date.now()}`;
+            const newSortOrder = moduleTopics.length;
+            const contentBody = newSegmentType === 'video' ? 'Interactive Video Session' : 'Resource Document';
+            const links = [{ url: newSegmentLink, label: newSegmentType === 'video' ? 'Watch Video' : 'Access Resource' }];
+
             const { error } = await supabase.from('syllabus_content').upsert({
                 module_id: moduleId,
                 title: newSegmentTitle,
-                content_type: newSegmentType,
-                content: newSegmentLink,
+                content: contentBody,
+                links: links,
                 topic_code: topicCode,
+                sort_order: newSortOrder,
                 updated_at: new Date().toISOString()
             });
 
@@ -174,11 +210,12 @@ export default function ModulePage() {
             setModuleTopics([...moduleTopics, {
                 code: topicCode,
                 title: newSegmentTitle,
-                content: newSegmentType === 'video' ? 'Interactive Video Session' : 'Resource Document',
-                links: [{ url: newSegmentLink, label: 'Access Resource' }],
+                content: contentBody,
+                links: links,
                 isDynamic: true,
                 hasLive: false,
-                isAssignment: false
+                isAssignment: false,
+                sort_order: newSortOrder
             }]);
 
             setIsAddingSegment(false);
@@ -225,7 +262,10 @@ export default function ModulePage() {
                         ...currentTopics[existingIndex],
                         title: d.title || currentTopics[existingIndex].title,
                         content: d.content || currentTopics[existingIndex].content,
-                        links: d.links || currentTopics[existingIndex].links
+                        links: d.links || currentTopics[existingIndex].links,
+                        layout: d.layout !== undefined ? d.layout : currentTopics[existingIndex].layout,
+                        outcome: d.outcome !== undefined ? d.outcome : currentTopics[existingIndex].outcome,
+                        sort_order: d.sort_order !== undefined ? d.sort_order : (currentTopics[existingIndex].sort_order ?? existingIndex)
                     };
                 } else {
                     // Append new dynamic segment
@@ -236,10 +276,16 @@ export default function ModulePage() {
                         links: d.links ? d.links : (d.content ? [{ url: d.content, label: 'Access Resource' }] : []),
                         isDynamic: true,
                         hasLive: false,
-                        isAssignment: false
+                        isAssignment: false,
+                        layout: d.layout,
+                        outcome: d.outcome,
+                        sort_order: d.sort_order !== undefined ? d.sort_order : currentTopics.length
                     });
                 }
             });
+
+            // Final sort based on DB defined order
+            currentTopics.sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999));
 
             setModuleTopics(currentTopics);
 
@@ -771,14 +817,23 @@ export default function ModulePage() {
                                 }`}
                         >
                             {isEditMode && (
-                                <div className="absolute -left-10 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-grab">
-                                    <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
-                                    <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
-                                    <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
-                                    <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
-                                    <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
-                                    <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
-                                </div>
+                                <>
+                                    <div className="absolute -left-10 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-1 opacity-40 hover:opacity-100 transition-opacity cursor-grab">
+                                        <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
+                                        <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
+                                        <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
+                                        <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
+                                        <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
+                                        <div className="w-1.5 h-1.5 bg-[#0E5858] rounded-full"></div>
+                                    </div>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteTopic(topic.code); }}
+                                        className="absolute -right-8 top-10 w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm z-20"
+                                        title="Delete Segment"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </>
                             )}
                             <TopicCard
                                 topic={topic}
@@ -877,112 +932,116 @@ export default function ModulePage() {
                 )}
             </div>
 
-            {moduleId === 'module-1' && (
-                <section className="mt-24 mb-10">
-                    <div className="flex items-center gap-6 mb-12">
-                        <div className="w-1.5 h-10 bg-[#00B6C1] rounded-full"></div>
-                        <div>
-                            <h3 className="text-3xl font-serif text-[#0E5858]">BN Ecosystem Hub</h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Cross-Platform Resource Deep Links</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {[
-                            { title: "BN Shop", url: "https://www.balancenutrition.in/shop", desc: "E-Commerce & Product Inventory", icon: ShoppingBag, color: "#FFCC00" },
-                            { title: "Nutripreneur", url: "https://nutripreneur.balancenutrition.in/", desc: "Entrepreneurial Learning Platform", icon: Target, color: "#00B6C1" },
-                            { title: "BN Franchise", url: "https://bnlifecentre.balancenutrition.in/#", desc: "Life Centre & Franchise Operations", icon: Globe, color: "#0E5858" },
-                            { title: "BN Health", url: "#", desc: "Diagnostics & Doctors Network", icon: Activity, color: "#FF5733", isPopup: true },
-                            { title: "Corporate Wellness", url: "https://drive.google.com/file/d/1YC6Yoz4NSgTsMr65hkc4fHtKApPI3xgM/view?usp=drive_link", desc: "Enterprise Health Partnerships", icon: Building2, color: "#8E44AD" },
-                            { title: "Educational Institute", url: "https://drive.google.com/drive/folders/18NQXel0C-rHSOX9TdTo20liyE67jjz-5?usp=sharing", desc: "Student & Academic Health Programs", icon: School, color: "#27AE60" }
-                        ].map((link, i) => (
-                            <motion.a
-                                key={i} href={link.url} target={link.isPopup ? undefined : "_blank"}
-                                onClick={(e) => { if (link.isPopup) { e.preventDefault(); setShowHealthPopup(true); } }}
-                                whileHover={{ y: -8, scale: 1.02 }}
-                                className="premium-card p-8 group relative overflow-hidden flex flex-col items-center text-center hover:border-[#00B6C1]/30 transition-all border border-transparent bg-white shadow-xl"
-                            >
-                                <div className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-xl transition-all group-hover:rotate-12" style={{ backgroundColor: `${link.color}15`, color: link.color }}>
-                                    <link.icon size={28} />
-                                </div>
-                                <h4 className="text-xl font-serif font-bold text-[#0E5858] mb-2">{link.title}</h4>
-                                <p className="text-xs text-gray-400 leading-relaxed px-4 font-medium">{link.desc}</p>
-                                <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#00B6C1] opacity-0 group-hover:opacity-100 transition-all">Launch Platform <ArrowRight size={14} /></div>
-                            </motion.a>
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {moduleTopics.length > 0 && completedTopics.length === moduleTopics.length && (
-                <motion.section
-                    initial={{ opacity: 0, y: 40 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className={`mt-12 p-8 lg:p-12 rounded-[3.5rem] border-2 transition-all duration-1000 relative overflow-hidden group ${assessmentPassed
-                        ? 'bg-[#FAFCEE] border-[#0E5858]/10'
-                        : 'bg-[#0E5858] border-[#0E5858] shadow-3xl shadow-[#0E5858]/30'
-                        }`}
-                >
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-48 -mt-48"></div>
-                    <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
-                        <div className="flex-1">
-                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${assessmentPassed ? 'bg-green-100 text-green-700' : 'bg-[#00B6C1]/20 text-[#00B6C1]'
-                                }`}>
-                                {assessmentPassed ? <CheckCircle2 size={12} /> : <Brain size={12} />}
-                                {assessmentPassed ? 'Mastery Achieved' : 'Pending Verification'}
+            {
+                moduleId === 'module-1' && (
+                    <section className="mt-24 mb-10">
+                        <div className="flex items-center gap-6 mb-12">
+                            <div className="w-1.5 h-10 bg-[#00B6C1] rounded-full"></div>
+                            <div>
+                                <h3 className="text-3xl font-serif text-[#0E5858]">BN Ecosystem Hub</h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Cross-Platform Resource Deep Links</p>
                             </div>
-                            <h2 className={`text-4xl lg:text-5xl font-serif mb-4 leading-tight ${assessmentPassed ? 'text-[#0E5858]' : 'text-white'}`}>
-                                {assessmentPassed ? "Module Achievement Unlocked" : "Pending Quiz"}
-                            </h2>
-                            <p className={`text-lg font-medium max-w-xl ${assessmentPassed ? 'text-gray-500' : 'text-white/60 text-base'}`}>
-                                {assessmentPassed
-                                    ? "Great job! You've successfully covered all sections and verified your proficiency. You're now ready for the next level."
-                                    : "Great job on completing the sections! Demonstrate your clinical mastery by taking the final module quiz."
-                                }
-                            </p>
                         </div>
-                        <div className="shrink-0 relative z-10">
-                            {!assessmentPassed ? (
-                                <button
-                                    onClick={() => {
-                                        if (moduleId === 'module-4' && !simulationDone) {
-                                            setShowSimulation(true);
-                                            return;
-                                        }
-                                        if (moduleId === 'module-2' && !completedTopics.includes('M2-05')) {
-                                            alert("Please complete the Peer Review (M2-05) first.");
-                                            return;
-                                        }
-                                        setShowVivaIntro(true);
-                                    }}
-                                    className="px-12 py-6 bg-[#00B6C1] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-white hover:text-[#0E5858] transition-all hover:-translate-y-2 group"
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {[
+                                { title: "BN Shop", url: "https://www.balancenutrition.in/shop", desc: "E-Commerce & Product Inventory", icon: ShoppingBag, color: "#FFCC00" },
+                                { title: "Nutripreneur", url: "https://nutripreneur.balancenutrition.in/", desc: "Entrepreneurial Learning Platform", icon: Target, color: "#00B6C1" },
+                                { title: "BN Franchise", url: "https://bnlifecentre.balancenutrition.in/#", desc: "Life Centre & Franchise Operations", icon: Globe, color: "#0E5858" },
+                                { title: "BN Health", url: "#", desc: "Diagnostics & Doctors Network", icon: Activity, color: "#FF5733", isPopup: true },
+                                { title: "Corporate Wellness", url: "https://drive.google.com/file/d/1YC6Yoz4NSgTsMr65hkc4fHtKApPI3xgM/view?usp=drive_link", desc: "Enterprise Health Partnerships", icon: Building2, color: "#8E44AD" },
+                                { title: "Educational Institute", url: "https://drive.google.com/drive/folders/18NQXel0C-rHSOX9TdTo20liyE67jjz-5?usp=sharing", desc: "Student & Academic Health Programs", icon: School, color: "#27AE60" }
+                            ].map((link, i) => (
+                                <motion.a
+                                    key={i} href={link.url} target={link.isPopup ? undefined : "_blank"}
+                                    onClick={(e) => { if (link.isPopup) { e.preventDefault(); setShowHealthPopup(true); } }}
+                                    whileHover={{ y: -8, scale: 1.02 }}
+                                    className="premium-card p-8 group relative overflow-hidden flex flex-col items-center text-center hover:border-[#00B6C1]/30 transition-all border border-transparent bg-white shadow-xl"
                                 >
-                                    <span className="flex items-center gap-4">
-                                        {moduleId === 'module-4' && !simulationDone ? "Start Simulation" : "Start Module Quiz"}
-                                        <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
-                                    </span>
-                                </button>
-                            ) : (
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl relative mb-4">
-                                        <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
-                                        <Award size={40} />
+                                    <div className="w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-6 shadow-xl transition-all group-hover:rotate-12" style={{ backgroundColor: `${link.color}15`, color: link.color }}>
+                                        <link.icon size={28} />
                                     </div>
+                                    <h4 className="text-xl font-serif font-bold text-[#0E5858] mb-2">{link.title}</h4>
+                                    <p className="text-xs text-gray-400 leading-relaxed px-4 font-medium">{link.desc}</p>
+                                    <div className="mt-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#00B6C1] opacity-0 group-hover:opacity-100 transition-all">Launch Platform <ArrowRight size={14} /></div>
+                                </motion.a>
+                            ))}
+                        </div>
+                    </section>
+                )
+            }
+
+            {
+                moduleTopics.length > 0 && completedTopics.length === moduleTopics.length && (
+                    <motion.section
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className={`mt-12 p-8 lg:p-12 rounded-[3.5rem] border-2 transition-all duration-1000 relative overflow-hidden group ${assessmentPassed
+                            ? 'bg-[#FAFCEE] border-[#0E5858]/10'
+                            : 'bg-[#0E5858] border-[#0E5858] shadow-3xl shadow-[#0E5858]/30'
+                            }`}
+                    >
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-48 -mt-48"></div>
+                        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
+                            <div className="flex-1">
+                                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 ${assessmentPassed ? 'bg-green-100 text-green-700' : 'bg-[#00B6C1]/20 text-[#00B6C1]'
+                                    }`}>
+                                    {assessmentPassed ? <CheckCircle2 size={12} /> : <Brain size={12} />}
+                                    {assessmentPassed ? 'Mastery Achieved' : 'Pending Verification'}
+                                </div>
+                                <h2 className={`text-4xl lg:text-5xl font-serif mb-4 leading-tight ${assessmentPassed ? 'text-[#0E5858]' : 'text-white'}`}>
+                                    {assessmentPassed ? "Module Achievement Unlocked" : "Pending Quiz"}
+                                </h2>
+                                <p className={`text-lg font-medium max-w-xl ${assessmentPassed ? 'text-gray-500' : 'text-white/60 text-base'}`}>
+                                    {assessmentPassed
+                                        ? "Great job! You've successfully covered all sections and verified your proficiency. You're now ready for the next level."
+                                        : "Great job on completing the sections! Demonstrate your clinical mastery by taking the final module quiz."
+                                    }
+                                </p>
+                            </div>
+                            <div className="shrink-0 relative z-10">
+                                {!assessmentPassed ? (
                                     <button
                                         onClick={() => {
-                                            if (nextModule) router.push(`/modules/${nextModule.id}`);
-                                            else router.push('/');
+                                            if (moduleId === 'module-4' && !simulationDone) {
+                                                setShowSimulation(true);
+                                                return;
+                                            }
+                                            if (moduleId === 'module-2' && !completedTopics.includes('M2-05')) {
+                                                alert("Please complete the Peer Review (M2-05) first.");
+                                                return;
+                                            }
+                                            setShowVivaIntro(true);
                                         }}
-                                        className="px-12 py-6 bg-white text-[#0E5858] border border-[#0E5858]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-[#0E5858] hover:text-white transition-all"
+                                        className="px-12 py-6 bg-[#00B6C1] text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl hover:bg-white hover:text-[#0E5858] transition-all hover:-translate-y-2 group"
                                     >
-                                        {nextModule ? "Next Module" : "Return to Hub"}
+                                        <span className="flex items-center gap-4">
+                                            {moduleId === 'module-4' && !simulationDone ? "Start Simulation" : "Start Module Quiz"}
+                                            <ChevronRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                                        </span>
                                     </button>
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="flex flex-col items-center gap-4">
+                                        <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl relative mb-4">
+                                            <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
+                                            <Award size={40} />
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (nextModule) router.push(`/modules/${nextModule.id}`);
+                                                else router.push('/');
+                                            }}
+                                            className="px-12 py-6 bg-white text-[#0E5858] border border-[#0E5858]/10 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-[#0E5858] hover:text-white transition-all"
+                                        >
+                                            {nextModule ? "Next Module" : "Return to Hub"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                </motion.section>
-            )}
+                    </motion.section>
+                )
+            }
 
             <footer className="mt-32 pt-16 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
                 <button
@@ -999,6 +1058,6 @@ export default function ModulePage() {
                     {nextModule ? 'Next Module' : 'Return to Hub'} <ChevronRight size={20} />
                 </button>
             </footer>
-        </motion.main>
+        </motion.main >
     );
 }

@@ -31,6 +31,7 @@ export interface Topic {
     isBooking?: boolean;
     bookingUrl?: string;
     isDynamic?: boolean;
+    sort_order?: number;
 }
 
 export interface Module {
@@ -193,79 +194,12 @@ export const syllabusData: Module[] = [
         ]
     },
 
-    // ===== MODULE 3: Sales skill training (Repositioned from M5) =====
-    {
-        id: 'module-3',
-        title: 'Module 3: Sales skill training',
-        subtitle: 'Foundational Sales & Communication',
-        description: 'Comprehensive sales training covering consultation structures, mock calls, and conversion strategies.',
-        type: 'module',
-        progress: 0,
-        status: 'Available',
-        hasAssignment: false,
-        icon: 'business',
-        topics: [
-            {
-                code: 'M3-01',
-                title: 'Training Resource',
-                content: 'Final management training summaries and wrap-up sessions.',
-                links: [
-                    { label: 'CIS live presntation and follow ups', url: 'https://docs.google.com/document/d/1OgHV7RzQNBrTXFWiIWhPyMKAQLSAIOy6/edit' },
-                    { label: 'CIS Intro overview to sales2', url: 'https://docs.google.com/document/d/1rbAm8SwXj4SJ_0urlSmBQ4ss4md00SN3/edit' },
-                    { label: 'CIS Goal setting', url: 'https://docs.google.com/document/d/1lo_Hx07qjO1YBxfYJCVhzLad8J4jqHgK/edit' },
-                    { label: 'Engagement Manual', url: 'https://docs.google.com/document/d/1BGs732y6H04XHySp7r3ivu8n4fkF-MjMHJv_wYvbhA8/edit?tab=t.0#heading=h.lhggr0z4ly8' },
-                    { label: 'Wallet Money Doc', url: 'https://docs.google.com/spreadsheets/d/1X9T8TJw9UX7AtdNiZrRUA_pvQYRM8AMd5Fu1kuozISo/edit?gid=0#gid=0' },
-                    { label: 'WhatsApp Dos and Donts', url: 'https://drive.google.com/file/d/1fFUtJPGTBb_cLVGizvC4EwtKNOh23vDG/view' },
-                    { label: 'Lead Conversion (Consultation) Training by Krishna', url: 'https://us06web.zoom.us/rec/play/tH49jQn_4nKfmAaHkjtYZD1BbE7XhVjxiMBK4qsp3PG_HHiPT24Q6Gbkmv9l1duLFczNqgJHrST8I0t-.hFkYNmkz4w3CAw5V?eagerLoadZvaPages=sidemenu.billing.plan_management&accessLevel=meeting&canPlayFromShare=true&from=share_recording_detail&continueMode=true&componentName=rec-play&originRequestUrl=https%3A%2F%2Fus06web.zoom.us%2Frec%2Fshare%2FFGUqZ4uRA8jnB-HXnKYReWXxUrCrpYB64UlBhHzjjVOfCpYilXKpJnSFoL8Q2yh1.rn_6BNdfPwOc10XD' },
-                    { label: 'Glossary Link', url: 'https://docs.google.com/spreadsheets/d/1gemc5b7d-UsGNfIoQTGuh2FkslabYmPmp_ybznjxGSA/edit?gid=1915602987#gid=1915602987' }
-                ]
-            },
-            {
-                code: 'M3-02',
-                title: 'Founders Sales Mastery: Phase 1',
-                content: 'Introduction to sales protocols, mock consultations, and foundational structures.',
-                links: [
-                    { label: 'Sales Training Part 1', url: 'https://drive.google.com/file/d/198AmX7QN9dBySnKeNPptKykwj1uCFlz8/view?usp=sharing' },
 
-                ]
-            },
-            {
-                code: 'M3-03',
-                title: 'Founders Sales Mastery Phase 2',
-                content: 'Introduction to sales protocols, mock consultations, and foundational structures.',
-                links: [
-                    { label: 'Sales Training Part 1', url: 'https://www.youtube.com/watch?v=gYvr-Fdb9z4' },
-                    { label: 'Sales Training Part 2', url: 'https://youtu.be/DlZCZRNHZfc' },
-                    { label: 'Sales Training Part 3', url: 'https://youtu.be/lmRXwJgQOqk' }
-                ]
-            },
-            {
-                code: 'M3-04',
-                title: 'Founders Sales Mastery Phase 3',
-                content: 'Performance reviews, advanced mock calls, and founder-led consultation techniques.',
-                links: [
-                    { label: 'Sales Training Part 4', url: 'https://youtu.be/L9xqZVVkZs' },
-                    { label: 'Sales Training Part 5', url: 'https://youtu.be/X2oH36s6w_E' },
-                    { label: 'Sales Training Part 6', url: 'https://youtu.be/W2FKSOOA6' }
-                ]
-            },
-            {
-                code: 'M3-05',
-                title: 'Founders Sales Mastery Phase 4',
-                content: 'Handling objections, client feedback management, and old client call analysis.',
-                links: [
-                    { label: 'Sales Training Part 7', url: 'https://youtu.be/e_WOl6UuWMg' },
-                    { label: 'Sales Training Part 8', url: 'https://www.youtube.com/watch?v=g6OzGs9McRA' }
-                ]
-            },
-
-        ]
-    },
 
     // ===== MODULE 4: Consultation Training (Shifted from M3) =====
     {
-        id: 'module-4',
-        title: 'Module 4: Consultation Training',
+        id: 'module-3',
+        title: 'Module 3: Consultation Training',
         subtitle: 'Client Engagement & Counselling Mastery',
         description: 'Learning to pitch programs, engage clients day-to-day, and analyze health journeys.',
         type: 'module',
@@ -275,7 +209,7 @@ export const syllabusData: Module[] = [
         icon: 'health',
         topics: [
             {
-                code: 'M4-01',
+                code: 'M3-01',
                 title: 'Consultation Calls by Mentors',
                 content: 'Observe live calls by senior mentors and understand call etiquette.',
                 links: [
@@ -285,7 +219,7 @@ export const syllabusData: Module[] = [
             },
 
             {
-                code: 'M4-02',
+                code: 'M3-02',
                 title: 'Day-to-Day Lead Engagement',
                 content: 'Strategies for daily client engagement, motivation, and milestone tracking.',
                 links: [
@@ -293,7 +227,7 @@ export const syllabusData: Module[] = [
                 ]
             },
             {
-                code: 'M4-03',
+                code: 'M3-03',
                 title: 'Case Studies',
                 content: 'Analyze specific client cases and their health journeys.',
                 links: [
@@ -317,7 +251,7 @@ export const syllabusData: Module[] = [
                 ]
             },
             {
-                code: 'M4-04',
+                code: 'M3-04',
                 title: 'Inbody BCA training video',
                 content: 'Go through Inbody BCA training video',
                 links: [
@@ -327,7 +261,7 @@ export const syllabusData: Module[] = [
             },
 
             {
-                code: 'M4-05',
+                code: 'M3-05',
                 title: 'Schedule Your Mock Call',
                 content: 'Book a 1-on-1 mock consultation call with your training lead to verify your training progress.',
                 isBooking: true,
@@ -338,8 +272,8 @@ export const syllabusData: Module[] = [
 
     // ===== MODULE 5: Dashboard Training (Shifted from M4) =====
     {
-        id: 'module-5',
-        title: 'Module 5: Dashboard Training',
+        id: 'module-4',
+        title: 'Module 4: Dashboard Training',
         subtitle: 'Mastering the Counselor Operating System',
         description: 'Guided walkthrough of the counselor dashboard, lead tracking, and the prescription writing engine.',
         type: 'module',
@@ -349,7 +283,7 @@ export const syllabusData: Module[] = [
         icon: 'layers',
         topics: [
             {
-                code: 'M5-01',
+                code: 'M4-01',
                 title: 'Dashboard Ecosystem Overview',
                 content: 'Experience the primary dashboard interface. Learn to navigate between active clients, pending assessments, and lead queues.',
                 outcome: 'Navigate the counselor ecosystem with 100% efficiency.',
@@ -359,14 +293,14 @@ export const syllabusData: Module[] = [
                 ]
             },
             {
-                code: 'M5-02',
+                code: 'M4-02',
                 title: 'Lead Management & Tracking',
                 content: 'Learn how to manage the sales funnel directly from your dashboard. Tracking leads from initial enquiry to successful conversion.',
                 outcome: 'Manage a high-volume lead queue without dropping communication.',
                 links: [{ label: 'Lead Management Video', url: 'https://youtu.be/WpaY3G9RGyY' }]
             },
             {
-                code: 'M5-03',
+                code: 'M4-03',
                 title: 'Creating Payment Links',
                 content: 'Master the process of generating secure payment links for clients based on program selection.',
                 outcome: 'Generate accurate payment links for conversion in under 1 minute.',
@@ -374,6 +308,66 @@ export const syllabusData: Module[] = [
                     { label: 'Payment Links Guide', url: 'https://drive.google.com/file/d/1UkZl0brpE7Z1OYPw5-hB0vtyc_XiNFAD/view' }
                 ]
             },
+        ]
+    },
+    // ===== MODULE 3: Sales skill training (Repositioned from M5) =====
+    {
+        id: 'module-5',
+        title: 'Module 5: Sales skill training',
+        subtitle: 'Foundational Sales & Communication',
+        description: 'Comprehensive sales training covering consultation structures, mock calls, and conversion strategies.',
+        type: 'module',
+        progress: 0,
+        status: 'Available',
+        hasAssignment: false,
+        icon: 'business',
+        topics: [
+            {
+                code: 'M5-01',
+                title: 'Training Resource',
+                content: 'Final management training summaries and wrap-up sessions.',
+                links: [
+                    { label: 'CIS live presntation and follow ups', url: 'https://docs.google.com/document/d/1OgHV7RzQNBrTXFWiIWhPyMKAQLSAIOy6/edit' },
+                    { label: 'CIS Intro overview to sales2', url: 'https://docs.google.com/document/d/1rbAm8SwXj4SJ_0urlSmBQ4ss4md00SN3/edit' },
+                    { label: 'CIS Goal setting', url: 'https://docs.google.com/document/d/1lo_Hx07qjO1YBxfYJCVhzLad8J4jqHgK/edit' },
+                    { label: 'Engagement Manual', url: 'https://docs.google.com/document/d/1BGs732y6H04XHySp7r3ivu8n4fkF-MjMHJv_wYvbhA8/edit?tab=t.0#heading=h.lhggr0z4ly8' },
+                    { label: 'Wallet Money Doc', url: 'https://docs.google.com/spreadsheets/d/1X9T8TJw9UX7AtdNiZrRUA_pvQYRM8AMd5Fu1kuozISo/edit?gid=0#gid=0' },
+                    { label: 'WhatsApp Dos and Donts', url: 'https://drive.google.com/file/d/1fFUtJPGTBb_cLVGizvC4EwtKNOh23vDG/view' },
+                    { label: 'Lead Conversion (Consultation) Training by Krishna', url: 'https://us06web.zoom.us/rec/play/tH49jQn_4nKfmAaHkjtYZD1BbE7XhVjxiMBK4qsp3PG_HHiPT24Q6Gbkmv9l1duLFczNqgJHrST8I0t-.hFkYNmkz4w3CAw5V?eagerLoadZvaPages=sidemenu.billing.plan_management&accessLevel=meeting&canPlayFromShare=true&from=share_recording_detail&continueMode=true&componentName=rec-play&originRequestUrl=https%3A%2F%2Fus06web.zoom.us%2Frec%2Fshare%2FFGUqZ4uRA8jnB-HXnKYReWXxUrCrpYB64UlBhHzjjVOfCpYilXKpJnSFoL8Q2yh1.rn_6BNdfPwOc10XD' }
+
+                ]
+            },
+
+            {
+                code: 'M5-02',
+                title: 'Founders Sales Mastery Phase 2',
+                content: 'Introduction to sales protocols, mock consultations, and foundational structures.',
+                links: [
+                    { label: 'Sales Training Part 1', url: 'https://www.youtube.com/watch?v=gYvr-Fdb9z4' },
+                    { label: 'Sales Training Part 2', url: 'https://youtu.be/DlZCZRNHZfc' },
+                    { label: 'Sales Training Part 3', url: 'https://youtu.be/lmRXwJgQOqk' }
+                ]
+            },
+            {
+                code: 'M5-03',
+                title: 'Founders Sales Mastery Phase 3',
+                content: 'Performance reviews, advanced mock calls, and founder-led consultation techniques.',
+                links: [
+                    { label: 'Sales Training Part 4', url: 'https://youtu.be/L9xqZVVkZs' },
+                    { label: 'Sales Training Part 5', url: 'https://youtu.be/X2oH36s6w_E' },
+                    { label: 'Sales Training Part 6', url: 'https://youtu.be/W2FKSOOA6' }
+                ]
+            },
+            {
+                code: 'M5-04',
+                title: 'Founders Sales Mastery Phase 4',
+                content: 'Handling objections, client feedback management, and old client call analysis.',
+                links: [
+                    { label: 'Sales Training Part 7', url: 'https://youtu.be/e_WOl6UuWMg' },
+                    { label: 'Sales Training Part 8', url: 'https://www.youtube.com/watch?v=g6OzGs9McRA' }
+                ]
+            },
+
         ]
     },
 
