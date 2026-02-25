@@ -62,17 +62,19 @@ export const syllabusData: Module[] = [
         topics: [
             {
                 code: 'M1-01',
-                title: 'Website Deep Dive',
+                title: 'Ecosystem Deep Dive',
                 content: 'Study the core platform to understand the client interface.',
                 layout: 'grid',
                 links: [
                     { label: 'BN Website', url: 'https://www.balancenutrition.in/' },
-                    { label: 'BNCleanse', url: 'https://bncleanse.com/' },
+                    { label: 'BN Cleanse', url: 'https://bncleanse.com/' },
                     { label: 'BN Recipes', icon: 'target', url: 'https://www.balancenutrition.in/recipes' },
-                    { label: 'BN Health Reads', icon: 'globe', url: 'https://www.balancenutrition.in/health-reads' },
-                    { label: 'BN Health', icon: 'activity', url: 'https://www.balancenutrition.in/health-score' }
+                    { label: 'BN Health Score', icon: 'activity', url: 'https://www.balancenutrition.in/health-score' },
+                    { label: 'BN Health Reads', icon: 'globe', url: 'https://www.balancenutrition.in/health-reads' }
                 ]
             },
+
+
             {
                 code: 'M1-02',
                 title: 'Meet Our Founders',
@@ -119,7 +121,8 @@ export const syllabusData: Module[] = [
                 title: 'How We Work',
                 content: 'Video explaining the complete client journey from purchase to completion.',
                 links: [{ label: 'How We Work Video', url: 'https://youtu.be/WpaY3G9RGyY' },
-                { label: 'Glossary', url: 'https://docs.google.com/spreadsheets/d/1gemc5b7d-UsGNfIoQTGuh2FkslabYmPmp_ybznjxGSA/edit?gid=1915602987#gid=1915602987' }
+                { label: 'Glossary', url: 'https://docs.google.com/spreadsheets/d/1gemc5b7d-UsGNfIoQTGuh2FkslabYmPmp_ybznjxGSA/edit?gid=1915602987#gid=1915602987' },
+                { label: 'BN Statistics', url: 'https://docs.google.com/spreadsheets/d/195nuyHuXtRsprI97R6x1sp_kKWxfCh_jXEdpyz846a8/edit?usp=sharing' }
                 ]
             },
             {
@@ -286,7 +289,7 @@ export const syllabusData: Module[] = [
                 code: 'M4-01',
                 title: 'Dashboard Ecosystem Overview',
                 content: 'Experience the primary dashboard interface. Learn to navigate between active clients, pending assessments, and lead queues.',
-                outcome: 'Navigate the counselor ecosystem with 100% efficiency.',
+
                 links: [
                     { label: 'Dashboard Zoom Training', url: 'https://drive.google.com/file/d/15uCOJerhQPSOm0-mT7v69nwwYI--hvFP/view?usp=sharing' },
                     { label: 'Explore Dashboard', url: 'https://mentor.balancenutrition.in/mentor-dashboard' }
@@ -296,14 +299,12 @@ export const syllabusData: Module[] = [
                 code: 'M4-02',
                 title: 'Lead Management & Tracking',
                 content: 'Learn how to manage the sales funnel directly from your dashboard. Tracking leads from initial enquiry to successful conversion.',
-                outcome: 'Manage a high-volume lead queue without dropping communication.',
                 links: [{ label: 'Lead Management Video', url: 'https://youtu.be/WpaY3G9RGyY' }]
             },
             {
                 code: 'M4-03',
                 title: 'Creating Payment Links',
                 content: 'Master the process of generating secure payment links for clients based on program selection.',
-                outcome: 'Generate accurate payment links for conversion in under 1 minute.',
                 links: [
                     { label: 'Payment Links Guide', url: 'https://drive.google.com/file/d/1UkZl0brpE7Z1OYPw5-hB0vtyc_XiNFAD/view' }
                 ]

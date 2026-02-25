@@ -53,13 +53,21 @@ export default function RootLayout({
         setUserEmail(session.user.email || '');
         setUserRole(role);
 
-        // Sync profile
-        await supabase.from('profiles').upsert({
-          id: session.user.id,
-          email: session.user.email,
-          full_name: name,
-          role: role
-        });
+        // Safe Profile Sync: Only insert if missing to prevent overwriting admin-set data (phone, buddy)
+        const { data: existingProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', session.user.id)
+          .single();
+
+        if (!existingProfile) {
+          await supabase.from('profiles').insert({
+            id: session.user.id,
+            email: session.user.email,
+            full_name: name,
+            role: role
+          });
+        }
 
         // Fetch notifications
         const { data: notifs } = await supabase
@@ -243,11 +251,11 @@ export default function RootLayout({
                               key={notify.id}
                               onClick={() => !notify.is_read && markNotificationRead(notify.id)}
                               className={`px-5 py-4 border-b border-gray-50 transition-all cursor-pointer hover:bg-gray-50/50 ${!notify.is_read
-                                  ? `border-l-4 ${notify.type === 'alert' ? 'border-l-red-500 bg-red-50/20' :
-                                    notify.type === 'warning' ? 'border-l-orange-400 bg-orange-50/20' :
-                                      'border-l-[#00B6C1] bg-[#00B6C1]/5'
-                                  }`
-                                  : ''
+                                ? `border-l-4 ${notify.type === 'alert' ? 'border-l-red-500 bg-red-50/20' :
+                                  notify.type === 'warning' ? 'border-l-orange-400 bg-orange-50/20' :
+                                    'border-l-[#00B6C1] bg-[#00B6C1]/5'
+                                }`
+                                : ''
                                 }`}
                             >
                               <div className="flex justify-between items-start mb-1">

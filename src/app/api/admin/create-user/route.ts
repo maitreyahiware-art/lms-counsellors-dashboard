@@ -72,7 +72,8 @@ export async function POST(request: Request) {
                 full_name: fullName,
                 role: dbRole,
                 training_buddy: trainingBuddy || '[]',
-                temp_password: password
+                temp_password: password,
+                phone: phone || ""
             };
 
             const { error: profileError } = await supabaseAdmin

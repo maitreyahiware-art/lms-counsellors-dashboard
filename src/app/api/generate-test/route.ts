@@ -20,7 +20,6 @@ export async function POST(req: Request) {
                 const testData = manualQuiz.questions;
                 const scoringKey = testData.map((q: any) => ({
                     correctAnswer: q.correctAnswer,
-                    justification: q.justification,
                     type: q.type || 'mcq'
                 }));
                 const answerToken = encryptData(scoringKey);
@@ -48,9 +47,8 @@ export async function POST(req: Request) {
                        - Q5: Analysis (Comparison or complex problem solving)
                     3. Use 'Distractor Logic': Incorrect options should be clinically plausible but technically wrong for our specific BN protocol.
                     4. Tone: Professional, clinical, and rigorous.
-                    5. Format: Return ONLY a valid JSON array of objects: [{ question: string, options: string[], correctAnswer: string, justification: string }]. No preamble, explanation, or markdown.
+                    5. Format: Return ONLY a valid JSON array of objects: [{ question: string, options: string[], correctAnswer: string }]. No preamble, explanation, or markdown.
                     6. The generated questions must explicitly test the knowledge in the provided topicContent and the provided topicLinks. Do not invent questions outside of this scope.
-                    7. Justification: Provide a concise clinical rationale (1-2 sentences) for EACH question explaining the protocol logic.
                     
                     BN CORE KNOWLEDGE BASE (Use for framing factual/recall questions):
                     - 10 Health Segments: Weight Loss, Weight Gain, PCOS/PCOD, Thyroid, Diabetes, Children's Health, Post-Pregnancy, Skin & Hair, General Health, Muscle Building.
@@ -81,10 +79,9 @@ export async function POST(req: Request) {
             testData = [];
         }
 
-        // Secure correct answers AND justifications before sending to client
+        // Secure correct answers before sending to client
         const scoringKey = testData.map(q => ({
             correctAnswer: q.correctAnswer,
-            justification: q.justification,
             type: 'mcq'
         }));
         const answerToken = encryptData(scoringKey);

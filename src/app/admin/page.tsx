@@ -61,10 +61,9 @@ interface Profile {
     full_name: string;
     role: string;
     created_at?: string;
-    training_buddy?: string;
-    last_login?: string;
     temp_password?: string;
     phone?: string;
+    training_buddy: string;
 }
 
 interface AssessmentRecord {
@@ -145,6 +144,7 @@ function AdminDashboardContent() {
         password: "",
         fullName: "",
         role: "counsellor",
+        phone: "",
         buddies: [{ name: "BN Admin", email: "admin@balancenutrition.in", phone: "0000000000" }]
     });
     const [creatingUser, setCreatingUser] = useState(false);
@@ -174,13 +174,7 @@ function AdminDashboardContent() {
     const [cleanupSuccess, setCleanupSuccess] = useState("");
     const [cleanupError, setCleanupError] = useState("");
 
-    // Audit Report Form
-    const [auditForm, setAuditForm] = useState({
-        score: 80,
-        feedback: "",
-        topicCode: "FINAL-REVIEW"
-    });
-    const [submittingAudit, setSubmittingAudit] = useState(false);
+
     const [editingBuddy, setEditingBuddy] = useState(false);
     const [buddyList, setBuddyList] = useState<{ name: string; email: string; phone: string }[]>([]);
     const [updatingBuddy, setUpdatingBuddy] = useState(false);
@@ -374,6 +368,7 @@ function AdminDashboardContent() {
                     password: newUser.password,
                     fullName: newUser.fullName,
                     role: newUser.role,
+                    phone: newUser.phone,
                     trainingBuddy: buddyInfo
                 }),
             });
@@ -383,7 +378,7 @@ function AdminDashboardContent() {
 
             setUserSuccess(`Authorized: ${newUser.email}. Account created.`);
             setNewUser({
-                email: "", password: "", fullName: "", role: "counsellor",
+                email: "", password: "", fullName: "", role: "counsellor", phone: "",
                 buddies: [{ name: "BN Admin", email: "admin@balancenutrition.in", phone: "0000000000" }]
             });
             refreshData();
@@ -468,28 +463,8 @@ function AdminDashboardContent() {
         }
     };
 
-    const handleSubmitAudit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedProfile) return;
-        setSubmittingAudit(true);
 
-        try {
-            const { error } = await supabase.from('summary_audits').insert({
-                user_id: selectedProfile.id,
-                topic_code: auditForm.topicCode,
-                score: auditForm.score,
-                feedback: auditForm.feedback
-            });
 
-            if (error) throw error;
-            setAuditForm({ ...auditForm, feedback: "" });
-            refreshData();
-        } catch (err: any) {
-            alert(err.message);
-        } finally {
-            setSubmittingAudit(false);
-        }
-    };
 
     const handleUpdateAdminProfile = async () => {
         if (!currentAdmin) return;
@@ -554,12 +529,21 @@ function AdminDashboardContent() {
         if (!confirm("⚠️ CAUTION: This will permanently delete all activity logs, quiz scores, progress, and audits for this user. Proceed?")) return;
         setResettingUser(true);
         try {
-            await Promise.all([
-                supabase.from('mentor_activity_logs').delete().eq('user_id', userId),
-                supabase.from('mentor_progress').delete().eq('user_id', userId),
-                supabase.from('assessment_logs').delete().eq('user_id', userId),
-                supabase.from('summary_audits').delete().eq('user_id', userId)
-            ]);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Session expired");
+
+            const res = await fetch('/api/admin/clear-history', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to clear history");
+
             alert("Account history has been cleared.");
             refreshData();
         } catch (err: any) {
@@ -694,7 +678,7 @@ function AdminDashboardContent() {
         }
     };
 
-    const handleSendNotification = async (userId: string) => {
+    const handleSendNotification = async (userId: string, channel: 'dashboard' | 'email' | 'whatsapp' | 'all' = 'dashboard') => {
         if (!notificationForm.title || !notificationForm.message) return;
         setSendingNotification(true);
         try {
@@ -709,14 +693,29 @@ function AdminDashboardContent() {
                 },
                 body: JSON.stringify({
                     userId,
-                    ...notificationForm
+                    ...notificationForm,
+                    channel
                 })
             });
 
-            if (!res.ok) throw new Error("Failed to send notification");
-            setNotificationSuccess("Notification dispatched successfully.");
-            setNotificationForm({ title: "", message: "", type: "info" });
-            setTimeout(() => setNotificationSuccess(""), 3000);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to send notification");
+
+            // If WhatsApp, open the link
+            if (data.results?.whatsapp) {
+                window.open(data.results.whatsapp, '_blank');
+            }
+
+            const sent: string[] = [];
+            if (data.results?.dashboard) sent.push('Dashboard');
+            if (data.results?.email) sent.push('Email');
+            if (data.results?.whatsapp) sent.push('WhatsApp');
+
+            setNotificationSuccess(`Sent via: ${sent.join(', ') || channel}`);
+            if (channel !== 'whatsapp') {
+                setNotificationForm({ title: "", message: "", type: "info" });
+            }
+            setTimeout(() => setNotificationSuccess(""), 4000);
         } catch (err: any) {
             alert(err.message);
         } finally {
@@ -856,12 +855,33 @@ function AdminDashboardContent() {
                             {/* Profile Sidebar */}
                             <div className="lg:w-[400px] space-y-6">
                                 <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-[#0E5858]/5">
-                                    <div className="text-center mb-8">
-                                        <div className="w-24 h-24 bg-[#FAFCEE] rounded-[2.5rem] flex items-center justify-center text-[#0E5858] text-4xl font-black mx-auto mb-6 shadow-inner">
+                                    <div className="text-center mb-8 relative">
+                                        <div className="w-24 h-24 bg-[#FAFCEE] rounded-full flex items-center justify-center text-[#0E5858] text-4xl font-black mx-auto mb-6 shadow-inner border border-[#0E5858]/5">
                                             {selectedProfile.full_name?.[0]}
                                         </div>
                                         <h3 className="text-3xl font-serif text-[#0E5858] mb-1">{selectedProfile.full_name}</h3>
-                                        <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">{selectedProfile.email}</p>
+                                        <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-[0.2em] mb-6">{selectedProfile.email}</p>
+
+                                        <div className="flex justify-center gap-4">
+                                            {selectedProfile.phone && (
+                                                <a
+                                                    href={`https://wa.me/${selectedProfile.phone.replace(/[^0-9]/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-green-500/20"
+                                                    title="WhatsApp"
+                                                >
+                                                    <Phone size={18} />
+                                                </a>
+                                            )}
+                                            <a
+                                                href={`mailto:${selectedProfile.email}`}
+                                                className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-blue-500/20"
+                                                title="Email"
+                                            >
+                                                <Mail size={18} />
+                                            </a>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-4 border-t border-gray-50 pt-8">
@@ -1079,41 +1099,11 @@ function AdminDashboardContent() {
                                     </div>
                                 </div>
 
-                                <div className="bg-[#0E5858] text-white rounded-[3rem] p-10 shadow-xl space-y-8">
-                                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#00B6C1]">Add Audit Report</h4>
-                                    <form onSubmit={handleSubmitAudit} className="space-y-4">
-                                        <div>
-                                            <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2 block">Performance Score (0-100)</label>
-                                            <input
-                                                type="number"
-                                                min="0" max="100"
-                                                value={auditForm.score}
-                                                onChange={e => setAuditForm({ ...auditForm, score: parseInt(e.target.value) })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold outline-none focus:ring-2 focus:ring-[#00B6C1]/30 transition-all text-white"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2 block">Feedback / Observations</label>
-                                            <textarea
-                                                value={auditForm.feedback}
-                                                onChange={e => setAuditForm({ ...auditForm, feedback: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-[#00B6C1]/30 transition-all text-white h-32 resize-none"
-                                                placeholder="Enter audit remarks..."
-                                                required
-                                            />
-                                        </div>
-                                        <button
-                                            disabled={submittingAudit}
-                                            className="w-full py-4 bg-[#00B6C1] text-[#0E5858] rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2"
-                                        >
-                                            {submittingAudit ? <Loader2 size={16} className="animate-spin" /> : <><Plus size={16} /> Submit Audit Report</>}
-                                        </button>
-                                    </form>
-                                </div>
 
-                                <div className="bg-white rounded-[3rem] p-10 border border-[#0E5858]/5 shadow-sm space-y-8">
+
+                                <div className="bg-[#0E5858] text-white rounded-[3rem] p-10 shadow-xl space-y-8">
                                     <div className="flex justify-between items-center">
-                                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#0E5858]">Send Notification</h4>
+                                        <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#00B6C1]">Dispatch Notification</h4>
                                         <Bell size={20} className="text-[#00B6C1]" />
                                     </div>
 
@@ -1122,7 +1112,7 @@ function AdminDashboardContent() {
                                             <button
                                                 key={temp.id}
                                                 onClick={() => handleApplyTemplate(temp.id)}
-                                                className="px-3 py-1.5 bg-[#FAFCEE] border border-[#0E5858]/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-[#0E5858] hover:bg-[#00B6C1] hover:text-white transition-all shadow-sm"
+                                                className="px-3 py-1.5 bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest text-white hover:bg-[#00B6C1] transition-all shadow-sm"
                                             >
                                                 {temp.label}
                                             </button>
@@ -1131,21 +1121,21 @@ function AdminDashboardContent() {
 
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Notification Title</label>
+                                            <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2 block">Notification Title</label>
                                             <input
                                                 type="text"
                                                 value={notificationForm.title}
                                                 onChange={e => setNotificationForm({ ...notificationForm, title: e.target.value })}
-                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00B6C1]/10 transition-all font-serif"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00B6C1]/30 transition-all text-white"
                                                 placeholder="Enter title..."
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Message Body</label>
+                                            <label className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2 block">Message Body</label>
                                             <textarea
                                                 value={notificationForm.message}
                                                 onChange={e => setNotificationForm({ ...notificationForm, message: e.target.value })}
-                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-4 text-xs font-medium outline-none focus:ring-2 focus:ring-[#00B6C1]/10 transition-all h-32 resize-none"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs font-medium outline-none focus:ring-2 focus:ring-[#00B6C1]/30 transition-all text-white h-32 resize-none"
                                                 placeholder="Type your message here..."
                                             />
                                         </div>
@@ -1158,7 +1148,7 @@ function AdminDashboardContent() {
                                                     onClick={() => setNotificationForm({ ...notificationForm, type: t })}
                                                     className={`flex-1 py-2 text-[8px] font-black uppercase tracking-widest rounded-lg border transition-all ${notificationForm.type === t
                                                         ? t === 'alert' ? 'bg-red-500 text-white border-red-500 shadow-md' : t === 'warning' ? 'bg-orange-400 text-white border-orange-400 shadow-md' : 'bg-[#00B6C1] text-white border-[#00B6C1] shadow-md'
-                                                        : 'bg-white text-gray-400 border-gray-100'
+                                                        : 'bg-white/5 text-white/40 border-white/10'
                                                         }`}
                                                 >
                                                     {t}
@@ -1167,16 +1157,39 @@ function AdminDashboardContent() {
                                         </div>
 
                                         {notificationSuccess && (
-                                            <p className="text-[8px] font-black uppercase tracking-widest text-green-500 text-center animate-pulse">{notificationSuccess}</p>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-green-400 text-center animate-pulse">{notificationSuccess}</p>
                                         )}
 
-                                        <button
-                                            onClick={() => handleSendNotification(selectedProfile.id)}
-                                            disabled={sendingNotification || !notificationForm.title || !notificationForm.message}
-                                            className="w-full py-4 bg-[#0E5858] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00B6C1] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#0E5858]/10"
-                                        >
-                                            {sendingNotification ? <Loader2 size={16} className="animate-spin" /> : <><Bell size={16} /> Dispatch Message</>}
-                                        </button>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => handleSendNotification(selectedProfile.id, 'dashboard')}
+                                                disabled={sendingNotification || !notificationForm.title || !notificationForm.message}
+                                                className="py-3.5 bg-[#00B6C1] text-[#0E5858] rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00B6C1]/20 disabled:opacity-40"
+                                            >
+                                                {sendingNotification ? <Loader2 size={14} className="animate-spin" /> : <><Bell size={14} /> Dashboard</>}
+                                            </button>
+                                            <button
+                                                onClick={() => handleSendNotification(selectedProfile.id, 'email')}
+                                                disabled={sendingNotification || !notificationForm.title || !notificationForm.message}
+                                                className="py-3.5 bg-blue-500 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-40"
+                                            >
+                                                {sendingNotification ? <Loader2 size={14} className="animate-spin" /> : <><Mail size={14} /> Email</>}
+                                            </button>
+                                            <button
+                                                onClick={() => handleSendNotification(selectedProfile.id, 'whatsapp')}
+                                                disabled={sendingNotification || !notificationForm.title || !notificationForm.message}
+                                                className="py-3.5 bg-green-500 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-green-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 disabled:opacity-40"
+                                            >
+                                                {sendingNotification ? <Loader2 size={14} className="animate-spin" /> : <><Phone size={14} /> WhatsApp</>}
+                                            </button>
+                                            <button
+                                                onClick={() => handleSendNotification(selectedProfile.id, 'all')}
+                                                disabled={sendingNotification || !notificationForm.title || !notificationForm.message}
+                                                className="py-3.5 bg-white/10 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-white/20 transition-all flex items-center justify-center gap-2 border border-white/10 disabled:opacity-40"
+                                            >
+                                                {sendingNotification ? <Loader2 size={14} className="animate-spin" /> : <><Sparkles size={14} /> Send All</>}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1212,15 +1225,10 @@ function AdminDashboardContent() {
                                                                 {getIcon(log.activity_type)}
                                                             </div>
                                                             <div className="pl-4">
-                                                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                                <div className="flex flex-wrap items-center gap-2 mb-0.5">
                                                                     <p className="text-[10px] font-black text-[#0E5858] uppercase tracking-wider">
                                                                         {log.activity_type.replace('_', ' ')}
                                                                     </p>
-                                                                    {log.score !== undefined && (
-                                                                        <span className="text-[10px] font-black text-[#00B6C1] bg-[#00B6C1]/5 px-2 py-0.5 rounded-full">
-                                                                            {log.score}%
-                                                                        </span>
-                                                                    )}
                                                                 </div>
                                                                 <p className="text-[11px] font-medium text-gray-500 leading-tight">
                                                                     {log.content_title || log.topic_code || 'System Event'}
@@ -1252,37 +1260,37 @@ function AdminDashboardContent() {
                                         </h4>
                                         <div className="space-y-3">
                                             {assessments.filter(a => a.user_id === selectedProfile.id).map(quiz => (
-                                                <div key={quiz.id} className="w-full p-4 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col gap-4">
-                                                    <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <p className="text-xs font-bold text-[#0E5858] uppercase tracking-widest">{quiz.topic_code} - Completed</p>
-                                                            <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">{new Date(quiz.created_at).toLocaleDateString()}</p>
+                                                <div key={quiz.id} className="w-full p-3 bg-gray-50/50 rounded-2xl border border-gray-100 flex items-center justify-between gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-baseline gap-2 mb-1">
+                                                            <p className="text-[10px] font-bold text-[#0E5858] uppercase tracking-widest truncate">{quiz.topic_code}</p>
+                                                            <p className="text-[7px] text-gray-400 font-black uppercase tracking-widest">{new Date(quiz.created_at).toLocaleDateString()}</p>
                                                         </div>
-                                                        <div className="text-right">
-                                                            <p className="text-xl font-serif text-[#0E5858]">{Math.round((quiz.score / (quiz.total_questions || 5)) * 100)}%</p>
-                                                            <p className="text-[9px] font-bold text-[#00B6C1] uppercase tracking-widest">Score Captured</p>
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            <button
+                                                                onClick={() => setSelectedQuiz(quiz)}
+                                                                className="px-2 py-1 bg-white border border-[#00B6C1]/20 rounded-lg text-[8px] font-black text-[#00B6C1] uppercase tracking-widest hover:bg-[#00B6C1] hover:text-white transition-all"
+                                                            >
+                                                                Review
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => handleGiveRetest(quiz.id, e)}
+                                                                className="px-2 py-1 bg-white border border-red-200 rounded-lg text-[8px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                                                            >
+                                                                Retest
+                                                            </button>
+                                                            <a
+                                                                href={`mailto:${selectedProfile.email}?subject=Regarding your recent assessment: ${quiz.topic_code}`}
+                                                                onClick={e => e.stopPropagation()}
+                                                                className="px-2 py-1 bg-[#0E5858] text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-[#00B6C1] transition-all flex items-center gap-1"
+                                                            >
+                                                                <Mail size={8} /> Email
+                                                            </a>
                                                         </div>
                                                     </div>
-                                                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                                                        <button
-                                                            onClick={() => setSelectedQuiz(quiz)}
-                                                            className="px-4 py-2 bg-white border border-[#00B6C1]/20 rounded-xl text-[9px] font-black text-[#00B6C1] uppercase tracking-widest hover:bg-[#00B6C1] hover:text-white transition-all shadow-sm"
-                                                        >
-                                                            Review Quiz
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => handleGiveRetest(quiz.id, e)}
-                                                            className="px-4 py-2 bg-white border border-red-200 rounded-xl text-[9px] font-black text-red-500 uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                                                        >
-                                                            Give Retest
-                                                        </button>
-                                                        <a
-                                                            href={`mailto:${selectedProfile.email}?subject=Regarding your recent assessment: ${quiz.topic_code}`}
-                                                            onClick={e => e.stopPropagation()}
-                                                            className="px-4 py-2 bg-[#0E5858] text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#00B6C1] transition-all shadow-sm flex items-center gap-1"
-                                                        >
-                                                            <Mail size={10} /> Email
-                                                        </a>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-lg font-serif text-[#0E5858] leading-none mb-0.5">{Math.round((quiz.score / (quiz.total_questions || 5)) * 100)}%</p>
+                                                        <p className="text-[7px] font-bold text-[#00B6C1] uppercase tracking-widest">Score</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -1877,20 +1885,7 @@ function AdminDashboardContent() {
                                                                 ))}
                                                             </div>
                                                         )}
-                                                        <div className="space-y-2">
-                                                            <label className="text-[9px] font-black text-orange-400 uppercase tracking-widest ml-4">Clinical Justification / Protocol Rationale</label>
-                                                            <input
-                                                                type="text"
-                                                                value={q.justification}
-                                                                onChange={e => {
-                                                                    const newList = [...manualQuizQuestions];
-                                                                    newList[qIdx].justification = e.target.value;
-                                                                    setManualQuizQuestions(newList);
-                                                                }}
-                                                                placeholder="Why is this answer correct in our BN protocol?"
-                                                                className="w-full bg-white border border-orange-100 rounded-xl py-3 px-6 text-xs font-medium outline-none italic text-orange-600 shadow-inner"
-                                                            />
-                                                        </div>
+
                                                     </div>
                                                 </div>
                                             ))}
@@ -2135,11 +2130,33 @@ function AdminDashboardContent() {
                                                         </span>
                                                     </td>
                                                     <td className="px-8 text-right">
-                                                        <button
-                                                            className="p-3 rounded-lg hover:bg-[#0E5858] hover:text-white transition-all text-gray-300"
-                                                        >
-                                                            <ArrowUpRight size={16} />
-                                                        </button>
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {p.phone && (
+                                                                <a
+                                                                    href={`https://wa.me/${p.phone.replace(/[^0-9]/g, '')}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-all border border-green-100"
+                                                                    title="Contact on WhatsApp"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <Phone size={14} />
+                                                                </a>
+                                                            )}
+                                                            <a
+                                                                href={`mailto:${p.email}`}
+                                                                className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100"
+                                                                title="Send Email"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <Mail size={14} />
+                                                            </a>
+                                                            <button
+                                                                className="p-2 rounded-lg hover:bg-[#0E5858] hover:text-white transition-all text-gray-300 border border-transparent"
+                                                            >
+                                                                <ArrowUpRight size={16} />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -2213,6 +2230,12 @@ function AdminDashboardContent() {
                                                                 <p className="text-[11px] font-black text-green-700">{correctAnswer}</p>
                                                             </div>
                                                         )}
+                                                        {q.aiFeedback && (
+                                                            <div className="p-4 bg-[#00B6C1]/5 rounded-2xl border border-[#00B6C1]/10 border-dashed">
+                                                                <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest mb-1.5">AI Semantic Audit Feedback</p>
+                                                                <p className="text-[10px] italic font-medium text-[#0E5858]/70">"{q.aiFeedback}"</p>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -2251,16 +2274,7 @@ function AdminDashboardContent() {
                                                     </div>
                                                 )}
 
-                                                {justification && (
-                                                    <div className="mt-4 p-5 bg-white/80 rounded-3xl border border-black/[0.03] shadow-inner">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="w-4 h-px bg-[#00B6C1]/30"></div>
-                                                            <p className="text-[7px] font-black text-[#00B6C1] uppercase tracking-[0.2em]">Clinical Rationale & Protocol Justification</p>
-                                                            <div className="w-4 h-px bg-[#00B6C1]/30"></div>
-                                                        </div>
-                                                        <p className="text-[10px] text-gray-500 italic leading-relaxed font-medium">"{justification}"</p>
-                                                    </div>
-                                                )}
+
                                             </div>
                                         </div>
                                     );

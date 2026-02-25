@@ -145,6 +145,19 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                     contentTitle: topicTitle,
                     score: finalScore
                 });
+
+                // Notify Training Buddies (Background)
+                fetch('/api/notify-buddy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: session.user.id,
+                        topicCode,
+                        score: finalScore,
+                        totalQuestions: gradeData.total,
+                        results: gradeData.results
+                    })
+                }).catch(err => console.error("Buddy Notification Failed:", err));
             }
 
             setShowResult(true);
