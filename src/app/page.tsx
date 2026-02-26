@@ -22,13 +22,19 @@ import {
   Mail,
   X,
   ExternalLink,
-  Info
+  Info,
+  MessageSquare,
+  Bell,
+  Send,
+  XCircle,
+  Loader2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { syllabusData } from "@/data/syllabus";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import DashboardTour from "@/components/DashboardTour";
 
 export default function Home() {
   const router = useRouter();
@@ -36,12 +42,28 @@ export default function Home() {
   const [userStats, setUserStats] = useState({ progress: 0, avgScore: 0, quizzes: 0 });
   const [lastModule, setLastModule] = useState<{ id: string; title: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [trainingBuddy, setTrainingBuddy] = useState<string>("");
   const [dynamicContent, setDynamicContent] = useState<any[]>([]);
   const [allMentors, setAllMentors] = useState<any[]>([]);
   const [showBuddyModal, setShowBuddyModal] = useState(false);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Email Modal States
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailForm, setEmailForm] = useState({
+    to: "",
+    subject: "",
+    message: "",
+    userName: ""
+  });
+  const [emailSuccess, setEmailSuccess] = useState("");
+  const [emailError, setEmailError] = useState("");
 
 
   useEffect(() => {
@@ -52,6 +74,7 @@ export default function Home() {
         return;
       }
 
+      setUserId(session.user.id);
       setUserName(session.user.user_metadata?.full_name || "Counsellor");
 
       // 0. Fetch Profile for Training Buddy
@@ -97,54 +120,45 @@ export default function Home() {
         const dynamicTopicsDone = dynamicForModule.every(d => completedTopicCodes.has(`DYN-${d.id}`));
 
         const hasContent = module.topics.length > 0 || dynamicForModule.length > 0;
-
-        const quizPassed = assessments?.some(a => a.topic_code === `MODULE_${module.id}`) || false;
-
-        if (staticTopicsDone && dynamicTopicsDone && hasContent && quizPassed) {
+        if (hasContent && staticTopicsDone && dynamicTopicsDone) {
           dbCompletedModules.push(module.id);
         }
       });
 
       setCompletedModules(dbCompletedModules);
 
-      // Total Topics = Static Syllabus + Dynamic Content
-      const totalStaticTopics = syllabusData
+      // Stats Calculation
+      const totalSyllabusTopics = syllabusData
         .filter(m => m.id !== 'resource-bank')
         .reduce((acc, m) => acc + m.topics.length, 0);
-      const totalTopics = totalStaticTopics + dynamicCount;
 
-      const validCodesSet = new Set(syllabusData.filter(m => m.id !== 'resource-bank').flatMap(m => m.topics.map(t => t.code)));
-      const filteredCompletedCount = Array.from(completedTopicCodes).filter(code => validCodesSet.has(code)).length;
-      const compositeProgress = totalTopics > 0 ? Math.round((filteredCompletedCount / totalTopics) * 100) : 0;
+      const totalTopics = totalSyllabusTopics + dynamicCount;
+      const progressPercent = totalTopics > 0 ? Math.round((completedTopicCodes.size / totalTopics) * 100) : 0;
 
-      if (assessments && assessments.length > 0) {
-        const avgScore = Math.round((assessments.reduce((acc: number, curr: any) => acc + (curr.score / curr.total_questions), 0) / assessments.length) * 100);
+      const avgScore = (assessments || []).length > 0
+        ? Math.round((assessments || []).reduce((acc, curr) => acc + curr.score, 0) / (assessments || []).length * 20) // Assuming scores out of 5
+        : 0;
 
-        setUserStats({
-          progress: compositeProgress,
-          avgScore,
-          quizzes: assessments.length
-        });
-      } else {
-        setUserStats(prev => ({ ...prev, progress: compositeProgress }));
-      }
+      setUserStats({
+        progress: progressPercent,
+        avgScore,
+        quizzes: (assessments || []).length
+      });
 
-      // 4. Fetch Specific Assigned Mentors / Buddy Info
+      // 4. Resolve Trainer Buddy Details
       let mentorData: any[] = [];
       if (profile?.training_buddy) {
+        let emails = [];
         try {
           const parsed = JSON.parse(profile.training_buddy);
-          const buddiesArray = Array.isArray(parsed) ? parsed : [parsed];
-
-          mentorData = buddiesArray.map(buddy => ({
-            full_name: buddy.name || "BN Admin",
-            email: buddy.email || "admin@balancenutrition.in",
-            phone: buddy.phone || "0000000000",
-            role: 'Training Mentor'
+          mentorData = (Array.isArray(parsed) ? parsed : [parsed]).map(v => ({
+            full_name: v.full_name || v.name || "Training Buddy",
+            email: v.email || "",
+            phone: v.phone || "",
+            role: v.role || "Training Mentor"
           }));
         } catch (e) {
-          // Fallback for old comma-separated emails
-          const emails = profile.training_buddy.split(',').map((e: string) => e.trim());
+          emails = profile.training_buddy.split(',').map((e: string) => e.trim());
           const { data: mentors } = await supabase
             .from('profiles')
             .select('full_name, email, role, phone')
@@ -156,16 +170,6 @@ export default function Home() {
             role: m.role || 'Training Mentor'
           }));
         }
-      }
-
-      if (mentorData.length === 0) {
-        // Default System Buddy
-        mentorData = [{
-          full_name: "BN Admin",
-          email: "admin@balancenutrition.in",
-          phone: "0000000000",
-          role: "Training Mentor"
-        }];
       }
 
       setAllMentors(mentorData);
@@ -206,11 +210,54 @@ export default function Home() {
         .limit(6);
       setActivityLogs(logs || []);
 
+      // 7. Fetch Notifications
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (notifs) {
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter(n => !n.is_read).length);
+      }
 
       setLoading(false);
     };
     fetchPersonalStats();
-  }, []);
+  }, [router]);
+
+  const handleSendEmail = async () => {
+    setSendingEmail(true);
+    setEmailError("");
+    setEmailSuccess("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Session expired");
+
+      const res = await fetch('/api/admin/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify(emailForm)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send email");
+
+      setEmailSuccess("Email dispatched successfully.");
+      setTimeout(() => {
+        setIsEmailModalOpen(false);
+        setEmailSuccess("");
+      }, 2000);
+    } catch (err: any) {
+      setEmailError(err.message);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -236,6 +283,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#FAFCEE] p-6 lg:p-12 relative overflow-hidden">
+      {userId && <DashboardTour userId={userId} onComplete={() => { }} />}
       {/* Premium Background Blobs */}
       <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#00B6C1]/5 rounded-full blur-[120px] -z-10"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#FFCC00]/5 rounded-full blur-[100px] -z-10"></div>
@@ -247,20 +295,120 @@ export default function Home() {
         className="max-w-7xl mx-auto"
       >
         {/* Header Section */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <motion.div variants={itemVariants}>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-[#0E5858] rounded-2xl flex items-center justify-center text-white shadow-xl">
-                <User size={24} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-serif text-[#0E5858]">Welcome back, {userName}</h1>
-                <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em]">counsellor training track</p>
-              </div>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="px-3 py-1 bg-[#0E5858] text-white text-[10px] font-black uppercase tracking-widest rounded-lg">BN Internal</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00B6C1] animate-pulse"></span>
             </div>
+            <h1 className="text-5xl lg:text-7xl font-serif text-[#0E5858] leading-none mb-4">
+              Welcome back, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0E5858] to-[#00B6C1]">{userName}</span>
+            </h1>
+            <p className="text-gray-400 font-medium max-w-md italic">Maintain clinical precision and document your progress.</p>
           </motion.div>
 
-          {/* Top Stats Cards */}
+          <div className="flex items-center gap-4">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#0E5858] shadow-sm border border-[#0E5858]/5 hover:shadow-xl transition-all relative group"
+              >
+                <Bell size={24} className="group-hover:scale-110 transition-transform" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-6 h-6 bg-[#00B6C1] text-white text-[10px] font-black rounded-full flex items-center justify-center border-4 border-[#FAFCEE] shadow-sm">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-4 w-80 bg-white rounded-[2rem] shadow-2xl border border-[#0E5858]/5 z-[110] overflow-hidden"
+                  >
+                    <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-[#FAFCEE]/50">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#0E5858]">Notifications</h4>
+                      <button
+                        onClick={() => setShowNotifications(false)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                      {notifications.length > 0 ? notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer ${n.is_read ? 'bg-white border-gray-50' : 'bg-[#FAFCEE] border-[#00B6C1]/20 shadow-sm'}`}
+                          onClick={async () => {
+                            if (!n.is_read) {
+                              await supabase.from('notifications').update({ is_read: true }).eq('id', n.id);
+                              setNotifications(notifications.map(item => item.id === n.id ? { ...item, is_read: true } : item));
+                              setUnreadCount(prev => Math.max(0, prev - 1));
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {n.type === 'alert' || n.type === 'warning' ? <Info size={12} className="text-red-500" /> : <Sparkles size={12} className="text-[#00B6C1]" />}
+                            <h5 className="text-[10px] font-black uppercase tracking-widest text-[#0E5858] truncate">{n.title}</h5>
+                          </div>
+                          <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-2">{n.message}</p>
+                          <p className="text-[8px] text-gray-300 font-bold uppercase tracking-[0.1em] mt-2">{new Date(n.created_at).toLocaleDateString()}</p>
+                        </div>
+                      )) : (
+                        <div className="py-12 text-center opacity-30">
+                          <Bell size={32} className="mx-auto mb-3" />
+                          <p className="text-[9px] font-black uppercase tracking-widest">No notifications yet</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {allMentors.length > 0 && (
+              <div className="flex items-center gap-3">
+                {allMentors[0]?.phone && (
+                  <a
+                    href={`https://wa.me/${(allMentors[0]?.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                      `Hi! I'm currently on my *BN Academy Dashboard*.\n\nCurrent Progress: ${userStats.progress}%\nTests Taken: ${userStats.quizzes}\nAverage Score: ${userStats.avgScore}%\n\nCan you please help me with some queries?`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#25D366] shadow-sm border border-[#0E5858]/5 hover:bg-[#25D366] hover:text-white hover:shadow-xl hover:-translate-y-1 transition-all group"
+                    title={`WhatsApp ${allMentors[0].full_name}`}
+                  >
+                    <MessageSquare size={24} className="group-hover:scale-110 transition-transform" />
+                  </a>
+                )}
+                <button
+                  onClick={() => {
+                    setEmailForm({
+                      to: allMentors[0]?.email,
+                      subject: "Inquiry from Academy Counsellor",
+                      message: `Hi ${allMentors[0]?.full_name},\n\nI need some help regarding...`,
+                      userName: allMentors[0]?.full_name
+                    });
+                    setIsEmailModalOpen(true);
+                  }}
+                  className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#0E5858] shadow-sm border border-[#0E5858]/5 hover:bg-[#0E5858] hover:text-white hover:shadow-xl hover:-translate-y-1 transition-all group"
+                  title={`Email ${allMentors[0]?.full_name}`}
+                >
+                  <Mail size={24} className="group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Stats Cards */}
+        <header id="tour-stats" className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <motion.div variants={itemVariants} className="flex flex-wrap gap-4">
             <button
               onClick={() => setShowBuddyModal(true)}
@@ -297,7 +445,6 @@ export default function Home() {
                 <p className="text-lg font-serif text-[#0E5858]">{userStats.quizzes}</p>
               </div>
             </div>
-
           </motion.div>
         </header>
 
@@ -340,8 +487,6 @@ export default function Home() {
                     className="h-full bg-gradient-to-r from-[#00B6C1] to-[#FFCC00]"
                   ></motion.div>
                 </div>
-
-
               </div>
             </div>
           </div>
@@ -350,7 +495,7 @@ export default function Home() {
         {/* Training Support & Activity Trail */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
           {/* Quick Access: Training Support */}
-          <motion.section variants={itemVariants} className="lg:col-span-2">
+          <motion.section id="tour-buddy" variants={itemVariants} className="lg:col-span-2">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-2xl font-serif text-[#0E5858]">Training Support</h3>
               <div className="h-0.5 flex-1 bg-gray-100 mx-6 opacity-50" />
@@ -362,7 +507,7 @@ export default function Home() {
                 <div key={i} className="bg-white p-6 rounded-[2.5rem] border border-[#0E5858]/5 shadow-sm hover:shadow-xl hover:shadow-[#0E5858]/5 transition-all flex items-center justify-between group">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-[#FAFCEE] rounded-2xl flex items-center justify-center text-[#0E5858] font-black text-lg border border-[#0E5858]/5 group-hover:bg-[#0E5858] group-hover:text-white transition-colors">
-                      {mentor.full_name[0]}
+                      {mentor.full_name?.[0] || 'B'}
                     </div>
                     <div>
                       <h4 className="text-sm font-serif font-bold text-[#0E5858] mb-0.5">{mentor.full_name}</h4>
@@ -373,9 +518,26 @@ export default function Home() {
                     <a href={`tel:${mentor.phone}`} className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all">
                       <Phone size={14} />
                     </a>
-                    <a href={`mailto:${mentor.email}`} className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all">
+                    {mentor.phone && (
+                      <a href={`https://wa.me/${mentor.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-500 hover:bg-white hover:shadow-sm transition-all">
+                        <MessageSquare size={14} />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => {
+                        setEmailForm({
+                          to: mentor.email,
+                          subject: "Inquiry from Academy Counsellor",
+                          message: `Hi ${mentor.full_name},\n\nI had a question regarding the training...`,
+                          userName: mentor.full_name
+                        });
+                        setIsEmailModalOpen(true);
+                      }}
+                      className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#0E5858] hover:bg-white hover:shadow-sm transition-all"
+                      title="Compose Email"
+                    >
                       <Mail size={14} />
-                    </a>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -415,7 +577,7 @@ export default function Home() {
         </div>
 
         {/* Modules Grid */}
-        <motion.section variants={itemVariants}>
+        <motion.section id="tour-modules" variants={itemVariants}>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-serif text-[#0E5858]">Expertise Modules</h3>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Self-Paced Training Modules</p>
@@ -504,9 +666,26 @@ export default function Home() {
                         <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-[0.2em]">{mentor.role}</p>
                       </div>
                       <div className="flex gap-2">
-                        <a href={`mailto:${mentor.email}`} className="p-3 bg-white rounded-xl text-gray-400 hover:text-[#0E5858] hover:shadow-md transition-all">
+                        {mentor.phone && (
+                          <a href={`https://wa.me/${mentor.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-white rounded-xl text-gray-400 hover:text-green-500 hover:shadow-md transition-all">
+                            <MessageSquare size={16} />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => {
+                            setEmailForm({
+                              to: mentor.email,
+                              subject: "Learning Support Request",
+                              message: `Hi ${mentor.full_name},\n\n`,
+                              userName: mentor.full_name
+                            });
+                            setIsEmailModalOpen(true);
+                          }}
+                          className="p-3 bg-white rounded-xl text-gray-400 hover:text-[#0E5858] hover:shadow-md transition-all"
+                          title="Compose Email"
+                        >
                           <Mail size={16} />
-                        </a>
+                        </button>
                         <a href={`tel:${mentor.phone || '#'}`} className={`p-3 bg-white rounded-xl ${mentor.phone ? 'text-gray-400 hover:text-[#00B6C1]' : 'text-gray-200 cursor-not-allowed'} hover:shadow-md transition-all`}>
                           <Phone size={16} />
                         </a>
@@ -526,6 +705,74 @@ export default function Home() {
           )}
         </AnimatePresence>
       </motion.div>
+
+
+      {/* Email Dispatcher Modal */}
+      <AnimatePresence>
+        {isEmailModalOpen && (
+          <div className="fixed inset-0 bg-[#0E5858]/80 backdrop-blur-md z-[110] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-[3rem] p-10 max-w-xl w-full shadow-3xl relative overflow-hidden"
+            >
+              <button
+                onClick={() => setIsEmailModalOpen(false)}
+                className="absolute top-8 right-8 text-gray-300 hover:text-[#0E5858] transition-colors"
+              >
+                <XCircle size={24} />
+              </button>
+
+              <div className="mb-8">
+                <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em] mb-2">Internal Academy Support</p>
+                <h3 className="text-3xl font-serif text-[#0E5858]">Compose Message</h3>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">To Buddy</label>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs font-bold text-[#0E5858]">
+                    {emailForm.to}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Subject</label>
+                  <input
+                    type="text"
+                    value={emailForm.subject}
+                    onChange={e => setEmailForm({ ...emailForm, subject: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#00B6C1]/10 text-[#0E5858]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Message</label>
+                  <textarea
+                    rows={6}
+                    value={emailForm.message}
+                    onChange={e => setEmailForm({ ...emailForm, message: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 text-sm font-medium outline-none h-40 resize-none focus:ring-2 focus:ring-[#00B6C1]/10 text-[#0E5858]"
+                    placeholder="Describe your query or progress..."
+                  />
+                </div>
+
+                <button
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                  className="w-full py-5 bg-[#0E5858] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-[#00B6C1] transition-all flex items-center justify-center gap-3 shadow-xl"
+                >
+                  {sendingEmail ? <Loader2 className="animate-spin" size={18} /> : <><Send size={18} /> Send Message</>}
+                </button>
+
+                {emailSuccess && <p className="text-green-500 text-[9px] font-black text-center uppercase tracking-widest animate-pulse">{emailSuccess}</p>}
+                {emailError && <p className="text-red-500 text-[9px] font-black text-center uppercase tracking-widest">{emailError}</p>}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

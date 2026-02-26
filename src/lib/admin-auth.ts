@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
  * Checks the `profiles` table for role === 'admin'.
  */
 export async function verifyAdmin(request: Request): Promise<
-    | { authorized: true; userId: string; email: string }
+    | { authorized: true; userId: string; email: string; role: string }
     | { authorized: false; response: NextResponse }
 > {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -78,11 +78,12 @@ export async function verifyAdmin(request: Request): Promise<
         };
     }
 
-    if (profile.role !== 'admin') {
+    const allowedRoles = ['admin', 'trainer buddy', 'mentor'];
+    if (!allowedRoles.includes(profile.role)) {
         return {
             authorized: false,
             response: NextResponse.json(
-                { error: 'Insufficient permissions. Admin access required.' },
+                { error: 'Insufficient permissions. Access required.' },
                 { status: 403 }
             ),
         };
@@ -92,5 +93,6 @@ export async function verifyAdmin(request: Request): Promise<
         authorized: true,
         userId: user.id,
         email: user.email || '',
+        role: profile.role
     };
 }

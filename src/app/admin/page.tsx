@@ -123,7 +123,7 @@ function AdminDashboardContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const [activeTab, setActiveTab] = useState<'hub' | 'provisioning' | 'architect' | 'registry'>('hub');
+    const [activeTab, setActiveTab] = useState<'hub' | 'provisioning' | 'architect' | 'registry'>('registry');
     const [loading, setLoading] = useState(true);
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [assessments, setAssessments] = useState<AssessmentRecord[]>([]);
@@ -137,6 +137,7 @@ function AdminDashboardContent() {
     const [selectedQuiz, setSelectedQuiz] = useState<AssessmentRecord | null>(null);
     const [selectedAudit, setSelectedAudit] = useState<SummaryAudit | null>(null);
     const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+    const [userRole, setUserRole] = useState<string>("");
 
     // Form States
     const [newUser, setNewUser] = useState({
@@ -179,6 +180,10 @@ function AdminDashboardContent() {
     const [buddyList, setBuddyList] = useState<{ name: string; email: string; phone: string }[]>([]);
     const [updatingBuddy, setUpdatingBuddy] = useState(false);
 
+    const [editingPhone, setEditingPhone] = useState(false);
+    const [tempPhone, setTempPhone] = useState("");
+    const [updatingPhone, setUpdatingPhone] = useState(false);
+
     // Quiz Editor States
     const [selectedQuizTopic, setSelectedQuizTopic] = useState("");
     const [manualQuizQuestions, setManualQuizQuestions] = useState<any[]>([]);
@@ -197,14 +202,35 @@ function AdminDashboardContent() {
     });
     const [sendingNotification, setSendingNotification] = useState(false);
     const [notificationSuccess, setNotificationSuccess] = useState("");
+    const [receivedNotifications, setReceivedNotifications] = useState<any[]>([]);
+    const [showReceivedNotifications, setShowReceivedNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Email Modal States
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [sendingEmail, setSendingEmail] = useState(false);
+    const [emailForm, setEmailForm] = useState({
+        to: "",
+        subject: "",
+        message: "",
+        userName: ""
+    });
+    const [emailSuccess, setEmailSuccess] = useState("");
+    const [emailError, setEmailError] = useState("");
 
 
     useEffect(() => {
         const tab = searchParams.get('tab');
         if (tab && ['hub', 'provisioning', 'architect', 'registry'].includes(tab)) {
-            setActiveTab(tab as any);
+            // Restriction for trainer buddies
+            if (userRole === 'trainer buddy' && ['provisioning', 'architect'].includes(tab)) {
+                setActiveTab('hub');
+                router.replace('/admin?tab=hub');
+            } else {
+                setActiveTab(tab as any);
+            }
         }
-    }, [searchParams]);
+    }, [searchParams, userRole, router]);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -224,6 +250,19 @@ function AdminDashboardContent() {
             if (aProfile) {
                 setCurrentAdmin(aProfile);
                 setAdminPhone(aProfile.phone || "");
+                setUserRole(aProfile.role || "");
+            }
+
+            // Fetch received notifications for the logged in admin/buddy
+            const { data: actualNotifs } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false });
+
+            if (actualNotifs) {
+                setReceivedNotifications(actualNotifs);
+                setUnreadCount(actualNotifs.filter(n => !n.is_read).length);
             }
 
             setLoading(false);
@@ -248,6 +287,20 @@ function AdminDashboardContent() {
     const refreshData = async () => {
         try {
             console.log("Master Sync Started...");
+
+            // Get current session and user role first to know how to filter
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            const { data: userProfile } = await supabase
+                .from('profiles')
+                .select('role, email')
+                .eq('id', session.user.id)
+                .single();
+
+            const isTrainerBuddy = userProfile?.role === 'trainer buddy';
+            const userEmail = userProfile?.email;
+
             const [
                 { data: pData, error: pError },
                 { data: aData, error: aError },
@@ -267,10 +320,31 @@ function AdminDashboardContent() {
             if (pError) console.error("Profiles error:", pError);
             if (prError) console.error("Progress error:", prError);
 
+            let filteredProfiles = pData || [];
+            if (isTrainerBuddy && userEmail) {
+                filteredProfiles = (pData || []).filter(p => {
+                    try {
+                        const buddies = JSON.parse(p.training_buddy || '[]');
+                        const buddiesArray = Array.isArray(buddies) ? buddies : [buddies];
+                        return buddiesArray.some((b: any) => b.email?.toLowerCase() === userEmail.toLowerCase());
+                    } catch (e) {
+                        // Fallback for comma separated legacy data
+                        return p.training_buddy?.toLowerCase().includes(userEmail.toLowerCase());
+                    }
+                });
+            }
+
+            const allowedUserIds = new Set(filteredProfiles.map(p => p.id));
+
+            const filteredAssessments = (aData || []).filter(a => allowedUserIds.has(a.user_id));
+            const filteredActivityLogs = (actData || []).filter(act => allowedUserIds.has(act.user_id));
+            const filteredAudits = (audData || []).filter(aud => allowedUserIds.has(aud.user_id));
+            const filteredProgress = (prData || []).filter(pr => allowedUserIds.has(pr.user_id));
+
             // Create a unified activity feed by merging logs, assessments, and progress
             const combinedActivity = [
-                ...(actData || []),
-                ...(aData || []).map(a => {
+                ...filteredActivityLogs,
+                ...filteredAssessments.map(a => {
                     // Try to find title in syllabus
                     let title = a.topic_code;
                     for (const mod of syllabusData) {
@@ -288,7 +362,7 @@ function AdminDashboardContent() {
                         score: a.score
                     };
                 }),
-                ...(prData || []).map(p => {
+                ...filteredProgress.map(p => {
                     // Find topic title
                     let title = p.topic_code;
                     const mod = syllabusData.find(m => m.id === p.module_id);
@@ -317,13 +391,13 @@ function AdminDashboardContent() {
                 }
             });
 
-            setProfiles(pData || []);
-            setAssessments(aData || []);
+            setProfiles(filteredProfiles);
+            setAssessments(filteredAssessments);
             setActivity(uniqueActivity);
-            setAudits(audData || []);
+            setAudits(filteredAudits);
             setDynamicContent(cData || []);
-            setProgress(prData || []);
-            console.log("Master Sync Complete. Profiles:", pData?.length, "Activity:", uniqueActivity.length);
+            setProgress(filteredProgress);
+            console.log("Master Sync Complete. Profiles:", filteredProfiles.length, "Activity:", uniqueActivity.length);
         } catch (err) {
             console.error("Master Sync Fatal Error:", err);
         }
@@ -470,10 +544,12 @@ function AdminDashboardContent() {
         if (!currentAdmin) return;
         setUpdatingAdmin(true);
         try {
-            // Removing 'phone' update to avoid schema cache error
             const { error } = await supabase
                 .from('profiles')
-                .update({ full_name: currentAdmin.full_name })
+                .update({
+                    full_name: currentAdmin.full_name,
+                    phone: adminPhone
+                })
                 .eq('id', currentAdmin.id);
             if (error) throw error;
             alert("Profile synchronized!");
@@ -482,6 +558,26 @@ function AdminDashboardContent() {
             alert("Failed to update: " + err.message);
         } finally {
             setUpdatingAdmin(false);
+        }
+    };
+
+    const handleUpdateUserPhone = async () => {
+        if (!selectedProfile) return;
+        setUpdatingPhone(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ phone: tempPhone })
+                .eq('id', selectedProfile.id);
+            if (error) throw error;
+
+            setSelectedProfile({ ...selectedProfile, phone: tempPhone });
+            setEditingPhone(false);
+            refreshData();
+        } catch (err: any) {
+            alert("Failed to update phone: " + err.message);
+        } finally {
+            setUpdatingPhone(false);
         }
     };
 
@@ -826,6 +922,38 @@ function AdminDashboardContent() {
         }
     };
 
+    const handleSendEmail = async () => {
+        setSendingEmail(true);
+        setEmailError("");
+        setEmailSuccess("");
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Session expired");
+
+            const res = await fetch('/api/admin/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(emailForm)
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to send email");
+
+            setEmailSuccess("Email dispatched successfully via Resend.");
+            setTimeout(() => {
+                setIsEmailModalOpen(false);
+                setEmailSuccess("");
+            }, 2000);
+        } catch (err: any) {
+            setEmailError(err.message);
+        } finally {
+            setSendingEmail(false);
+        }
+    };
+
 
     if (loading) return (
         <div className="flex items-center justify-center h-screen">
@@ -834,7 +962,110 @@ function AdminDashboardContent() {
     );
 
     return (
-        <div className="p-8 lg:p-12 max-w-[1600px] mx-auto min-h-screen">
+        <div className="p-8 lg:p-12 max-w-[1600px] mx-auto min-h-screen relative">
+            {/* Global Notification Center for Admin/Buddy */}
+            <div className="fixed bottom-8 right-8 z-[150]">
+                <button
+                    onClick={() => setShowReceivedNotifications(!showReceivedNotifications)}
+                    className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-[#0E5858] shadow-2xl border border-[#0E5858]/10 hover:shadow-[#00B6C1]/20 transition-all relative group"
+                >
+                    <Bell size={28} className="group-hover:scale-110 transition-transform" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-0 right-0 w-6 h-6 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-4 border-[#FAFCEE] shadow-sm animate-bounce">
+                            {unreadCount}
+                        </span>
+                    )}
+                </button>
+
+                <AnimatePresence>
+                    {showReceivedNotifications && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                            className="absolute bottom-20 right-0 w-96 bg-white rounded-[3rem] shadow-3xl border border-[#0E5858]/10 overflow-hidden"
+                        >
+                            <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-[#FAFCEE]/50">
+                                <div>
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-[#0E5858] mb-1">Intelligence Inbox</h4>
+                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Management Alerts & Updates</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowReceivedNotifications(false)}
+                                    className="w-8 h-8 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </div>
+                            <div className="max-h-[500px] overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                                {receivedNotifications.length > 0 ? receivedNotifications.map((n) => (
+                                    <div
+                                        key={n.id}
+                                        className={`p-6 rounded-[2rem] border transition-all cursor-pointer ${n.is_read ? 'bg-white border-gray-50' : 'bg-[#FAFCEE] border-[#00B6C1]/20 shadow-md shadow-[#00B6C1]/5'}`}
+                                        onClick={async () => {
+                                            if (!n.is_read) {
+                                                await supabase.from('notifications').update({ is_read: true }).eq('id', n.id);
+                                                setReceivedNotifications(receivedNotifications.map(item => item.id === n.id ? { ...item, is_read: true } : item));
+                                                setUnreadCount(prev => Math.max(0, prev - 1));
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className={`w-2 h-2 rounded-full ${n.type === 'alert' ? 'bg-red-500 animate-pulse' : n.type === 'warning' ? 'bg-amber-500' : 'bg-[#00B6C1]'}`} />
+                                            <h5 className="text-[11px] font-black uppercase tracking-wider text-[#0E5858] truncate">{n.title}</h5>
+                                        </div>
+                                        <p className="text-xs text-gray-500 font-medium leading-relaxed">{n.message}</p>
+                                        <div className="flex items-center justify-between mt-4">
+                                            <p className="text-[8px] text-gray-300 font-black uppercase tracking-widest">{new Date(n.created_at).toLocaleString()}</p>
+                                            {!n.is_read && <span className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest">New</span>}
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="py-20 text-center opacity-20">
+                                        <Bell size={48} className="mx-auto mb-4" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">No activity reported yet</p>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Navigation Tabs */}
+            {!selectedProfile && (
+                <div className="flex flex-wrap items-center gap-2 mb-12 p-2 bg-white/50 backdrop-blur-sm rounded-3xl border border-[#0E5858]/5 w-fit">
+                    <button
+                        onClick={() => { setActiveTab('hub'); router.push('?tab=hub'); }}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'hub' ? 'bg-[#0E5858] text-white shadow-lg shadow-[#0E5858]/20' : 'text-gray-400 hover:text-[#0E5858] hover:bg-white'}`}
+                    >
+                        <Activity size={14} /> Unified Hub
+                    </button>
+                    {(userRole === 'admin' || userRole === 'moderator') && (
+                        <>
+                            <button
+                                onClick={() => { setActiveTab('provisioning'); router.push('?tab=provisioning'); }}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'provisioning' ? 'bg-[#0E5858] text-white shadow-lg shadow-[#0E5858]/20' : 'text-gray-400 hover:text-[#0E5858] hover:bg-white'}`}
+                            >
+                                <UserPlus size={14} /> Provisioning
+                            </button>
+                            <button
+                                onClick={() => { setActiveTab('architect'); router.push('?tab=architect'); }}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'architect' ? 'bg-[#0E5858] text-white shadow-lg shadow-[#0E5858]/20' : 'text-gray-400 hover:text-[#0E5858] hover:bg-white'}`}
+                            >
+                                <Layout size={14} /> Content Architect
+                            </button>
+                        </>
+                    )}
+                    <button
+                        onClick={() => { setActiveTab('registry'); router.push('?tab=registry'); }}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'registry' ? 'bg-[#0E5858] text-white shadow-lg shadow-[#0E5858]/20' : 'text-gray-400 hover:text-[#0E5858] hover:bg-white'}`}
+                    >
+                        <Users size={14} /> Master Registry
+                    </button>
+                </div>
+            )}
+
             <AnimatePresence mode="wait">
                 {selectedProfile ? (
                     <motion.div
@@ -863,24 +1094,65 @@ function AdminDashboardContent() {
                                         <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-[0.2em] mb-6">{selectedProfile.email}</p>
 
                                         <div className="flex justify-center gap-4">
-                                            {selectedProfile.phone && (
-                                                <a
-                                                    href={`https://wa.me/${selectedProfile.phone.replace(/[^0-9]/g, '')}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-green-500/20"
-                                                    title="WhatsApp"
-                                                >
-                                                    <Phone size={18} />
-                                                </a>
-                                            )}
-                                            <a
-                                                href={`mailto:${selectedProfile.email}`}
-                                                className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-blue-500/20"
-                                                title="Email"
-                                            >
-                                                <Mail size={18} />
-                                            </a>
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    {selectedProfile.phone && !editingPhone && (
+                                                        <a
+                                                            href={`https://wa.me/${selectedProfile.phone.replace(/[^0-9]/g, '')}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-green-500/20"
+                                                            title="WhatsApp"
+                                                        >
+                                                            <Phone size={18} />
+                                                        </a>
+                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEmailForm({
+                                                                to: selectedProfile.email,
+                                                                subject: "Updates from BN Academy Admin",
+                                                                message: `Hi ${selectedProfile.full_name},\n\n`,
+                                                                userName: selectedProfile.full_name
+                                                            });
+                                                            setIsEmailModalOpen(true);
+                                                        }}
+                                                        className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shadow-blue-500/20"
+                                                        title="Compose Email"
+                                                    >
+                                                        <Mail size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setTempPhone(selectedProfile.phone || "");
+                                                            setEditingPhone(!editingPhone);
+                                                        }}
+                                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg border ${editingPhone ? 'bg-red-500 text-white border-red-500' : 'bg-white text-[#0E5858] border-[#0E5858]/10'}`}
+                                                        title="Edit Phone"
+                                                    >
+                                                        {editingPhone ? <X size={16} /> : <Pencil size={16} />}
+                                                    </button>
+                                                </div>
+
+                                                {editingPhone && (
+                                                    <div className="flex items-center gap-2 animate-in slide-in-from-top-2">
+                                                        <input
+                                                            type="text"
+                                                            value={tempPhone}
+                                                            onChange={e => setTempPhone(e.target.value)}
+                                                            placeholder="+91 00000 00000"
+                                                            className="bg-gray-50 border border-gray-100 rounded-lg px-4 py-2 text-xs font-bold outline-none w-40 text-center"
+                                                        />
+                                                        <button
+                                                            onClick={handleUpdateUserPhone}
+                                                            disabled={updatingPhone}
+                                                            className="w-8 h-8 rounded-lg bg-[#00B6C1] text-white flex items-center justify-center hover:bg-[#0E5858] transition-all disabled:opacity-50"
+                                                        >
+                                                            {updatingPhone ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle size={14} />}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1279,13 +1551,32 @@ function AdminDashboardContent() {
                                                             >
                                                                 Retest
                                                             </button>
-                                                            <a
-                                                                href={`mailto:${selectedProfile.email}?subject=Regarding your recent assessment: ${quiz.topic_code}`}
-                                                                onClick={e => e.stopPropagation()}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEmailForm({
+                                                                        to: selectedProfile.email,
+                                                                        subject: `Regarding your recent assessment: ${quiz.topic_code}`,
+                                                                        message: `Hi ${selectedProfile.full_name},\n\nI just reviewed your assessment for ${quiz.topic_code}...`,
+                                                                        userName: selectedProfile.full_name
+                                                                    });
+                                                                    setIsEmailModalOpen(true);
+                                                                }}
                                                                 className="px-2 py-1 bg-[#0E5858] text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-[#00B6C1] transition-all flex items-center gap-1"
                                                             >
                                                                 <Mail size={8} /> Email
-                                                            </a>
+                                                            </button>
+                                                            {selectedProfile.phone && (
+                                                                <a
+                                                                    href={`https://wa.me/${selectedProfile.phone.replace(/[^0-9]/g, '')}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    className="px-2 py-1 bg-green-500 text-white rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-green-600 transition-all flex items-center gap-1"
+                                                                >
+                                                                    <Phone size={8} /> WhatsApp
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="text-right shrink-0">
@@ -1512,11 +1803,23 @@ function AdminDashboardContent() {
                                         required
                                     >
                                         <option value="counsellor">Counsellor</option>
+                                        <option value="trainer buddy">Trainer Buddy</option>
                                         <option value="product automation">Product Automation</option>
                                         <option value="tech dev">Tech Dev</option>
                                         <option value="business devp">Business Devp</option>
                                         <option value="admin">Admin</option>
                                     </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Phone Number</label>
+                                    <input
+                                        type="text"
+                                        value={newUser.phone}
+                                        onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                                        placeholder="+91 00000 00000"
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
+                                        required
+                                    />
                                 </div>
                                 <div className="space-y-4 p-6 bg-gray-50/50 rounded-2xl border border-gray-100 lg:col-span-2">
                                     <div className="flex items-center justify-between mb-2">
@@ -2034,7 +2337,7 @@ function AdminDashboardContent() {
                                     <thead>
                                         <tr className="bg-[#0E5858]/5 text-[9px] font-black uppercase tracking-[0.2em] text-[#0E5858]/50">
                                             <th className="px-8 py-6">Counsellor</th>
-                                            <th className="px-6 text-center">Credentials</th>
+                                            <th className="px-6 text-center">Credentials / Contact</th>
                                             <th className="px-6">Joined / Active</th>
                                             <th className="px-6 text-center">Avg Score</th>
                                             <th className="px-6 text-center">Progress %</th>
@@ -2085,13 +2388,18 @@ function AdminDashboardContent() {
                                                         <div className="flex flex-col items-center gap-1.5 min-w-[200px]">
                                                             <div className="flex items-center gap-2 group/cred w-full justify-center">
                                                                 <Mail size={12} className="text-[#00B6C1]" />
-                                                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter w-12 text-right">Login ID</span>
-                                                                <code className="text-[10px] font-mono text-[#0E5858] bg-white px-3 py-1 rounded-lg border border-[#0E5858]/10 shadow-sm flex-1 text-center font-bold">{p.email}</code>
+                                                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter w-12 text-right">Email</span>
+                                                                <code className="text-[10px] font-mono text-[#0E5858] bg-white px-3 py-1 rounded-lg border border-[#0E5858]/10 shadow-sm flex-1 text-center font-bold truncate">{p.email}</code>
                                                             </div>
                                                             <div className="flex items-center gap-2 group/cred w-full justify-center">
                                                                 <BNKeyIcon size={12} className="text-orange-400" />
-                                                                <span className="text-[10px] font-black uppercase text-orange-400 tracking-tighter w-12 text-right">Access</span>
-                                                                <code className="text-[10px] font-mono text-orange-700 bg-orange-50 px-3 py-1 rounded-lg border border-orange-100 shadow-sm flex-1 text-center font-bold tracking-widest">{p.temp_password || 'LEGACY_USER'}</code>
+                                                                <span className="text-[10px] font-black uppercase text-orange-400 tracking-tighter w-12 text-right">Pass</span>
+                                                                <code className="text-[10px] font-mono text-orange-700 bg-orange-50 px-3 py-1 rounded-lg border border-orange-100 shadow-sm flex-1 text-center font-bold tracking-widest">{p.temp_password || '---'}</code>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 group/cred w-full justify-center">
+                                                                <Phone size={12} className="text-green-500" />
+                                                                <span className="text-[10px] font-black uppercase text-green-500 tracking-tighter w-12 text-right">Phone</span>
+                                                                <code className="text-[10px] font-mono text-green-700 bg-green-50 px-3 py-1 rounded-lg border border-green-100 shadow-sm flex-1 text-center font-bold">{p.phone || 'REQUIRED'}</code>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -2143,14 +2451,22 @@ function AdminDashboardContent() {
                                                                     <Phone size={14} />
                                                                 </a>
                                                             )}
-                                                            <a
-                                                                href={`mailto:${p.email}`}
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEmailForm({
+                                                                        to: p.email,
+                                                                        subject: "Academy Communication",
+                                                                        message: `Hi ${p.full_name},\n\n`,
+                                                                        userName: p.full_name
+                                                                    });
+                                                                    setIsEmailModalOpen(true);
+                                                                }}
                                                                 className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100"
                                                                 title="Send Email"
-                                                                onClick={(e) => e.stopPropagation()}
                                                             >
                                                                 <Mail size={14} />
-                                                            </a>
+                                                            </button>
                                                             <button
                                                                 className="p-2 rounded-lg hover:bg-[#0E5858] hover:text-white transition-all text-gray-300 border border-transparent"
                                                             >
@@ -2372,6 +2688,72 @@ function AdminDashboardContent() {
                                     return <p className="text-center py-20 text-red-400 font-bold uppercase tracking-widest">Data Decryption Error: Payload Malformed</p>;
                                 }
                             })()}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            {/* Email Dispatcher Modal */}
+            <AnimatePresence>
+                {isEmailModalOpen && (
+                    <div className="fixed inset-0 bg-[#0E5858]/80 backdrop-blur-md z-[110] flex items-center justify-center p-6">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white rounded-[3rem] p-10 max-w-xl w-full shadow-3xl relative overflow-hidden"
+                        >
+                            <button
+                                onClick={() => setIsEmailModalOpen(false)}
+                                className="absolute top-8 right-8 text-gray-300 hover:text-[#0E5858] transition-colors"
+                            >
+                                <XCircle size={24} />
+                            </button>
+
+                            <div className="mb-8">
+                                <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em] mb-2">Internal Correspondence</p>
+                                <h3 className="text-3xl font-serif text-[#0E5858]">Compose Email</h3>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Recipient</label>
+                                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-xs font-bold text-[#0E5858]">
+                                        {emailForm.to}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Subject Line</label>
+                                    <input
+                                        type="text"
+                                        value={emailForm.subject}
+                                        onChange={e => setEmailForm({ ...emailForm, subject: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#00B6C1]/10"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-4">Message Content</label>
+                                    <textarea
+                                        rows={6}
+                                        value={emailForm.message}
+                                        onChange={e => setEmailForm({ ...emailForm, message: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl py-4 px-6 text-sm font-medium outline-none h-40 resize-none focus:ring-2 focus:ring-[#00B6C1]/10"
+                                        placeholder="Type your clinical update or feedback..."
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSendEmail}
+                                    disabled={sendingEmail}
+                                    className="w-full py-5 bg-[#0E5858] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-[#00B6C1] transition-all flex items-center justify-center gap-3 shadow-xl"
+                                >
+                                    {sendingEmail ? <Loader2 className="animate-spin" size={18} /> : <><Send size={18} /> Dispatch Correspondence</>}
+                                </button>
+
+                                {emailSuccess && <p className="text-green-500 text-[9px] font-black text-center uppercase tracking-widest animate-pulse">{emailSuccess}</p>}
+                                {emailError && <p className="text-red-500 text-[9px] font-black text-center uppercase tracking-widest">{emailError}</p>}
+                            </div>
                         </motion.div>
                     </div>
                 )}

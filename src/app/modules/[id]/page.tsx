@@ -23,7 +23,8 @@ import {
     CheckCircle2,
     Award,
     X,
-    ArrowUpRight
+    ArrowUpRight,
+    MessageSquare
 } from "lucide-react";
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -63,6 +64,10 @@ export default function ModulePage() {
     const [isSavingEdits, setIsSavingEdits] = useState(false);
     const [dragItem, setDragItem] = useState<number | null>(null);
     const [dragOverItem, setDragOverItem] = useState<number | null>(null);
+
+    // Mentor context for WhatsApp 
+    const [assignedMentors, setAssignedMentors] = useState<any[]>([]);
+    const [overallProgress, setOverallProgress] = useState(0);
 
     const handleTopicEdit = (topicCode: string, updatedFields: Partial<any>) => {
         setEditedTopics(prev => ({
@@ -232,6 +237,7 @@ export default function ModulePage() {
     const moduleContentSummary = moduleTopics.map(t => `${t.title}: ${t.content}`).join("\n\n") || "";
 
     useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         if (moduleId && baseModule) {
             logActivity('view_topic', { moduleId, contentTitle: baseModule.title });
         }
@@ -294,15 +300,41 @@ export default function ModulePage() {
                 // Check if user is admin
                 setIsAdmin(session.user.user_metadata?.role === 'admin');
 
-                // 2. Fetch Progress
-                const { data } = await supabase
+                // 2. Fetch Progress (Module Specific & Overall for Context)
+                const { data: modProgressData } = await supabase
                     .from('mentor_progress')
                     .select('topic_code')
                     .eq('user_id', session.user.id)
                     .eq('module_id', moduleId);
 
-                if (data) {
-                    setCompletedTopics(data.map(p => p.topic_code));
+                if (modProgressData) {
+                    setCompletedTopics(modProgressData.map(p => p.topic_code));
+                }
+
+                const { data: allProgress } = await supabase
+                    .from('mentor_progress')
+                    .select('topic_code')
+                    .eq('user_id', session.user.id);
+                // We'll just do a rough total topics calculation
+                const TOTAL_SYMS = 40; // Approx 
+                setOverallProgress(Math.min(100, Math.round(((allProgress?.length || 0) / TOTAL_SYMS) * 100)));
+
+                // Fetch Buddy info
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('training_buddy')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profile?.training_buddy) {
+                    try {
+                        const parsed = JSON.parse(profile.training_buddy);
+                        const buddiesArray = Array.isArray(parsed) ? parsed : [parsed];
+                        setAssignedMentors(buddiesArray);
+                    } catch (e) {
+                        // Fallback structure
+                        setAssignedMentors([{ full_name: profile.training_buddy, phone: "" }]);
+                    }
                 }
 
                 // 3. Check Assessment
@@ -1058,6 +1090,28 @@ export default function ModulePage() {
                     {nextModule ? 'Next Module' : 'Return to Hub'} <ChevronRight size={20} />
                 </button>
             </footer>
+
+            {/* Floating WhatsApp Action for Specific Module */}
+            {assignedMentors.length > 0 && assignedMentors[0].phone && (
+                <motion.a
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    href={`https://wa.me/${assignedMentors[0].phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        `Hi ${assignedMentors[0].name?.split(' ')[0] || 'Trainer'}, I am currently working on ${baseModule.title} (Overall Progress: ${overallProgress}%). I have a query regarding: `
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="fixed bottom-8 right-8 z-50 flex items-center gap-3 bg-green-500 text-white px-5 py-4 rounded-full shadow-2xl hover:bg-green-600 transition-colors group"
+                >
+                    <MessageSquare size={24} className="group-hover:animate-pulse" />
+                    <span className="text-sm font-bold truncate max-w-0 group-hover:max-w-[200px] transition-all duration-500 overflow-hidden whitespace-nowrap">
+                        Ask {assignedMentors[0].name?.split(' ')[0] || 'Trainer'}
+                    </span>
+                </motion.a>
+            )}
+
         </motion.main >
     );
 }

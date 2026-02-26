@@ -80,7 +80,7 @@ export const syllabusData: Module[] = [
                 title: 'Meet Our Founders',
                 content: 'Review the brochures and understand the core vision of Balance Nutrition. Understand what we stand for and our promise to clients.',
                 links: [
-                    { label: 'Meet Founders', url: 'https://www.balancenutrition.in/aboutus' },
+                    { label: 'About Us', url: 'https://www.balancenutrition.in/aboutus' },
                     { label: 'Khyati Journey', url: 'https://yourstory.com/2017/12/youngest-chief-nutritionist-india-helping-10000-people-battle-weight-issues-email-meet-khyati-rupani' },
                     { label: 'Youtube series', url: 'https://www.youtube.com/@BalanceNutrition/playlists' }
                 ]
