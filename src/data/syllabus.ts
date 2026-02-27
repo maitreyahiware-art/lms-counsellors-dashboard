@@ -267,8 +267,7 @@ export const syllabusData: Module[] = [
                 code: 'M3-05',
                 title: 'Schedule Your Mock Call',
                 content: 'Book a 1-on-1 mock consultation call with your training lead to verify your training progress.',
-                isBooking: true,
-                bookingUrl: 'https://calendar.app.google/atYBB4DcqN6MX2V48'
+                isBooking: true
             },
         ]
     },

@@ -100,7 +100,7 @@ export async function POST(req: Request) {
                   ${resultsHtml}
     
                   <div style="margin-top: 30px; text-align: center;">
-                    <a href="https://lms.balancenutrition.in/admin" style="display: inline-block; background: #0E5858; color: white; padding: 12px 30px; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em;">Open Admin Dashboard</a>
+                    <a href="https://lms.balancenutrition.in/admin?userId=${userId}&topicCode=${topicCode}" style="display: inline-block; background: #0E5858; color: white; padding: 12px 30px; border-radius: 12px; text-decoration: none; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em;">Open Admin Dashboard</a>
                   </div>
     
                   <hr style="border: 0; border-top: 1px solid #0E585810; margin: 40px 0;" />
@@ -144,8 +144,9 @@ export async function POST(req: Request) {
           .insert([{
             user_id: buddyProfile.id,
             title: `Trainee Quiz Completed: ${counselorName}`,
-            message: `${counselorName} scored ${percentage}% on ${topicCode}. Click to view details in the hub.`,
-            type: percentage < 70 ? 'warning' : 'success'
+            message: `${counselorName} scored ${percentage}% on ${topicCode}. Check the Admin Dashboard to review their submitted responses.`,
+            type: percentage < 70 ? 'warning' : 'success',
+            action_url: `/admin?userId=${userId}&topicCode=${topicCode}` // Assuming your notification system uses an action_url column, or just leave it in the text. I'll add action_url and update the text just in case. If action_url fails, the client might just not use it. 
           }]);
 
         // Also log as an activity for the buddy so they see it in their trail

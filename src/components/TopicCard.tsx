@@ -29,7 +29,9 @@ import {
     FlaskConical,
     School,
     HeartPulse,
-    Calendar
+    Calendar,
+    Mail,
+    MessageCircle
 } from "lucide-react";
 import YouTubePlayer from "./YouTubePlayer";
 import ClinicalSimulator from "./ClinicalSimulator";
@@ -510,21 +512,73 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                             <Calendar size={24} />
                                         </div>
                                         <div>
-                                            <h3 className="text-2xl font-serif text-[#0E5858]">Mock Call Scheduler</h3>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select your preferred slot</p>
+                                            <h3 className="text-2xl font-serif text-[#0E5858]">Schedule Your Mock Call</h3>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact a mentor to schedule</p>
                                         </div>
                                     </div>
 
-                                    <div className="premium-card bg-white rounded-[2.5rem] overflow-hidden border border-[#0E5858]/10 shadow-3xl h-[700px] relative">
-                                        <iframe
-                                            src={topic.bookingUrl}
-                                            className="w-full h-full border-0"
-                                            title="Schedule Mock Call"
-                                        />
-                                        <div className="absolute top-0 right-0 p-6 pointer-events-none">
-                                            <div className="bg-[#FAFCEE]/80 backdrop-blur-md px-4 py-2 rounded-full border border-[#0E5858]/5 flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                                <span className="text-[8px] font-black text-[#0E5858] uppercase tracking-widest">Live Calendar Connection</span>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Mentor Epshita */}
+                                        <div className="premium-card p-6 bg-white rounded-3xl border border-[#0E5858]/10 shadow-xl flex flex-col gap-6 relative overflow-hidden group/contact">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B6C1]/5 rounded-bl-full -z-10 group-hover/contact:scale-150 transition-transform duration-700"></div>
+
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-16 h-16 rounded-full bg-[#FAFCEE] flex items-center justify-center text-[#0E5858] font-serif text-2xl shadow-inner border border-[#0E5858]/10">
+                                                    E
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xl font-serif text-[#0E5858]">Mentor Epshita</h4>
+                                                    <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">Training Lead</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-3 mt-auto">
+                                                <a
+                                                    href={`mailto:mentor.epshita@balancenutrition.in?cc=workwithus@balancenutrition.in&subject=Request%20for%20Mock%20Call&body=Hi%20Mentor%20Epshita,%0D%0A%0D%0AI%20would%20like%20to%20schedule%20my%20mock%20call.`}
+                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white rounded-xl text-sm font-bold transition-colors"
+                                                >
+                                                    <Mail size={16} /> Email Epshita
+                                                </a>
+                                                <a
+                                                    href="https://wa.me/917021963284?text=Hi%20Mentor%20Epshita,%20I%20would%20like%20to%20schedule%20my%20mock%20call."
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-xl text-sm font-bold transition-colors"
+                                                >
+                                                    <MessageCircle size={16} /> WhatsApp Epshita
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        {/* Mentor Omanshi */}
+                                        <div className="premium-card p-6 bg-white rounded-3xl border border-[#0E5858]/10 shadow-xl flex flex-col gap-6 relative overflow-hidden group/contact">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B6C1]/5 rounded-bl-full -z-10 group-hover/contact:scale-150 transition-transform duration-700"></div>
+
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-16 h-16 rounded-full bg-[#FAFCEE] flex items-center justify-center text-[#0E5858] font-serif text-2xl shadow-inner border border-[#0E5858]/10">
+                                                    O
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xl font-serif text-[#0E5858]">Mentor Omanshi</h4>
+                                                    <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">Training Lead</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-3 mt-auto">
+                                                <a
+                                                    href={`mailto:mentor.omanshi@balancenutrition.in?cc=workwithus@balancenutrition.in&subject=Request%20for%20Mock%20Call&body=Hi%20Mentor%20Omanshi,%0D%0A%0D%0AI%20would%20like%20to%20schedule%20my%20mock%20call.`}
+                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white rounded-xl text-sm font-bold transition-colors"
+                                                >
+                                                    <Mail size={16} /> Email Omanshi
+                                                </a>
+                                                <a
+                                                    href="https://wa.me/919820017056?text=Hi%20Mentor%20Omanshi,%20I%20would%20like%20to%20schedule%20my%20mock%20call."
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-xl text-sm font-bold transition-colors"
+                                                >
+                                                    <MessageCircle size={16} /> WhatsApp Omanshi
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
@@ -535,7 +589,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                         </div>
                                         <div>
                                             <h4 className="text-sm font-bold text-[#0E5858] mb-1">Post-Booking Protocol</h4>
-                                            <p className="text-xs text-gray-400 leading-relaxed">Once you book your slot, an automated email invitation will be sent to both you and your counselor with the meeting link. Please ensure your camera is active for the mock call.</p>
+                                            <p className="text-xs text-gray-400 leading-relaxed">Once you message or email your preferred mentor, an automated email invitation will be sent to both you and your counselor with the meeting link. Please ensure your camera is active for the mock call.</p>
                                         </div>
                                     </div>
                                 </div>
