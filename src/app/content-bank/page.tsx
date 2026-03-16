@@ -36,16 +36,22 @@ function ContentBankContent() {
 
     // Manage state for dynamically loaded content
     const [dynamicResources, setDynamicResources] = useState<any[]>([]);
+    const [folders, setFolders] = useState<{name: string, prefix: string}[]>([]);
 
     useEffect(() => {
         const fetchDynamic = async () => {
             const { createClient } = await import('@supabase/supabase-js');
             const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-            const { data } = await supabase.from('syllabus_content').select('*').in('content_type', ['video', 'document', 'link']);
-            if (data) {
-                const mapped = data.map(d => ({
-                    code: `DYN-${d.id}`,
+            // Fetch content and folders in parallel
+            const [contentRes, folderRes] = await Promise.all([
+                supabase.from('syllabus_content').select('*').in('content_type', ['video', 'document', 'link']),
+                supabase.from('syllabus_content').select('*').eq('content_type', 'folder')
+            ]);
+
+            if (contentRes.data) {
+                const mapped = contentRes.data.map(d => ({
+                    code: d.topic_code || `DYN-${d.id}`,
                     title: d.title,
                     content: d.content_type === 'video' ? 'Training Session' : 'Resource Document',
                     links: [{ url: d.content, label: 'Access Resource' }],
@@ -55,6 +61,10 @@ function ContentBankContent() {
                 }));
                 setDynamicResources(mapped);
             }
+
+            if (folderRes.data) {
+                setFolders(folderRes.data.map(d => ({ name: d.title, prefix: d.content })));
+            }
         };
         fetchDynamic();
     }, []);
@@ -63,12 +73,28 @@ function ContentBankContent() {
         const q = searchParams.get('search');
         if (q) {
             setSearchQuery(q);
-            if (q.includes('Phase 1')) setSelectedCategory('Phase 1');
-            else if (q.includes('Phase 2')) setSelectedCategory('Phase 2');
+            // Auto-select category if search matches a folder name
+            const matchedFolder = folders.find(f => q.includes(f.name));
+            if (matchedFolder) setSelectedCategory(matchedFolder.name);
         }
-    }, [searchParams]);
+    }, [searchParams, folders]);
 
-    const categories = ["All", "Sales Training", "Phase 1", "Phase 2", "Program Manuals"];
+    const DEFAULT_FOLDERS = [
+        { name: 'Sales Training', prefix: 'VB' },
+        { name: 'Phase 1', prefix: 'P1' },
+        { name: 'Phase 2', prefix: 'P2' },
+        { name: 'Program Manuals', prefix: 'RB' },
+    ];
+
+    // Merge DB folders with defaults (DB overrides defaults with same prefix)
+    const allFolders = [...DEFAULT_FOLDERS];
+    folders.forEach(f => {
+        if (!allFolders.some(df => df.prefix === f.prefix)) {
+            allFolders.push(f);
+        }
+    });
+
+    const categories = ["All", ...allFolders.map(f => f.name)];
 
     const allResources = [...(resourceModule?.topics || []), ...dynamicResources];
 
@@ -86,10 +112,12 @@ function ContentBankContent() {
 
         // Category filter
         if (selectedCategory === "All") return true;
-        if (selectedCategory === "Sales Training") return r.code.startsWith('VB');
-        if (selectedCategory === "Phase 1") return r.code.includes('P1') || r.title.includes('Phase 1');
-        if (selectedCategory === "Phase 2") return r.code.includes('P2') || r.title.includes('Phase 2');
-        if (selectedCategory === "Program Manuals") return r.code.startsWith('RB') && !r.code.includes('PV');
+
+        // Dynamic folder matching
+        const folder = allFolders.find(f => f.name === selectedCategory);
+        if (folder) {
+            return r.code.startsWith(folder.prefix) || r.title.includes(folder.name);
+        }
 
         return true;
     }) || [];

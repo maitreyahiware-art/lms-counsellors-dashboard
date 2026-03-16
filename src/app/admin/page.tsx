@@ -52,7 +52,8 @@ import {
     X,
     Play,
     ScanEye,
-    Share2
+    Share2,
+    FolderOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -177,6 +178,7 @@ function AdminDashboardContent() {
         topicTitle: "",
         contentType: "video",
         contentLink: "",
+        folder: "",
     });
     const [uploadingContent, setUploadingContent] = useState(false);
     const [contentSuccess, setContentSuccess] = useState("");
@@ -186,6 +188,12 @@ function AdminDashboardContent() {
     const [reportData, setReportData] = useState<any>(null);
     const [cleanupSuccess, setCleanupSuccess] = useState("");
     const [cleanupError, setCleanupError] = useState("");
+
+    // Folder Management States
+    const [newFolderName, setNewFolderName] = useState("");
+    const [newFolderPrefix, setNewFolderPrefix] = useState("");
+    const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+    const [renameFolderValue, setRenameFolderValue] = useState("");
 
 
     const [editingBuddy, setEditingBuddy] = useState(false);
@@ -458,6 +466,35 @@ function AdminDashboardContent() {
     const counsellors = useMemo(() => profiles.filter(p => p.role === 'counsellor' || p.role === 'mentor'), [profiles]);
     const buddies = useMemo(() => profiles.filter(p => p.role === 'moderator' || p.role === 'admin'), [profiles]);
 
+    // Dynamic Folders: built-in defaults + any custom DB folders
+    const BUILT_IN_FOLDERS = [
+        { id: 'default-vb', name: 'Sales Training', prefix: 'VB' },
+        { id: 'default-p1', name: 'Phase 1', prefix: 'P1' },
+        { id: 'default-p2', name: 'Phase 2', prefix: 'P2' },
+        { id: 'default-rb', name: 'Program Manuals', prefix: 'RB' },
+    ];
+
+    const dbFolders = useMemo(() =>
+        dynamicContent
+            .filter(d => d.content_type === 'folder')
+            .map(d => ({ id: d.id, name: d.title, prefix: d.content }))
+    , [dynamicContent]);
+
+    const customFolders = useMemo(() => {
+        const merged = [...BUILT_IN_FOLDERS];
+        dbFolders.forEach(f => {
+            if (!merged.some(df => df.prefix === f.prefix)) {
+                merged.push(f);
+            }
+        });
+        return merged;
+    }, [dbFolders]);
+
+    // Content entries only (exclude folder config rows)
+    const contentOnlyEntries = useMemo(() =>
+        dynamicContent.filter(d => d.content_type !== 'folder')
+    , [dynamicContent]);
+
     const filteredRegistry = useMemo(() => {
         return profiles.filter(p =>
             p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -550,6 +587,72 @@ function AdminDashboardContent() {
         }
     };
 
+    // Dynamic folder prefix map built from DB
+    const FOLDER_PREFIX_MAP = useMemo(() => {
+        const map: Record<string, string> = {};
+        customFolders.forEach(f => { map[f.name] = f.prefix; });
+        return map;
+    }, [customFolders]);
+
+    const detectFolderFromCode = (tc: string): string => {
+        for (const folder of customFolders) {
+            if (tc.startsWith(folder.prefix)) return folder.name;
+        }
+        return '';
+    };
+
+    // Folder CRUD Handlers
+    const handleCreateFolder = async () => {
+        if (!newFolderName.trim() || !newFolderPrefix.trim()) {
+            alert('Please provide both a folder name and a short prefix code.');
+            return;
+        }
+        // Check for duplicate prefix
+        if (customFolders.some(f => f.prefix.toUpperCase() === newFolderPrefix.trim().toUpperCase())) {
+            alert('A folder with this prefix already exists.');
+            return;
+        }
+        try {
+            const { error } = await supabase.from('syllabus_content').insert({
+                content_type: 'folder',
+                title: newFolderName.trim(),
+                content: newFolderPrefix.trim().toUpperCase(),
+                module_id: 'folder-config',
+                topic_code: `FOLDER-${newFolderPrefix.trim().toUpperCase()}`,
+            });
+            if (error) throw error;
+            setNewFolderName('');
+            setNewFolderPrefix('');
+            refreshData();
+        } catch (err: any) {
+            alert('Failed to create folder: ' + err.message);
+        }
+    };
+
+    const handleRenameFolder = async (id: string) => {
+        if (!renameFolderValue.trim()) return;
+        try {
+            const { error } = await supabase.from('syllabus_content').update({ title: renameFolderValue.trim() }).eq('id', id);
+            if (error) throw error;
+            setRenamingFolderId(null);
+            setRenameFolderValue('');
+            refreshData();
+        } catch (err: any) {
+            alert('Failed to rename folder: ' + err.message);
+        }
+    };
+
+    const handleDeleteFolder = async (id: string) => {
+        if (!confirm('Delete this folder? Content already assigned to it will remain but appear under General.')) return;
+        try {
+            const { error } = await supabase.from('syllabus_content').delete().eq('id', id);
+            if (error) throw error;
+            refreshData();
+        } catch (err: any) {
+            alert('Failed to delete folder: ' + err.message);
+        }
+    };
+
     const handleUpdateContent = async (e: React.FormEvent) => {
         e.preventDefault();
         setUploadingContent(true);
@@ -560,19 +663,33 @@ function AdminDashboardContent() {
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError || !session) throw new Error('Session expired. Please log in again.');
 
+            // Generate topicCode with folder prefix for Content Bank categorization
+            const prefix = contentForm.folder ? FOLDER_PREFIX_MAP[contentForm.folder] || '' : '';
+            let topicCode = contentForm.topicCode;
+            if (!topicCode) {
+                // New content
+                topicCode = prefix ? `${prefix}-DYN-${Date.now()}` : `DYN-${Date.now()}`;
+            } else if (contentForm.id && prefix) {
+                // Editing - update the prefix
+                const allPrefixes = customFolders.map(f => f.prefix).join('|');
+                const prefixRegex = new RegExp(`^(${allPrefixes})-`);
+                const stripped = topicCode.replace(prefixRegex, '');
+                topicCode = `${prefix}-${stripped}`;
+            }
+
             const response = await fetch('/api/admin/content', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify(contentForm),
+                body: JSON.stringify({ ...contentForm, topicCode }),
             });
 
             if (!response.ok) throw new Error('Architecture synchronization failed');
 
             setContentSuccess("Content Bank synchronized across all nodes.");
-            setContentForm({ id: "", topicCode: "", moduleId: "", topicTitle: "", contentType: "video", contentLink: "" });
+            setContentForm({ id: "", topicCode: "", moduleId: "", topicTitle: "", contentType: "video", contentLink: "", folder: "" });
             refreshData();
         } catch (err: any) {
             setContentError(err.message);
@@ -2124,10 +2241,80 @@ function AdminDashboardContent() {
                     </motion.div>
                 ) : activeTab === 'architect' ? (
                     <motion.div key="architect" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-12">
-                        <header>
-                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Content Architect</h2>
-                            <p className="text-gray-400 font-medium mt-3 italic text-sm">Synchronize resources across the academy.</p>
+                        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                            <div>
+                                <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Content Architect</h2>
+                                <p className="text-gray-400 font-medium mt-3 italic text-sm">Synchronize resources across the academy.</p>
+                            </div>
                         </header>
+
+                        {/* Folder Management Bar - Matching Content Bank Style */}
+                        <div className="flex flex-col gap-6">
+                            <div className="flex items-center gap-3">
+                                <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em] flex items-center gap-2">
+                                    <FolderOpen size={12} /> Asset Central / Folders
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-4">
+                                {customFolders.map(folder => (
+                                    <div key={folder.id} className="relative group">
+                                        <div className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center gap-3 ${folder.prefix === 'VB' || folder.prefix === 'P1' || folder.prefix === 'P2' || folder.prefix === 'RB' ? 'bg-white border-[#0E5858]/10 text-[#0E5858]/40' : 'bg-[#00B6C1]/5 border-[#00B6C1]/20 text-[#00B6C1]'}`}>
+                                            {renamingFolderId === folder.id ? (
+                                                <input
+                                                    type="text"
+                                                    value={renameFolderValue}
+                                                    onChange={e => setRenameFolderValue(e.target.value)}
+                                                    onBlur={() => handleRenameFolder(folder.id)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleRenameFolder(folder.id)}
+                                                    className="bg-transparent outline-none border-b border-[#00B6C1] w-24"
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <span>{folder.name} <span className="opacity-40 ml-1">({folder.prefix})</span></span>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Actions on Hover - Only for custom (non-default) folders to prevent accidental breakage of core structure */}
+                                        {!(folder.prefix === 'VB' || folder.prefix === 'P1' || folder.prefix === 'P2' || folder.prefix === 'RB') && (
+                                            <div className="absolute -top-2 -right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all scale-75 origin-bottom-left">
+                                                <button onClick={() => { setRenamingFolderId(folder.id); setRenameFolderValue(folder.name); }} className="w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center text-[#0E5858] hover:text-[#00B6C1]"><Pencil size={10} /></button>
+                                                <button onClick={() => handleDeleteFolder(folder.id)} className="w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center text-red-500 hover:bg-red-50"><Trash2 size={10} /></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Add Folder Trigger/Input */}
+                                {renamingFolderId === 'new' ? (
+                                    <div className="flex items-center gap-3 p-2 bg-[#FAFCEE] border border-[#0E5858]/10 rounded-2xl animate-in zoom-in-95">
+                                        <input
+                                            type="text"
+                                            value={newFolderName}
+                                            onChange={e => setNewFolderName(e.target.value)}
+                                            placeholder="Folder Name"
+                                            className="bg-white border-none rounded-xl py-2 px-4 text-[10px] font-bold outline-none w-32 shadow-sm"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={newFolderPrefix}
+                                            onChange={e => setNewFolderPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                                            placeholder="PRFX"
+                                            maxLength={4}
+                                            className="bg-white border-none rounded-xl py-2 px-2 text-[10px] font-black text-[#00B6C1] outline-none w-16 shadow-sm text-center"
+                                        />
+                                        <button onClick={handleCreateFolder} className="p-2 bg-[#0E5858] text-white rounded-xl hover:bg-[#00B6C1] transition-all"><CheckCircle size={14} /></button>
+                                        <button onClick={() => { setRenamingFolderId(null); setNewFolderName(''); setNewFolderPrefix(''); }} className="p-2 text-gray-400 hover:text-red-500"><X size={14} /></button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setRenamingFolderId('new')}
+                                        className="flex items-center gap-2 px-6 py-3 border-2 border-dashed border-[#0E5858]/10 rounded-xl text-[10px] font-black text-[#0E5858]/30 uppercase tracking-widest hover:border-[#00B6C1] hover:text-[#00B6C1] transition-all"
+                                    >
+                                        <Plus size={14} /> Add New Category
+                                    </button>
+                                )}
+                            </div>
+                        </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <form onSubmit={handleUpdateContent} className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-[#0E5858]/5 space-y-8">
@@ -2189,6 +2376,21 @@ function AdminDashboardContent() {
                                             />
                                         </div>
                                     </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Content Bank Folder</label>
+                                        <select
+                                            value={contentForm.folder}
+                                            onChange={(e) => setContentForm({ ...contentForm, folder: e.target.value })}
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
+                                        >
+                                            <option value="">No Folder (General)</option>
+                                            {customFolders.map(f => (
+                                                <option key={f.id} value={f.name}>{f.name} ({f.prefix})</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-[8px] text-gray-400 font-medium ml-3 mt-1">Assign to a Content Bank folder so it appears under that category tab.</p>
+                                    </div>
                                 </div>
 
                                 {contentError && <p className="text-red-500 text-[10px] font-bold text-center">{contentError}</p>}
@@ -2204,26 +2406,35 @@ function AdminDashboardContent() {
                             </form>
 
 
-                            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-[#0E5858]/5 overflow-hidden flex flex-col max-h-[500px]">
+                            <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-[#0E5858]/5 overflow-hidden flex flex-col max-h-[1000px]">
                                 <h3 className="text-xl font-serif text-[#0E5858] mb-6">Active Resource Nodes</h3>
                                 <div className="space-y-3 overflow-y-auto pr-2 scrollbar-hide">
-                                    {dynamicContent.map(content => (
+                                    {contentOnlyEntries.map(content => (
                                         <div key={content.id} className="p-4 bg-gray-50/50 rounded-xl border border-gray-100 flex items-center justify-between group">
                                             <div className="min-w-0">
                                                 <p className="text-xs font-bold text-[#0E5858] truncate">{content.title}</p>
-                                                <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">{content.module_id}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">{content.module_id}</p>
+                                                    {(() => {
+                                                        const folder = detectFolderFromCode(content.topic_code || '');
+                                                        return folder ? <span className="text-[7px] font-black text-white bg-[#00B6C1] px-2 py-0.5 rounded-md uppercase tracking-widest">{folder}</span> : null;
+                                                    })()}
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <a href={content.content} target="_blank" className="p-2 text-gray-300 hover:text-[#00B6C1] transition-all"><ExternalLink size={12} /></a>
                                                 <button
-                                                    onClick={() => setContentForm({
-                                                        id: content.id,
-                                                        topicCode: content.topic_code,
-                                                        moduleId: content.module_id,
-                                                        topicTitle: content.title,
-                                                        contentType: content.content_type || 'video',
-                                                        contentLink: content.content
-                                                    })}
+                                                    onClick={() => {
+                                                        setContentForm({
+                                                            id: content.id,
+                                                            topicCode: content.topic_code,
+                                                            moduleId: content.module_id,
+                                                            topicTitle: content.title,
+                                                            contentType: content.content_type || 'video',
+                                                            contentLink: content.content,
+                                                            folder: detectFolderFromCode(content.topic_code || '')
+                                                        });
+                                                    }}
                                                     className="p-2 text-gray-300 hover:text-[#00B6C1] transition-all"
                                                 >
                                                     <Edit3 size={12} />
