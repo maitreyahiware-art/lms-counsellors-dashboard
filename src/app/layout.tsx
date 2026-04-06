@@ -89,11 +89,15 @@ export default function RootLayout({
           const searchParams = window.location.search;
           if (finalRole === 'admin' || finalRole === 'trainer buddy' || finalRole === 'moderator') {
             router.push(`/admin${searchParams}`);
+          } else if (finalRole === 'nutripreneur') {
+            router.push(`/nutripreneur${searchParams}`);
           } else {
             router.push(`/${searchParams}`);
           }
         } else if (pathname.startsWith('/admin') && finalRole !== 'admin' && finalRole !== 'trainer buddy' && finalRole !== 'moderator') {
           router.push(`/${window.location.search}`);
+        } else if (pathname === '/' && finalRole === 'nutripreneur') {
+          router.push(`/nutripreneur${window.location.search}`);
         }
       } else if (!isLoginPage) {
         router.push(`/login${window.location.search}`);
@@ -130,6 +134,8 @@ export default function RootLayout({
         if (isLoginPage) {
           if (role === 'admin' || role === 'trainer buddy' || role === 'moderator') {
             router.push("/admin");
+          } else if (role === 'nutripreneur') {
+            router.push("/nutripreneur");
           } else {
             router.push("/");
           }
@@ -192,8 +198,9 @@ export default function RootLayout({
     );
   }
 
-  // Pure login page without app shell
-  if (isLoginPage) {
+  // Pure login page OR Nutripreneur portal without app shell
+  const isNutripreneurPath = pathname.startsWith('/nutripreneur');
+  if (isLoginPage || isNutripreneurPath) {
     return (
       <html lang="en">
         <body className={`${playfair.variable} ${outfit.variable} font-sans text-[#0E5858] bg-[#FAFCEE] antialiased overflow-x-hidden`}>

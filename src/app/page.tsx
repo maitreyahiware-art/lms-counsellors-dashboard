@@ -88,9 +88,12 @@ export default function Home() {
         .eq('id', session.user.id)
         .single();
 
-      // Redirect trainer buddies, admins, and moderators to the admin panel
       if (profile?.role === 'trainer buddy' || profile?.role === 'admin' || profile?.role === 'moderator') {
         router.push('/admin');
+        return;
+      }
+      if (profile?.role === 'nutripreneur') {
+        router.push('/nutripreneur');
         return;
       }
 

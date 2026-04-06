@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Mail, ChevronRight, Sparkles, UserCheck, User, ShieldCheck, Briefcase } from "lucide-react";
+import { Lock, Mail, ChevronRight, Sparkles, UserCheck, User, ShieldCheck, Leaf } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -30,6 +30,8 @@ export default function LoginPage() {
                     .single();
                 if (profile?.role === 'trainer buddy' || profile?.role === 'admin' || profile?.role === 'moderator') {
                     router.push("/admin");
+                } else if (profile?.role === 'nutripreneur') {
+                    router.push("/nutripreneur");
                 } else {
                     router.push("/");
                 }
@@ -62,6 +64,8 @@ export default function LoginPage() {
 
             if (profile?.role === 'trainer buddy' || profile?.role === 'admin' || profile?.role === 'moderator') {
                 router.push("/admin");
+            } else if (profile?.role === 'nutripreneur') {
+                router.push("/nutripreneur");
             } else {
                 router.push("/");
             }
@@ -153,7 +157,7 @@ export default function LoginPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mx-auto"
                         >
                             {/* Path 1: Interviewees */}
                             <div
@@ -172,10 +176,35 @@ export default function LoginPage() {
                                 </button>
                             </div>
 
-                            {/* Path 2: Official Access (Founder & Admin) */}
+                            {/* Path 2: Nutripreneur Portal */}
+                            <div
+                                onClick={() => router.push('/nutripreneur/login')}
+                                className="premium-card p-10 border border-white hover:border-amber-400/30 transition-all cursor-pointer group flex flex-col items-start gap-4"
+                                style={{ background: 'linear-gradient(135deg, rgba(13,42,30,0.04), rgba(201,168,76,0.03))' }}
+                            >
+                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform"
+                                    style={{ background: 'linear-gradient(135deg, #1A3A2A, #2D5A3D)' }}>
+                                    <Leaf size={28} style={{ color: '#C9A84C' }} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-serif text-[#0E5858] mb-1">Nutripreneur Academy</h3>
+                                    <span className="text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full uppercase mb-2 inline-block"
+                                        style={{ background: 'rgba(91,154,139,0.15)', color: '#5B9A8B' }}>
+                                        New Access
+                                    </span>
+                                    <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                                        Elite training portal for nutrition entrepreneurs to master their craft and grow their practice.
+                                    </p>
+                                </div>
+                                <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest" style={{ color: '#C9A84C' }}>
+                                    Enter Academy <ChevronRight size={16} />
+                                </button>
+                            </div>
+
+                            {/* Path 3: Official Access (Founder & Admin) */}
                             <div
                                 onClick={() => enterForm('admin')}
-                                className="premium-card p-10 bg-white/40 border border-white hover:border-[#00B6C1]/30 transition-all cursor-pointer group flex flex-col items-center justify-center text-center gap-4"
+                                className="premium-card p-10 bg-white/40 border border-white hover:border-[#00B6C1]/30 transition-all cursor-pointer group flex flex-col items-center justify-center text-center gap-4 md:col-span-2"
                             >
                                 <div className="w-16 h-16 bg-[#0E5858] text-white rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
                                     <ShieldCheck size={32} />

@@ -1577,6 +1577,7 @@ function AdminDashboardContent() {
                                                             className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-[10px] font-bold outline-none text-[#0E5858]"
                                                         >
                                                             <option value="counsellor">Counsellor</option>
+                                                            <option value="nutripreneur">Nutripreneur</option>
                                                             <option value="trainer buddy">Trainer Buddy</option>
                                                             <option value="product automation">Product Automation</option>
                                                             <option value="tech dev">Tech Dev</option>
@@ -2097,6 +2098,7 @@ function AdminDashboardContent() {
                                         required
                                     >
                                         <option value="counsellor">Counsellor</option>
+                                        <option value="nutripreneur">Nutripreneur</option>
                                         <option value="trainer buddy">Trainer Buddy</option>
                                         <option value="product automation">Product Automation</option>
                                         <option value="tech dev">Tech Dev</option>

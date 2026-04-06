@@ -78,7 +78,7 @@ export async function verifyAdmin(request: Request): Promise<
         };
     }
 
-    const allowedRoles = ['admin', 'trainer buddy', 'counsellor', 'mentor'];
+    const allowedRoles = ['admin', 'trainer buddy', 'nutripreneur', 'counsellor', 'mentor'];
     if (!allowedRoles.includes(profile.role)) {
         return {
             authorized: false,
