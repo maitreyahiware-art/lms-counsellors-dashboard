@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, Variants, AnimatePresence } from "framer-motion";
 import { ArrowRight, BookOpen, Play, Trophy, Zap, TrendingUp, Flame, Leaf, LogOut, Sparkles, X } from "lucide-react";
@@ -22,7 +22,10 @@ export default function NutripreneurDashboard() {
     const [xp, setXp] = useState(0);
     const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
+    const isMounted = useRef(true);
+
     useEffect(() => {
+        isMounted.current = true;
         const init = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) { router.push('/nutripreneur/login'); return; }
@@ -38,6 +41,7 @@ export default function NutripreneurDashboard() {
                 return;
             }
 
+            if (!isMounted.current) return;
             setUserName(session.user.user_metadata?.full_name?.split(' ')[0] || "Nutripreneur");
 
             // Fetch progress
@@ -47,6 +51,7 @@ export default function NutripreneurDashboard() {
                 .eq('user_id', session.user.id)
                 .order('created_at', { ascending: false });
 
+            if (!isMounted.current) return;
             const total = progressData?.length || 0;
             const earned = Math.min(Math.round((total / 20) * 100), 100);
             setProgress(earned);
@@ -60,6 +65,7 @@ export default function NutripreneurDashboard() {
             setLoading(false);
         };
         init();
+        return () => { isMounted.current = false; };
     }, [router]);
 
     const handleLogout = async () => {

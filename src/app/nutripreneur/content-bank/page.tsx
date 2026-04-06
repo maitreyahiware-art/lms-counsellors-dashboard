@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Play, Quote, FileText, Link as LinkIcon, Filter, ArrowRight, CheckCircle2, UserCheck, RefreshCw, XCircle } from "lucide-react";
@@ -54,13 +54,17 @@ export default function NutripreneurContentBank() {
         }
     };
 
+    const isMounted = useRef(true);
+
     useEffect(() => {
+        isMounted.current = true;
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) { router.push('/nutripreneur/login'); return; }
-            fetchContent();
+            if (isMounted.current) fetchContent();
         };
         checkAuth();
+        return () => { isMounted.current = false; };
     }, [router]);
 
     // Universal Search & Filter
@@ -86,8 +90,11 @@ export default function NutripreneurContentBank() {
         setFilteredItems(result);
     }, [search, activeTab, allContent]);
 
-    // Dynamic Categories from available data
-    const categories = ["All", ...Array.from(new Set(allContent.map(c => c.postSubType))).filter(Boolean)];
+    // Dynamic Categories: useMemo to prevent re-calc on every render
+    const categories = useMemo(() => {
+        const set = new Set(allContent.map(c => c.postSubType).filter(Boolean));
+        return ["All", ...Array.from(set)];
+    }, [allContent]);
 
     if (loading) {
         return (
