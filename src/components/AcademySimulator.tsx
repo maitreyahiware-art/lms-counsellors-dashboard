@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X, Send, User, Loader2, Sparkles, Zap, Flame, Shield } from "lucide-react";
+import { MessageSquare, X, Send, User, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { logActivity } from "@/lib/activity";
 
@@ -11,21 +11,12 @@ interface Message {
     content: string;
 }
 
-type Difficulty = 'easy' | 'medium' | 'hard';
 
-const DIFFICULTY_CONFIG: Record<Difficulty, { label: string; icon: React.ElementType; color: string; bg: string; tagline: string }> = {
-    easy: { label: 'Easy', icon: Shield, color: 'text-green-600', bg: 'bg-green-50 border-green-200', tagline: 'Friendly & Curious Client' },
-    medium: { label: 'Medium', icon: Zap, color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', tagline: 'Skeptical & Price-Conscious' },
-    hard: { label: 'Hard', icon: Flame, color: 'text-red-600', bg: 'bg-red-50 border-red-200', tagline: 'Aggressive & Demanding' }
-};
-
-export default function AcademySimulator({ topicTitle, topicContent, topicCode }: { topicTitle: string, topicContent: string, topicCode: string }) {
+export default function AcademySimulator({ topicTitle, topicContent, topicCode, onComplete }: { topicTitle: string, topicContent: string, topicCode: string, onComplete?: () => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
-    const [difficulty, setDifficulty] = useState<Difficulty | null>(null);
-    const [showDifficultyPicker, setShowDifficultyPicker] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -63,26 +54,13 @@ export default function AcademySimulator({ topicTitle, topicContent, topicCode }
         setIsOpen(true);
         logActivity('start_simulation', { topicCode, contentTitle: topicTitle });
         if (messages.length === 0) {
-            // Show difficulty picker first
-            setShowDifficultyPicker(true);
+            setMessages([{
+                role: 'assistant',
+                content: "Hey, so I found your page online. I've tried a lot of diets before — keto, intermittent fasting — and nothing really stuck. I'm not sure if another nutrition program is worth my money. What makes yours different? And how much does it cost?"
+            }]);
         }
     };
 
-    const selectDifficulty = (level: Difficulty) => {
-        setDifficulty(level);
-        setShowDifficultyPicker(false);
-
-        const openerMap: Record<Difficulty, string> = {
-            easy: "Hi! I saw your Instagram reels about Balance Nutrition and they look really good. I've been wanting to lose some weight and eat healthier. Can you tell me more about your programs? I'm quite open to trying something new!",
-            medium: "Hey, so I found your page online. I've tried a lot of diets before — keto, intermittent fasting — and nothing really stuck. I'm not sure if another nutrition program is worth my money. What makes yours different? And how much does it cost?",
-            hard: "Look, I'll be straight with you — I've wasted money on three different diet programs already and none of them worked. My friend told me to try Balance Nutrition but honestly I'm not convinced. I don't have time for complicated meal plans, I don't want to give up eating out, and I'm not paying more than ₹5000. So tell me, why should I even bother with this?"
-        };
-
-        setMessages([{
-            role: 'assistant',
-            content: openerMap[level]
-        }]);
-    };
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -101,8 +79,7 @@ export default function AcademySimulator({ topicTitle, topicContent, topicCode }
                 body: JSON.stringify({
                     messages: newMessages,
                     topicTitle,
-                    topicContent,
-                    difficulty: difficulty || 'medium'
+                    topicContent
                 }),
             });
             const data = await response.json();
@@ -142,12 +119,9 @@ export default function AcademySimulator({ topicTitle, topicContent, topicCode }
 
     const resetSimulation = () => {
         setMessages([]);
-        setDifficulty(null);
-        setShowDifficultyPicker(true);
+        startSimulation();
     };
 
-    const currentConfig = difficulty ? DIFFICULTY_CONFIG[difficulty] : null;
-    const DiffIcon = currentConfig?.icon || Zap;
 
     return (
         <div className="w-full">
@@ -186,21 +160,12 @@ export default function AcademySimulator({ topicTitle, topicContent, topicCode }
                                         <div className="flex items-center gap-1.5 mt-0.5">
                                             <div className="w-1.5 h-1.5 rounded-full bg-[#00B6C1] animate-pulse" />
                                             <span className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">
-                                                {currentConfig ? `${currentConfig.label} Mode` : 'Live Practice Session'}
+                                                Live Practice Session
                                             </span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    {difficulty && (
-                                        <button
-                                            onClick={resetSimulation}
-                                            className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full border border-white/10 hover:bg-white/20 transition-colors"
-                                        >
-                                            <DiffIcon size={10} className={currentConfig?.color || 'text-[#00B6C1]'} />
-                                            <span className="text-[9px] font-bold uppercase tracking-widest text-white/60">Change Level</span>
-                                        </button>
-                                    )}
                                     <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full border border-white/10">
                                         <Sparkles size={10} className="text-[#00B6C1]" />
                                         <span className="text-[9px] font-bold uppercase tracking-widest text-white/60">AI Client</span>
@@ -215,83 +180,34 @@ export default function AcademySimulator({ topicTitle, topicContent, topicCode }
                             </div>
 
                             {/* Messages Area */}
-                            <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 space-y-5 bg-[#FAFCEE]/40">
-                                {/* Difficulty Picker */}
-                                {showDifficultyPicker && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="flex flex-col items-center gap-6 py-8"
-                                    >
-                                        <div className="text-center">
-                                            <h3 className="text-2xl font-serif text-[#0E5858] mb-2">Choose Difficulty</h3>
-                                            <p className="text-sm text-gray-400 font-medium">Select the type of client you'd like to practice with</p>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg">
-                                            {(Object.entries(DIFFICULTY_CONFIG) as [Difficulty, typeof DIFFICULTY_CONFIG['easy']][]).map(([key, config]) => {
-                                                const Icon = config.icon;
-                                                return (
-                                                    <motion.button
-                                                        key={key}
-                                                        whileHover={{ y: -4, scale: 1.02 }}
-                                                        whileTap={{ scale: 0.97 }}
-                                                        onClick={() => selectDifficulty(key)}
-                                                        className={`p-5 rounded-2xl border-2 ${config.bg} flex flex-col items-center gap-3 transition-all hover:shadow-lg cursor-pointer`}
-                                                    >
-                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${config.color} bg-white shadow-sm`}>
-                                                            <Icon size={24} />
-                                                        </div>
-                                                        <div className="text-center">
-                                                            <h4 className={`text-sm font-bold ${config.color}`}>{config.label}</h4>
-                                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">{config.tagline}</p>
-                                                        </div>
-                                                    </motion.button>
-                                                );
-                                            })}
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                {!showDifficultyPicker && (
-                                    <>
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex justify-center">
-                                                <div className="px-4 py-2 bg-white border border-[#0E5858]/10 rounded-full text-[9px] uppercase font-bold text-[#0E5858]/40 tracking-widest flex items-center gap-2 shadow-sm">
-                                                    <Sparkles size={9} />
-                                                    Respond as you would on a real consultation call
-                                                </div>
+                            <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 py-6 space-y-5 bg-[#FAFCEE]">
+                                <>
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex justify-center">
+                                            <div className="px-4 py-2 bg-white border border-[#0E5858]/10 rounded-full text-[9px] uppercase font-bold text-[#0E5858]/40 tracking-widest flex items-center gap-2 shadow-sm">
+                                                <Sparkles size={9} />
+                                                Respond as you would on a real consultation call
                                             </div>
-
-                                            {/* Difficulty Badge */}
-                                            {currentConfig && (
-                                                <div className="flex justify-center">
-                                                    <div className={`px-4 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 ${currentConfig.bg} ${currentConfig.color}`}>
-                                                        <DiffIcon size={10} />
-                                                        {currentConfig.label} · {currentConfig.tagline}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {adminReview && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: -10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    className="p-6 bg-[#0E5858] text-white rounded-[2rem] shadow-xl border border-white/10"
-                                                >
-                                                    <div className="flex items-center gap-2 mb-3">
-                                                        <div className="flex items-center gap-0.5">
-                                                            {[1, 2, 3, 4, 5].map(star => (
-                                                                <Sparkles key={star} size={12} className={adminReview.rating >= star ? 'text-[#B8E218]' : 'text-white/20'} fill={adminReview.rating >= star ? "currentColor" : "none"} />
-                                                            ))}
-                                                        </div>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Trainer Performance Rating</span>
-                                                    </div>
-                                                    <p className="text-sm font-medium italic leading-relaxed">"{adminReview.feedback}"</p>
-                                                    <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest mt-4">Note from Founders / Academy Admin</p>
-                                                </motion.div>
-                                            )}
                                         </div>
+
+                                        {adminReview && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="p-6 bg-[#0E5858] text-white rounded-[2rem] shadow-xl border border-white/10"
+                                            >
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="flex items-center gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map(star => (
+                                                            <Sparkles key={star} size={12} className={adminReview.rating >= star ? 'text-[#B8E218]' : 'text-white/20'} fill={adminReview.rating >= star ? "currentColor" : "none"} />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Trainer Performance Rating</span>
+                                                </div>
+                                                <p className="text-sm font-medium italic leading-relaxed">"{adminReview.feedback}"</p>
+                                                <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest mt-4">Note from Founders / Academy Admin</p>
+                                            </motion.div>
+                                        )}
                                         {messages.map((msg, i) => (
                                             <motion.div
                                                 key={i}
@@ -324,30 +240,28 @@ export default function AcademySimulator({ topicTitle, topicContent, topicCode }
                                                 </div>
                                             </div>
                                         )}
-                                    </>
-                                )}
+                                    </div>
+                                </>
                             </div>
 
                             {/* Input Area */}
-                            {!showDifficultyPicker && (
-                                <form onSubmit={handleSend} className="px-6 py-4 bg-white border-t border-gray-100 flex items-center gap-3 flex-shrink-0">
-                                    <input
-                                        type="text"
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        placeholder="Respond as the counsellor..."
-                                        className="flex-1 bg-[#FAFCEE] border border-[#0E5858]/10 rounded-2xl py-3.5 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B6C1]/20 focus:border-[#00B6C1] transition-all"
-                                        autoFocus
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={!input.trim() || loading}
-                                        className="w-12 h-12 bg-[#0E5858] text-white rounded-2xl flex items-center justify-center hover:bg-[#00B6C1] transition-all disabled:opacity-40 shadow-md flex-shrink-0"
-                                    >
-                                        <Send size={18} />
-                                    </button>
-                                </form>
-                            )}
+                            <form onSubmit={handleSend} className="px-6 py-4 bg-white border-t border-gray-100 flex items-center gap-3 flex-shrink-0">
+                                <input
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    placeholder="Respond as the counsellor..."
+                                    className="flex-1 bg-[#FAFCEE] border border-[#0E5858]/10 rounded-2xl py-3.5 px-5 text-sm focus:outline-none focus:ring-2 focus:ring-[#00B6C1]/20 focus:border-[#00B6C1] transition-all"
+                                    autoFocus
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!input.trim() || loading}
+                                    className="w-12 h-12 bg-[#0E5858] text-white rounded-2xl flex items-center justify-center hover:bg-[#00B6C1] transition-all disabled:opacity-40 shadow-md flex-shrink-0"
+                                >
+                                    <Send size={18} />
+                                </button>
+                            </form>
                         </motion.div>
                     </motion.div>
                 )}

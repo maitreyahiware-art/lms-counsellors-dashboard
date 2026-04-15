@@ -27,7 +27,7 @@ export interface Topic {
     caseStudyLinks?: string[];
     caseStudies?: { label: string; url: string; thumbnail?: string }[];
     persona?: { story: string; goal: string };
-    links?: { label: string; url: string; subtitle?: string; icon?: string; isPopup?: boolean; subLinks?: { label: string; url: string }[] }[];
+    links?: { label: string; url: string; subtitle?: string; icon?: string; isPopup?: boolean; isCopyOnly?: boolean; subLinks?: { label: string; url: string }[] }[];
     layout?: 'default' | 'grid';
     isBooking?: boolean;
     bookingUrl?: string;
@@ -123,7 +123,7 @@ export const syllabusData: Module[] = [
                 links: [
                     { label: 'How We Work Video', url: 'https://youtu.be/WpaY3G9RGyY' },
                     { label: 'Glossary', url: 'https://docs.google.com/spreadsheets/d/1gemc5b7d-UsGNfIoQTGuh2FkslabYmPmp_ybznjxGSA/edit?gid=1915602987#gid=1915602987' },
-                    { label: 'BN Statistics', url: 'https://docs.google.com/spreadsheets/d/195nuyHuXtRsprI97R6x1sp_kKWxfCh_jXEdpyz846a8/edit?usp=sharing', subtitle: 'These are company numbers used to build authority and trust during consultation calls.' }
+                    { label: 'BN Statistics', url: 'https://docs.google.com/spreadsheets/d/195nuyHuXtRsprI97R6x1sp_kKWxfCh_jXEdpyz846a8/edit?usp=sharing', subtitle: 'These are company numbers used to build authority and trust during any interaction with the stakeholders/Customers.' }
                 ]
             },
             {
@@ -174,7 +174,7 @@ export const syllabusData: Module[] = [
             {
                 code: 'M2-05',
                 title: 'Peer Review',
-        content: 'Conduct a commercial and comparative audit of Balance Nutrition versus market peers.<br/><br/><strong>Objective:</strong> To understand how Balance Nutrition stands against key market competitors in terms of approach, sales pitching, and digital presence.<br/><br/><strong>Instructions:</strong><br/>1. Create Your persona: Using the example below, define your own age, weight and goal for this audit.<br/>2. Select 2 Peer Companies & 2 Peer Dietitians to audit alongside <strong>Balance Nutrition</strong> and <strong>Khyati Rupani</strong>.<br/>3. Conduct the research and fill the audit columns.</br><br/> <strong>Note:</strong> You can complete the peer review by the end of training, but initiate the process of booking consultation call with BN competitors as soon as possible.</b><b>remember to keep your created persona as the person you are auditing for.</b><b>',
+                content: 'Conduct a commercial and comparative audit of Balance Nutrition versus market peers.<br/><br/><strong>Objective:</strong> To understand how Balance Nutrition stands against key market competitors in terms of approach, sales pitching, and digital presence.<br/><br/><strong>Instructions:</strong><br/>1. Create Your persona: Using the example below, define your own age, weight and goal for this audit.<br/>2. Select 2 Peer Companies & 2 Peer Dietitians to audit alongside <strong>Balance Nutrition</strong> and <strong>Khyati Rupani</strong>.<br/>3. Conduct the research and fill the audit columns.</br><br/> <strong>Note:</strong> You can complete the peer review by the end of training, but initiate the process of booking consultation call with BN competitors as soon as possible.</b><b>remember to keep your created persona as the person you are auditing for.</b><b>',
                 isAssignment: true,
                 persona: {
                     story: "Example: I am 35 years old, 5'6\" tall, and weigh 230 lbs. I have been overweight for a long time but don’t have any health problems.",

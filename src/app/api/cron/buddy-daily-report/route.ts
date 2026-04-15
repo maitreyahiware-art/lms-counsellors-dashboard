@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { mailer, SENDER_EMAIL } from '@/lib/mail';
 import { syllabusData } from '@/data/syllabus';
 

@@ -44,14 +44,19 @@ import {
     BrainCircuit,
     CheckCircle,
     Star,
-    Layout
+    Layout,
+    Share2,
+    Edit2,
+    Bell,
+    Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { syllabusData } from "@/data/syllabus";
+import AssetCentral from "@/components/admin/AssetCentral";
 import ContentArchitect from "@/components/admin/ContentArchitect";
 import QuizProtocolEditor from "@/components/admin/QuizProtocolEditor";
-import AssetCentral from "@/components/admin/AssetCentral";
+
 
 interface Profile {
     id: string;
@@ -96,16 +101,6 @@ interface SummaryAudit {
     created_at: string;
 }
 
-interface SimulationLog {
-    id: string;
-    user_id: string;
-    topic_code: string;
-    chat_history: any[];
-    rating?: number;
-    admin_feedback?: string;
-    created_at: string;
-}
-
 const TOTAL_SYLLABUS_TOPICS = syllabusData
     .filter(m => m.id !== 'resource-bank')
     .reduce((acc, mod) => acc + mod.topics.length, 0);
@@ -138,7 +133,6 @@ function AdminDashboardContent() {
     const [audits, setAudits] = useState<SummaryAudit[]>([]);
     const [dynamicContent, setDynamicContent] = useState<DynamicContent[]>([]);
     const [progress, setProgress] = useState<TopicProgress[]>([]);
-    const [simulationLogs, setSimulationLogs] = useState<SimulationLog[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
 
     // Detail Views
@@ -153,9 +147,11 @@ function AdminDashboardContent() {
         fullName: "",
         role: "counsellor",
         phone: "",
-        buddyName: "BN Admin",
-        buddyEmail: "admin@balancenutrition.in",
-        buddyPhone: "0000000000"
+        buddies: [{
+            name: "BN Admin",
+            email: "admin@balancenutrition.in",
+            phone: "0000000000"
+        }]
     });
     const [creatingUser, setCreatingUser] = useState(false);
     const [userSuccess, setUserSuccess] = useState("");
@@ -172,8 +168,6 @@ function AdminDashboardContent() {
         topicTitle: "",
         contentType: "video",
         contentLink: "",
-        folder: "",
-        tags: "",
     });
     const [uploadingContent, setUploadingContent] = useState(false);
     const [contentSuccess, setContentSuccess] = useState("");
@@ -189,6 +183,33 @@ function AdminDashboardContent() {
     const [editingBuddy, setEditingBuddy] = useState(false);
     const [buddyList, setBuddyList] = useState<{ name: string; email: string; phone: string }[]>([]);
     const [updatingBuddy, setUpdatingBuddy] = useState(false);
+
+    // Folder & Asset Central State
+    const [customFolders, setCustomFolders] = useState<{ id: string; name: string; prefix: string }[]>([]);
+    const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
+    const [renameFolderValue, setRenameFolderValue] = useState("");
+    const [newFolderName, setNewFolderName] = useState("");
+    const [newFolderPrefix, setNewFolderPrefix] = useState("");
+
+    // Quiz Editor State
+    const [selectedQuizTopic, setSelectedQuizTopic] = useState("");
+    const [isFetchingQuiz, setIsFetchingQuiz] = useState(false);
+    const [customAIPrompt, setCustomAIPrompt] = useState("");
+    const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+    const [manualQuizQuestions, setManualQuizQuestions] = useState<any[]>([]);
+    const [isSavingQuiz, setIsSavingQuiz] = useState(false);
+    const [quizSuccess, setQuizSuccess] = useState("");
+    const [quizError, setQuizError] = useState("");
+    
+    const [emailModal, setEmailModal] = useState<{isOpen: boolean, to: string, userName: string} | null>(null);
+    const [emailForm, setEmailForm] = useState({subject: '', message: ''});
+    const [sendingEmail, setSendingEmail] = useState(false);
+
+    // Dispatch & Danger Zone State
+    const [dispatchNotif, setDispatchNotif] = useState({ title: "", message: "", type: "info" });
+    const [sendingDispatch, setSendingDispatch] = useState(false);
+    const [isWipingUser, setIsWipingUser] = useState(false);
+
 
     useEffect(() => {
         const tab = searchParams.get('tab');
@@ -224,173 +245,41 @@ function AdminDashboardContent() {
 
     const refreshData = async () => {
         try {
-            console.log("Master Sync Started...");
-
-            // Get current session and user role first to know how to filter
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
-
-            const { data: userProfile } = await supabase
-                .from('profiles')
-                .select('role, email')
-                .eq('id', session.user.id)
-                .single();
-
-            const isTrainerBuddy = userProfile?.role === 'trainer buddy';
-            const userEmail = userProfile?.email;
-
-            // Optional: Pull in latest metadata from Auth for orphaned profiles or missing fields
-            if (!hasSyncedRegistry.current && !isTrainerBuddy) {
-                try {
-                    const syncRes = await fetch('/api/admin/sync-registry', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${session.access_token}`
-                        }
-                    });
-                    if (syncRes.ok) {
-                        hasSyncedRegistry.current = true;
-                        console.log("Master Registry Synchronized successfully.");
-                    }
-                } catch (e) {
-                    console.warn("Auto-Sync skipped:", e);
-                }
-            }
-
-            const fetchRes = await fetch('/api/admin/dashboard-sync', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`
-                }
+            
+            const res = await fetch('/api/admin/dashboard-sync', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` }
             });
+            if (!res.ok) throw new Error("Dashboard Sync API failed");
+            
+            const syncData = await res.json();
+            
+            const { data: fData } = await supabase.from('syllabus_folders').select('*').order('name', { ascending: true });
 
-            if (!fetchRes.ok) {
-                console.error("Master Sync API failed", await fetchRes.text());
-                return;
-            }
+            setProfiles(syncData.profiles || []);
+            setAssessments(syncData.assessments || []);
+            setActivity(syncData.activities || []);
+            setAudits(syncData.audits || []);
+            setDynamicContent(syncData.syllabus || []);
+            setProgress(syncData.progress || []);
 
-            const masterData = await fetchRes.json();
-            const pData = masterData.profiles;
-            const aData = masterData.assessments;
-            const actData = masterData.activities;
-            const audData = masterData.audits;
-            const cData = masterData.syllabus;
-            const prData = masterData.progress;
-            const simData = masterData.simulations;
-
-            const pError = null;
-            const prError = null;
-
-            if (pError) console.error("Profiles error:", pError);
-            if (prError) console.error("Progress error:", prError);
-
-            let filteredProfiles = pData || [];
-            if (isTrainerBuddy && userEmail) {
-                console.log("[Buddy Filter] Trainer buddy email:", userEmail, "| Total profiles:", pData?.length);
-                filteredProfiles = (pData || []).filter(p => {
-                    try {
-                        const buddies = JSON.parse(p.training_buddy || '[]');
-                        const buddiesArray = Array.isArray(buddies) ? buddies : [buddies];
-                        const match = buddiesArray.some((b: any) => b.email?.toLowerCase() === userEmail.toLowerCase());
-                        if (match) console.log("[Buddy Filter] MATCHED:", p.email, p.full_name);
-                        return match;
-                    } catch (e) {
-                        // Fallback for comma separated legacy data
-                        return p.training_buddy?.toLowerCase().includes(userEmail.toLowerCase());
-                    }
-                });
-                console.log("[Buddy Filter] Filtered counsellors count:", filteredProfiles.length);
-            }
-
-            const allowedUserIds = new Set(filteredProfiles.map(p => p.id));
-
-            const filteredAssessments = (aData || []).filter(a => allowedUserIds.has(a.user_id));
-            const filteredActivityLogs = (actData || []).filter(act => allowedUserIds.has(act.user_id));
-            const filteredAudits = (audData || []).filter(aud => allowedUserIds.has(aud.user_id));
-            const filteredProgress = (prData || []).filter(pr => allowedUserIds.has(pr.user_id));
-
-            // Create a unified activity feed by merging logs, assessments, and progress
-            const combinedActivity = [
-                ...filteredActivityLogs,
-                ...filteredAssessments.map(a => {
-                    // Try to find title in syllabus
-                    let title = a.topic_code;
-                    for (const mod of syllabusData) {
-                        if (a.topic_code === `MODULE_${mod.id}`) title = mod.title;
-                        const t = mod.topics?.find(top => top.code === a.topic_code);
-                        if (t) title = t.title;
-                    }
-                    return {
-                        id: `assessment-${a.id}`,
-                        user_id: a.user_id,
-                        activity_type: a.topic_code?.startsWith('MODULE_') ? 'complete_module' : 'complete_quiz',
-                        content_title: title,
-                        topic_code: a.topic_code,
-                        created_at: a.created_at,
-                        score: a.score
-                    };
-                }),
-                ...filteredProgress.map(p => {
-                    // Find topic title
-                    let title = p.topic_code;
-                    const mod = syllabusData.find(m => m.id === p.module_id);
-                    if (mod) {
-                        const t = mod.topics?.find(top => top.code === p.topic_code);
-                        if (t) title = t.title;
-                    }
-                    return {
-                        id: `progress-${p.user_id}-${p.topic_code}`,
-                        user_id: p.user_id,
-                        activity_type: 'complete_segment',
-                        content_title: title,
-                        topic_code: p.topic_code,
-                        created_at: p.completed_at || p.created_at || new Date().toISOString()
-                    };
-                })
-            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-            const uniqueActivity: ActivityLog[] = [];
-            const seen = new Set();
-            combinedActivity.forEach(act => {
-                const key = `${act.user_id}-${act.topic_code || act.content_title}-${act.activity_type}`;
-                if (!seen.has(key)) {
-                    uniqueActivity.push(act as ActivityLog);
-                    seen.add(key);
-                }
-            });
-
-            setProfiles(filteredProfiles);
-            setAssessments(filteredAssessments);
-            setActivity(uniqueActivity);
-            setAudits(audData || []);
-            setDynamicContent(cData || []);
-            setProgress(prData || []);
-            setSimulationLogs(simData || []);
-            console.log("Master Sync Complete. Profiles:", filteredProfiles.length, "Activity:", uniqueActivity.length);
+            // Handle Default Folders + Custom Folders
+            const defaultFolders = [
+                { id: 'def-vb', name: 'Sales Training', prefix: 'VB' },
+                { id: 'def-p1', name: 'Phase 1', prefix: 'P1' },
+                { id: 'def-p2', name: 'Phase 2', prefix: 'P2' },
+                { id: 'def-rb', name: 'Program Manuals', prefix: 'RB' }
+            ];
+            setCustomFolders([...defaultFolders, ...(fData || [])]);
         } catch (err) {
             console.error("Master Sync Error:", err);
         }
     };
 
 
-    const counsellors = useMemo(() => profiles.filter(p => p.role === 'counsellor' || p.role === 'mentor'), [profiles]);
+    const counsellors = useMemo(() => profiles.filter(p => p.role === 'counsellor'), [profiles]);
     const buddies = useMemo(() => profiles.filter(p => p.role === 'moderator' || p.role === 'admin'), [profiles]);
-
-    const dbFolders = useMemo(() =>
-        dynamicContent
-            .filter(d => d.content_type === 'folder')
-            .map(d => ({ id: d.id, name: d.title, prefix: d.content }))
-    , [dynamicContent]);
-
-    const customFolders = useMemo(() => {
-        return [...dbFolders];
-    }, [dbFolders]);
-
-    // Content entries only (exclude folder config rows)
-    const contentOnlyEntries = useMemo(() =>
-        dynamicContent.filter(d => d.content_type !== 'folder')
-    , [dynamicContent]);
 
     const filteredRegistry = useMemo(() => {
         return profiles.filter(p =>
@@ -407,11 +296,7 @@ function AdminDashboardContent() {
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const buddyInfo = JSON.stringify([{
-                name: newUser.buddyName || "BN Admin",
-                email: newUser.buddyEmail || "admin@balancenutrition.in",
-                phone: newUser.buddyPhone || "0000000000"
-            }]);
+            const buddyInfo = JSON.stringify(newUser.buddies);
 
             const response = await fetch('/api/admin/create-user', {
                 method: 'POST',
@@ -420,7 +305,11 @@ function AdminDashboardContent() {
                     'Authorization': `Bearer ${session?.access_token}`,
                 },
                 body: JSON.stringify({
-                    ...newUser,
+                    email: newUser.email,
+                    password: newUser.password,
+                    fullName: newUser.fullName,
+                    role: newUser.role,
+                    phone: newUser.phone,
                     trainingBuddy: buddyInfo
                 }),
             });
@@ -431,7 +320,11 @@ function AdminDashboardContent() {
             setUserSuccess(data.message || `Authorized: ${newUser.email}. Account created.`);
             setNewUser({
                 email: "", password: "", fullName: "", role: "counsellor", phone: "",
-                buddyName: "BN Admin", buddyEmail: "admin@balancenutrition.in", buddyPhone: "0000000000"
+                buddies: [{
+                    name: "BN Admin",
+                    email: "admin@balancenutrition.in",
+                    phone: "0000000000"
+                }]
             });
             refreshData();
         } catch (err: any) {
@@ -461,7 +354,7 @@ function AdminDashboardContent() {
             if (!response.ok) throw new Error('Architecture synchronization failed');
 
             setContentSuccess("Content Bank synchronized across all nodes.");
-            setContentForm({ id: "", topicCode: "", moduleId: "", topicTitle: "", contentType: "video", contentLink: "", folder: "", tags: "" });
+            setContentForm({ moduleId: "", topicTitle: "", contentType: "video", contentLink: "" });
             refreshData();
         } catch (err: any) {
             setContentError(err.message);
@@ -609,6 +502,215 @@ function AdminDashboardContent() {
             setDeleteConfirm("");
         }
     };
+
+    // --- Folder Handlers ---
+    const handleCreateFolder = async () => {
+        if (!newFolderName || !newFolderPrefix) return;
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ name: newFolderName, prefix: newFolderPrefix })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to create folder");
+            setNewFolderName("");
+            setNewFolderPrefix("");
+            setRenamingFolderId(null);
+            refreshData();
+        } catch (err: any) { alert(err.message); }
+    };
+
+    const handleRenameFolder = async (id: string) => {
+        if (!renameFolderValue) return;
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/folders', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ id, name: renameFolderValue })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to rename folder");
+            setRenamingFolderId(null);
+            refreshData();
+        } catch (err: any) { alert(err.message); }
+    };
+
+    const handleDeleteFolder = async (id: string) => {
+        if (!confirm("Remove this folder and all its mappings?")) return;
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/admin/folders?id=${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete folder");
+            refreshData();
+        } catch (err: any) { alert(err.message); }
+    };
+
+    // --- Quiz Editor Handlers ---
+    const handleFetchManualQuiz = async (id: string) => {
+        if (!id) return;
+        setIsFetchingQuiz(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/admin/quiz?topicCode=${id}`, {
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            const { quiz, error } = await res.json();
+            if (error) throw new Error(error);
+            const rawQuestions = quiz?.questions || [];
+            const sanitizedQuestions = rawQuestions.map((q: any) => {
+                // If it was saved as 'text' but contains viable options, it's actually an MCQ
+                if (q.type === 'text' && q.options && Array.isArray(q.options) && q.options.length > 0) {
+                    return { ...q, type: 'mcq' };
+                }
+                return q;
+            });
+            setManualQuizQuestions(sanitizedQuestions);
+            setCustomAIPrompt(quiz?.ai_guidance || "");
+        } catch (err: any) { alert(err.message); }
+        finally { setIsFetchingQuiz(false); }
+    };
+
+    const handleGenerateAISuggestions = async () => {
+        if (!selectedQuizTopic) return;
+        setIsGeneratingSuggestions(true);
+        try {
+            const response = await fetch('/api/admin/quiz/suggestions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topicCode: selectedQuizTopic, guidance: customAIPrompt })
+            });
+            const data = await response.json();
+            if (data.questions) setManualQuizQuestions(data.questions);
+        } catch (err: any) { alert("AI generation failed"); }
+        finally { setIsGeneratingSuggestions(false); }
+    };
+
+    const handleSaveManualQuiz = async () => {
+        if (!selectedQuizTopic) return;
+        setIsSavingQuiz(true);
+        setQuizError("");
+        setQuizSuccess("");
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/quiz', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ 
+                    topicCode: selectedQuizTopic, 
+                    questions: manualQuizQuestions,
+                    ai_guidance: customAIPrompt
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to save quiz");
+            setQuizSuccess("Masterclass protocols synchronized.");
+        } catch (err: any) { setQuizError(err.message); }
+        finally { setIsSavingQuiz(false); }
+    };
+
+    const handleDeleteManualQuiz = async () => {
+        if (!selectedQuizTopic || !confirm("Revert to dynamic AI assessment?")) return;
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch(`/api/admin/quiz?topicCode=${selectedQuizTopic}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete quiz");
+            setManualQuizQuestions([]);
+            setQuizSuccess("Reverted to baseline AI protocol.");
+        } catch (err: any) { alert(err.message); }
+    };
+
+    // --- Direct Email Handler ---
+    const handleSendDirectEmail = async () => {
+        if (!emailModal || !emailForm.subject || !emailForm.message) return;
+        setSendingEmail(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({
+                    to: emailModal.to,
+                    userName: emailModal.userName,
+                    subject: emailForm.subject,
+                    message: emailForm.message
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to send email");
+            
+            setEmailModal(null);
+            setEmailForm({subject: '', message: ''});
+            alert("Email sent successfully!");
+        } catch (err: any) { alert(err.message); }
+        finally { setSendingEmail(false); }
+    };
+
+    // --- User History Management ---
+    const handleWipeUserHistory = async (userId: string) => {
+        if (!confirm("Are you sure you want to permanently clear this user's history, scores, and logs?")) return;
+        setIsWipingUser(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/admin/users/reset-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                body: JSON.stringify({ userId })
+            });
+            if (!res.ok) throw new Error("Failed to clear user history");
+            alert("User history cleared successfully!");
+            refreshData();
+            setSelectedProfile(null); 
+        } catch (err: any) { alert(err.message); }
+        finally { setIsWipingUser(false); }
+    };
+
+    const handleSendDispatch = async (method: 'dashboard' | 'email' | 'whatsapp' | 'all') => {
+        if (!dispatchNotif.title || !dispatchNotif.message) return alert("Title and Message required");
+        setSendingDispatch(true);
+        
+        try {
+            if (method === 'email' || method === 'all') {
+                const { data: { session } } = await supabase.auth.getSession();
+                await fetch('/api/admin/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                    body: JSON.stringify({
+                        to: selectedProfile?.email,
+                        userName: selectedProfile?.full_name,
+                        subject: dispatchNotif.title,
+                        message: dispatchNotif.message
+                    })
+                });
+            }
+            if (method === 'whatsapp' || method === 'all') {
+                if (selectedProfile?.phone) {
+                    const waNum = selectedProfile.phone.replace(/\D/g, '');
+                    window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(dispatchNotif.title + '\n' + dispatchNotif.message)}`, '_blank');
+                }
+            }
+            alert(`Dispatch delivered via ${method.toUpperCase()}`);
+            setDispatchNotif({title: '', message: '', type: 'info'});
+        } catch(err:any){ alert("Dispatch failed."); }
+        finally { setSendingDispatch(false); }
+    };
+
+    const detectFolderFromCode = (code: string) => {
+        if (!code) return "";
+        const folder = customFolders.find(f => code.startsWith(`${f.prefix}-`));
+        return folder ? folder.name : "";
+    };
+
 
     if (loading) return (
         <div className="flex items-center justify-center h-screen">
@@ -1046,80 +1148,8 @@ function AdminDashboardContent() {
                                                 </div>
                                             </div>
                                         ))}
-                                    </div>
-                                </div>
-
-                                {/* Simulation Training Review */}
-                                <div className="bg-white p-10 rounded-[3rem] border border-[#0E5858]/5">
-                                    <h4 className="text-xs font-black uppercase tracking-widest text-[#0E5858]/40 mb-8 flex items-center gap-3">
-                                        <MessageSquare size={16} className="text-[#00B6C1]" /> Simulated Client Training Logs
-                                    </h4>
-                                    <div className="space-y-6">
-                                        {simulationLogs.filter(s => s.user_id === selectedProfile.id).length > 0 ? (
-                                            simulationLogs.filter(s => s.user_id === selectedProfile.id).map(log => (
-                                                <div key={log.id} className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-[#0E5858]/5">
-                                                    <div className="flex flex-col md:flex-row justify-between gap-6 mb-6">
-                                                        <div>
-                                                            <p className="text-[9px] font-black text-[#00B6C1] uppercase tracking-widest">Simulation: {log.topic_code}</p>
-                                                            <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mt-0.5">{new Date(log.created_at).toLocaleString()}</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="flex items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-[#0E5858]/5">
-                                                                {[1, 2, 3, 4, 5].map(star => (
-                                                                    <button
-                                                                        key={star}
-                                                                        onClick={async () => {
-                                                                            const { error } = await supabase.from('simulation_logs').update({ rating: star }).eq('id', log.id);
-                                                                            if (!error) refreshData();
-                                                                        }}
-                                                                        className={`p-1 transition-colors ${log.rating && log.rating >= star ? 'text-[#FFCC00]' : 'text-gray-200 hover:text-[#FFCC00]/50'}`}
-                                                                    >
-                                                                        <Star size={16} fill={log.rating && log.rating >= star ? "currentColor" : "none"} />
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Chat Transcript Preview */}
-                                                    <div className="p-6 bg-white rounded-2xl border border-gray-100 mb-6 max-h-60 overflow-y-auto custom-scrollbar">
-                                                        <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mb-4">Chat Transcript</p>
-                                                        <div className="space-y-4">
-                                                            {log.chat_history?.map((msg: any, mIdx: number) => (
-                                                                <div key={mIdx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                                                    <div className={`max-w-[80%] p-3 rounded-xl text-[10px] leading-relaxed ${msg.role === 'user' ? 'bg-[#FAFCEE] text-[#0E5858] font-bold' : 'bg-[#0E5858] text-white'}`}>
-                                                                        {msg.content}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Review Note Box */}
-                                                    <div className="space-y-3">
-                                                        <label className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest ml-4">Trainer Review Note (Founders Note)</label>
-                                                        <div className="flex gap-3">
-                                                            <textarea
-                                                                defaultValue={log.admin_feedback || ""}
-                                                                onBlur={async (e) => {
-                                                                    const val = e.target.value;
-                                                                    if (val === log.admin_feedback) return;
-                                                                    const { error } = await supabase.from('simulation_logs').update({ admin_feedback: val }).eq('id', log.id);
-                                                                    if (!error) {
-                                                                        setContentSuccess("Feedback synchronized.");
-                                                                        setTimeout(() => setContentSuccess(""), 2000);
-                                                                        refreshData();
-                                                                    }
-                                                                }}
-                                                                placeholder="Add feedback for the mentor..."
-                                                                className="flex-1 bg-white border border-gray-100 rounded-2xl py-3 px-6 text-[11px] font-medium outline-none resize-none h-20 shadow-sm focus:ring-2 focus:ring-[#00B6C1]/10 transition-all italic"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-center py-10 text-[10px] font-black text-gray-300 uppercase tracking-widest">No simulation attempts recorded</p>
+                                        {audits.filter(a => a.user_id === selectedProfile.id).length === 0 && (
+                                            <p className="text-center py-10 text-[10px] font-black text-gray-300 uppercase tracking-widest">No audits logged yet</p>
                                         )}
                                     </div>
                                 </div>
@@ -1204,39 +1234,6 @@ function AdminDashboardContent() {
                     </motion.div>
                 ) : activeTab === 'provisioning' ? (
                     <motion.div key="provisioning" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-12 max-w-3xl mx-auto">
-
-                        {/* Admin Own Settings: Professional Identity */}
-                        <div className="bg-[#0E5858] p-10 rounded-[2.5rem] shadow-xl text-white relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-8 opacity-10">
-                                <ShieldCheck size={80} />
-                            </div>
-                            <div className="relative z-10">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#00B6C1] mb-2">Professional Identity</p>
-                                <h2 className="text-3xl font-serif mb-6">Your Contact Information</h2>
-
-                                <div className="flex flex-col md:flex-row gap-6 items-end">
-                                    <div className="flex-1 space-y-2">
-                                        <label className="text-[9px] font-bold opacity-60 uppercase tracking-widest ml-1">Corporate Contact (Mobile)</label>
-                                        <input
-                                            type="text"
-                                            value={adminPhone}
-                                            onChange={(e) => setAdminPhone(e.target.value)}
-                                            placeholder="+91 00000 00000"
-                                            className="w-full bg-white/10 border border-white/10 rounded-xl py-3 px-6 text-sm outline-none focus:bg-white/20 transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleUpdateAdminProfile}
-                                        disabled={updatingAdmin}
-                                        className="px-8 py-3 bg-[#00B6C1] text-[#0E5858] rounded-xl text-xs font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg"
-                                    >
-                                        {updatingAdmin ? <Loader2 size={16} className="animate-spin" /> : "Save Identity"}
-                                    </button>
-                                </div>
-                                <p className="text-[9px] mt-4 opacity-40 font-medium">This information will be visible to counsellors assigned to you as their Training Buddy.</p>
-                            </div>
-                        </div>
-
                         <header className="text-center pt-8">
                             <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight mb-4 text-center">Provision Access</h2>
                             <p className="text-gray-400 font-medium max-w-md mx-auto italic text-sm">Deploy secure credentials to new team members.</p>
@@ -1277,10 +1274,14 @@ function AdminDashboardContent() {
                                         <option value="nutripreneur">Nutripreneur</option>
                                         <option value="moderator">Moderator</option>
                                         <option value="admin">Admin</option>
+                                        <option value="tech">Tech</option>
+                                        <option value="bd">Business Development (BD)</option>
+                                        <option value="cs">Customer Success (CS)</option>
+                                        <option value="buddy">Training Buddy</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Personal Phone</label>
+                                    <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Phone Number</label>
                                     <input
                                         type="text"
                                         value={newUser.phone}
@@ -1289,41 +1290,76 @@ function AdminDashboardContent() {
                                         className="w-full bg-gray-50 border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none"
                                     />
                                 </div>
-                                <div className="space-y-4 p-6 bg-gray-50/50 rounded-2xl border border-gray-100">
-                                    <p className="text-[10px] font-black text-[#0E5858]/40 uppercase tracking-[0.2em] mb-2">Training Buddy Identity</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Buddy Name</label>
-                                            <input
-                                                type="text"
-                                                value={newUser.buddyName}
-                                                onChange={(e) => setNewUser({ ...newUser, buddyName: e.target.value })}
-                                                placeholder="BN Admin"
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold outline-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Buddy Email</label>
-                                            <input
-                                                type="email"
-                                                value={newUser.buddyEmail}
-                                                onChange={(e) => setNewUser({ ...newUser, buddyEmail: e.target.value })}
-                                                placeholder="admin@email.com"
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold outline-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-2 md:col-span-2">
-                                            <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Buddy Corporate Phone</label>
-                                            <input
-                                                type="text"
-                                                value={newUser.buddyPhone}
-                                                onChange={(e) => setNewUser({ ...newUser, buddyPhone: e.target.value })}
-                                                placeholder="+91 00000 00000"
-                                                className="w-full bg-white border border-gray-100 rounded-xl py-4 px-6 text-sm font-semibold outline-none"
-                                            />
-                                        </div>
+                                
+                                <div className="md:col-span-2 space-y-4 p-6 bg-gray-50/50 rounded-2xl border border-gray-100">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <p className="text-[10px] font-black text-[#0E5858]/40 uppercase tracking-[0.2em]">Training Buddy Identities</p>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setNewUser({...newUser, buddies: [...newUser.buddies, { name: "", email: "", phone: "" }]})}
+                                            className="px-3 py-1.5 bg-[#00B6C1]/10 text-[#00B6C1] rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-[#00B6C1]/20 transition-colors"
+                                        >
+                                            + Add Another Buddy
+                                        </button>
                                     </div>
+                                    
+                                    {newUser.buddies.map((buddy, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 relative group">
+                                            {newUser.buddies.length > 1 && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setNewUser({...newUser, buddies: newUser.buddies.filter((_, i) => i !== index)})}
+                                                    className="absolute -right-2 -top-2 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <XCircle size={16} />
+                                                </button>
+                                            )}
+                                            <div className="space-y-2">
+                                                <label className="text-[7px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Buddy Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={buddy.name}
+                                                    onChange={(e) => {
+                                                        const newBuddies = [...newUser.buddies];
+                                                        newBuddies[index].name = e.target.value;
+                                                        setNewUser({ ...newUser, buddies: newBuddies });
+                                                    }}
+                                                    placeholder="BN Admin"
+                                                    className="w-full bg-white border border-gray-100 rounded-xl py-3 px-4 text-xs font-semibold outline-none"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[7px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Buddy Email</label>
+                                                <input
+                                                    type="email"
+                                                    value={buddy.email}
+                                                    onChange={(e) => {
+                                                        const newBuddies = [...newUser.buddies];
+                                                        newBuddies[index].email = e.target.value;
+                                                        setNewUser({ ...newUser, buddies: newBuddies });
+                                                    }}
+                                                    placeholder="admin@balancenutrition.in"
+                                                    className="w-full bg-white border border-gray-100 rounded-xl py-3 px-4 text-xs font-semibold outline-none"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[7px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Buddy Phone</label>
+                                                <input
+                                                    type="text"
+                                                    value={buddy.phone}
+                                                    onChange={(e) => {
+                                                        const newBuddies = [...newUser.buddies];
+                                                        newBuddies[index].phone = e.target.value;
+                                                        setNewUser({ ...newUser, buddies: newBuddies });
+                                                    }}
+                                                    placeholder="0000000000"
+                                                    className="w-full bg-white border border-gray-100 rounded-xl py-3 px-4 text-xs font-semibold outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
+
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-black text-[#0E5858]/50 uppercase tracking-[0.2em] ml-3">Temporary Password</label>
                                     <input
@@ -1356,9 +1392,9 @@ function AdminDashboardContent() {
                             <p className="text-gray-400 font-medium mt-3 italic text-sm">Synchronize resources across the academy.</p>
                         </header>
 
-                        {/* Folder Management Bar */}
-                        <AssetCentral 
-                            customFolders={customFolders}
+                        {/* Asset Central / Folder Management */}
+                        <AssetCentral
+                            customFolders={customFolders.filter(f => !f.id.startsWith('def-'))}
                             renamingFolderId={renamingFolderId}
                             setRenamingFolderId={setRenamingFolderId}
                             renameFolderValue={renameFolderValue}
@@ -1372,41 +1408,40 @@ function AdminDashboardContent() {
                             handleDeleteFolder={handleDeleteFolder}
                         />
 
-                        <div className="space-y-12">
-                            <ContentArchitect 
-                                contentForm={contentForm}
-                                setContentForm={setContentForm}
-                                syllabusData={syllabusData}
-                                customFolders={customFolders}
-                                uploadingContent={uploadingContent}
-                                contentError={contentError}
-                                contentSuccess={contentSuccess}
-                                handleUpdateContent={handleUpdateContent}
-                                contentOnlyEntries={contentOnlyEntries}
-                                detectFolderFromCode={detectFolderFromCode}
-                                handleDeleteContent={handleDeleteContent}
-                            />
+                        <ContentArchitect
+                            contentForm={contentForm}
+                            setContentForm={setContentForm}
+                            syllabusData={syllabusData}
+                            customFolders={customFolders}
+                            uploadingContent={uploadingContent}
+                            contentError={contentError}
+                            contentSuccess={contentSuccess}
+                            handleUpdateContent={handleUpdateContent}
+                            contentOnlyEntries={dynamicContent}
+                            detectFolderFromCode={detectFolderFromCode}
+                            handleDeleteContent={handleDeleteContent}
+                        />
 
-                            <QuizProtocolEditor 
-                                selectedQuizTopic={selectedQuizTopic}
-                                setSelectedQuizTopic={setSelectedQuizTopic}
-                                syllabusData={syllabusData}
-                                isFetchingQuiz={isFetchingQuiz}
-                                handleFetchManualQuiz={handleFetchManualQuiz}
-                                customAIPrompt={customAIPrompt}
-                                setCustomAIPrompt={setCustomAIPrompt}
-                                handleGenerateAISuggestions={handleGenerateAISuggestions}
-                                isGeneratingSuggestions={isGeneratingSuggestions}
-                                manualQuizQuestions={manualQuizQuestions}
-                                setManualQuizQuestions={setManualQuizQuestions}
-                                handleSaveManualQuiz={handleSaveManualQuiz}
-                                handleDeleteManualQuiz={handleDeleteManualQuiz}
-                                isSavingQuiz={isSavingQuiz}
-                                quizSuccess={quizSuccess}
-                                quizError={quizError}
-                            />
-                        </div>
+                        <QuizProtocolEditor
+                            selectedQuizTopic={selectedQuizTopic}
+                            setSelectedQuizTopic={setSelectedQuizTopic}
+                            syllabusData={syllabusData}
+                            isFetchingQuiz={isFetchingQuiz}
+                            handleFetchManualQuiz={handleFetchManualQuiz}
+                            customAIPrompt={customAIPrompt}
+                            setCustomAIPrompt={setCustomAIPrompt}
+                            handleGenerateAISuggestions={handleGenerateAISuggestions}
+                            isGeneratingSuggestions={isGeneratingSuggestions}
+                            manualQuizQuestions={manualQuizQuestions}
+                            setManualQuizQuestions={setManualQuizQuestions}
+                            handleSaveManualQuiz={handleSaveManualQuiz}
+                            handleDeleteManualQuiz={handleDeleteManualQuiz}
+                            isSavingQuiz={isSavingQuiz}
+                            quizSuccess={quizSuccess}
+                            quizError={quizError}
+                        />
                     </motion.div>
+
                 ) : (
                     <motion.div key="registry" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-12">
                         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
@@ -1414,15 +1449,23 @@ function AdminDashboardContent() {
                                 <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Unified Registry</h2>
                                 <p className="text-gray-400 font-medium mt-3 italic text-sm">Full historical searchable directory of all academy members.</p>
                             </div>
-                            <div className="relative w-full lg:w-[400px]">
-                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={18} />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    placeholder="Search by name or email..."
-                                    className="w-full bg-white border border-[#0E5858]/10 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium shadow-sm focus:ring-2 focus:ring-[#00B6C1]/10 outline-none transition-all"
-                                />
+                            <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                                <button className="w-full sm:w-auto px-6 py-4 bg-white text-red-500 border border-red-100 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                                    <Trash2 size={14} /> Cleanup Registry
+                                </button>
+                                <button className="w-full sm:w-auto px-6 py-4 bg-[#0E5858] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00B6C1] transition-all flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
+                                    <FileIcon size={14} /> Daily Progress Report
+                                </button>
+                                <div className="relative w-full lg:w-[350px]">
+                                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={18} />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        placeholder="Search by name or email..."
+                                        className="w-full bg-white border border-[#0E5858]/10 rounded-2xl py-4 pl-14 pr-6 text-sm font-medium shadow-sm focus:ring-2 focus:ring-[#00B6C1]/10 outline-none transition-all"
+                                    />
+                                </div>
                             </div>
                         </header>
 
@@ -1432,7 +1475,7 @@ function AdminDashboardContent() {
                                     <thead>
                                         <tr className="bg-[#0E5858]/5 text-[9px] font-black uppercase tracking-[0.2em] text-[#0E5858]/50">
                                             <th className="px-8 py-6">Counsellor</th>
-                                            <th className="px-6 text-center">Credentials</th>
+                                            <th className="px-6 text-center">Credentials / Contact</th>
                                             <th className="px-6">Joined / Active</th>
                                             <th className="px-6 text-center">Avg Score</th>
                                             <th className="px-6 text-center">Progress %</th>
@@ -1474,15 +1517,28 @@ function AdminDashboardContent() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6">
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <div className="flex items-center gap-2 group/cred">
-                                                                <Mail size={10} className="text-[#00B6C1]" />
-                                                                <code className="text-[10px] font-mono text-[#0E5858]/60 bg-white px-2 py-0.5 rounded border border-[#0E5858]/5">{p.email}</code>
+                                                    <td className="px-6 py-6 border-l border-r border-[#0E5858]/5">
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="flex items-center gap-2 w-full max-w-[240px] mx-auto">
+                                                                <Mail size={12} className="text-[#00B6C1] w-4 shrink-0" />
+                                                                <span className="text-[7px] font-black uppercase text-gray-400 tracking-widest w-10 text-right shrink-0">Email</span>
+                                                                <div className="flex-1 border border-gray-200 rounded-lg py-1.5 px-3 bg-white text-[9px] font-bold text-[#0E5858] truncate text-center shadow-sm">
+                                                                    {p.email}
+                                                                </div>
                                                             </div>
-                                                            <div className="flex items-center gap-2 group/cred">
-                                                                <BNKeyIcon size={10} className="text-orange-400" />
-                                                                <code className="text-[10px] font-mono text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-100">{p.temp_password || '515148'}</code>
+                                                            <div className="flex items-center gap-2 w-full max-w-[240px] mx-auto">
+                                                                <BNKeyIcon size={12} className="text-orange-400 w-4 shrink-0" />
+                                                                <span className="text-[7px] font-black uppercase text-gray-400 tracking-widest w-10 text-right shrink-0">Pass</span>
+                                                                <div className="flex-1 border border-orange-200 rounded-lg py-1.5 px-3 bg-orange-50 text-[9px] font-black text-orange-600 truncate text-center shadow-sm">
+                                                                    {p.temp_password || '515148'}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 w-full max-w-[240px] mx-auto">
+                                                                <Phone size={12} className="text-green-500 w-4 shrink-0" />
+                                                                <span className="text-[7px] font-black uppercase text-gray-400 tracking-widest w-10 text-right shrink-0">Phone</span>
+                                                                <div className="flex-1 border border-green-200 rounded-lg py-1.5 px-3 bg-green-50 text-[9px] font-black text-green-600 truncate text-center shadow-sm">
+                                                                    {p.phone || '0000000'}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -1517,12 +1573,30 @@ function AdminDashboardContent() {
                                                             {p.role}
                                                         </span>
                                                     </td>
-                                                    <td className="px-8 text-right">
-                                                        <button
-                                                            className="p-3 rounded-lg hover:bg-[#0E5858] hover:text-white transition-all text-gray-300"
-                                                        >
-                                                            <ArrowUpRight size={16} />
-                                                        </button>
+                                                    <td className="px-8 text-right align-middle py-6">
+                                                        <div className="flex items-center justify-end gap-3">
+                                                            <a href={`https://wa.me/${p.phone?.replace(/\D/g, '') || ''}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="w-8 h-8 rounded-lg bg-green-50 text-green-500 flex items-center justify-center hover:bg-green-100 transition-colors border border-green-100 shadow-sm">
+                                                                <Phone size={12} />
+                                                            </a>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEmailModal({ isOpen: true, to: p.email, userName: p.full_name || 'Member' });
+                                                                }} 
+                                                                className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm"
+                                                            >
+                                                                <Mail size={12} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedProfile(p);
+                                                                }}
+                                                                className="w-8 h-8 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center hover:bg-gray-100 transition-colors border border-gray-100 shadow-sm"
+                                                            >
+                                                                <ArrowUpRight size={12} />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -1532,6 +1606,195 @@ function AdminDashboardContent() {
                             </div>
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Profile Modal */}
+            <AnimatePresence>
+                {selectedProfile && (
+                    <div className="fixed inset-0 bg-[#0E5858]/80 backdrop-blur-md z-[100] flex items-center justify-center p-8 overflow-y-auto">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-[#FAFCEE] rounded-[3rem] p-10 max-w-[1300px] w-full shadow-2xl relative my-auto border border-[#0E5858]/10"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <button onClick={() => setSelectedProfile(null)} className="absolute top-8 right-8 text-gray-400 hover:text-[#0E5858] transition-all z-10">
+                                <XCircle size={32} />
+                            </button>
+
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 h-full min-h-[700px]">
+                                {/* LEFT COLUMN */}
+                                <div className="xl:col-span-3 space-y-6 flex flex-col">
+                                    <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100/50 flex-none relative">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Joined On</p>
+                                            <p className="text-[11px] font-black justify-self-end text-[#0E5858]">{selectedProfile.created_at ? new Date(selectedProfile.created_at).toLocaleDateString() : 'Unknown'}</p>
+                                        </div>
+                                        <button className="w-full py-5 bg-[#C0EB2F] text-[#0E5858] rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest hover:brightness-110 transition-all flex flex-col items-center justify-center gap-1 shadow-md shadow-[#C0EB2F]/30">
+                                            <div className="flex items-center gap-2"><Share2 size={14} /> SHARE ACTIVITY REPORT</div>
+                                            <span className="text-[7px] text-[#0E5858]/60 uppercase tracking-[0.2em] font-bold">Sends full performance trail to buddy</span>
+                                        </button>
+                                        <div className="flex justify-between items-center mt-6">
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Access Level</p>
+                                            <div className="bg-[#E5F7F8] text-[#00B6C1] px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                                                {selectedProfile.role.replace('_', ' ')} <Edit2 size={10} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Danger Zone */}
+                                    <div className="bg-white rounded-[2.5rem] p-8 pb-10 shadow-sm border border-red-50 flex-none text-center relative overflow-hidden">
+                                        <div className="absolute top-0 inset-x-4 h-1 bg-red-100 rounded-b-full"></div>
+                                        <p className="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] mb-6">Danger Zone</p>
+                                        <div className="border border-red-50 bg-red-50/20 rounded-3xl p-6">
+                                            <p className="text-[8px] font-bold text-[#0E5858]/60 uppercase tracking-widest mb-4 leading-relaxed">To delete this account permanently, type "delete account" below.</p>
+                                            <input type="text" placeholder="type 'delete account'" className="w-full bg-white border border-red-100 rounded-xl py-3 px-4 text-xs text-center font-semibold mb-3 outline-none focus:border-red-300 placeholder:text-gray-300" />
+                                            <button className="w-full py-4 bg-gray-50 text-gray-400 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2 line-through hover:no-underline">
+                                                <Trash2 size={12} /> Permanent Deletion
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => handleWipeUserHistory(selectedProfile.id)}
+                                        disabled={isWipingUser}
+                                        className="w-full py-5 bg-white border border-red-100 text-red-500 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest hover:bg-red-50 transition-all flex flex-col items-center justify-center shadow-sm"
+                                    >
+                                        <div className="flex items-center gap-2"><Trash2 size={14} /> Clear Activity History</div>
+                                        <span className="text-[7px] font-bold uppercase tracking-[0.2em] text-red-300 mt-1">Resets logs, progress, and scores</span>
+                                    </button>
+
+                                    {/* DISPATCH NOTIFICATION */}
+                                    <div className="bg-[#0D4B4B] rounded-[2.5rem] p-8 shadow-xl flex-1 flex flex-col text-white relative">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h4 className="text-[11px] font-black text-teal-300 uppercase tracking-[0.3em]">Dispatch Notification</h4>
+                                            <Bell size={16} className="text-teal-500" />
+                                        </div>
+                                        
+                                        <div className="flex flex-wrap gap-2 mb-6">
+                                            {['Inactive', 'Feedback Request', 'Retake Test', 'Trainer Buddy Summary Email'].map(tag => (
+                                                <button key={tag} onClick={() => setDispatchNotif({...dispatchNotif, title: tag})} className={`px-3 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all ${dispatchNotif.title.includes(tag) ? 'bg-teal-500 border-teal-400 text-white' : 'bg-[#156060] border-teal-900/50 text-teal-400 hover:bg-[#1A7070]'}`}>
+                                                    {tag}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="bg-[#0B3D3D] rounded-xl px-4 py-2 border border-[#156060] flex items-center gap-3 mb-6">
+                                            <span className="text-[7px] font-black text-teal-600 uppercase tracking-widest">Active Protocol:</span>
+                                            <span className="text-[8px] font-black text-teal-300 uppercase tracking-[0.2em]">None</span>
+                                        </div>
+
+                                        <div className="space-y-4 flex-1 flex flex-col">
+                                            <div>
+                                                <p className="text-[8px] font-black text-teal-500 uppercase tracking-widest mb-1.5 ml-1">Notification Title</p>
+                                                <input value={dispatchNotif.title} onChange={e => setDispatchNotif({...dispatchNotif, title: e.target.value})} type="text" placeholder="Enter title..." className="w-full bg-[#156060] border border-teal-900/50 rounded-xl py-3 px-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500 placeholder:text-teal-700 transition-all text-white" />
+                                            </div>
+                                            <div className="flex-1 flex flex-col">
+                                                <p className="text-[8px] font-black text-teal-500 uppercase tracking-widest mb-1.5 ml-1">Message Body</p>
+                                                <textarea value={dispatchNotif.message} onChange={e => setDispatchNotif({...dispatchNotif, message: e.target.value})} placeholder="Type your message here..." className="w-full bg-[#156060] border border-teal-900/50 rounded-2xl py-3 px-4 text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500 placeholder:text-teal-700 transition-all text-white flex-1 resize-none min-h-[100px]" />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mt-6 mb-4">
+                                            {['info', 'warning', 'alert'].map(type => (
+                                                <button key={type} onClick={() => setDispatchNotif({...dispatchNotif, type})} className={`px-4 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-widest transition-all ${dispatchNotif.type === type ? 'bg-[#00B6C1] border-[#00B6C1] text-white shadow-lg shadow-[#00B6C1]/20' : 'bg-[#156060] border-teal-900/50 text-teal-500 hover:text-white'}`}>
+                                                    {type}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 mt-auto">
+                                            <button onClick={() => handleSendDispatch('dashboard')} disabled={sendingDispatch} className="py-3 bg-[#00B6C1] text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#00B6C1]/20"><Bell size={12}/> Dashboard</button>
+                                            <button onClick={() => handleSendDispatch('email')} disabled={sendingDispatch} className="py-3 bg-[#1A7070] text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[#208080] transition-all flex items-center justify-center gap-1.5"><Mail size={12}/> Email</button>
+                                            <button onClick={() => handleSendDispatch('whatsapp')} disabled={sendingDispatch} className="py-3 bg-[#1A7070] text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[#208080] transition-all flex items-center justify-center gap-1.5"><Phone size={12}/> WhatsApp</button>
+                                            <button onClick={() => handleSendDispatch('all')} disabled={sendingDispatch} className="py-3 bg-[#1A7070] text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[#208080] transition-all flex items-center justify-center gap-1.5"><Sparkles size={12}/> Send All</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* RIGHT COLUMN */}
+                                <div className="xl:col-span-9 space-y-6 flex flex-col">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-1 pl-4 items-center">
+                                         <div>
+                                            <h3 className="text-4xl font-serif text-[#0E5858] font-bold">{selectedProfile.full_name}</h3>
+                                            <p className="text-[11px] font-black text-[#00B6C1] uppercase tracking-[0.2em]">{selectedProfile.role.replace('_', ' ')} • {selectedProfile.email}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* MODULE PROGRESS GRID */}
+                                    <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-gray-100 flex-none">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                                            {syllabusData.filter(m => m.topics && m.topics.length > 0).map((module, mIdx) => {
+                                                const totalTopics = module.topics.length;
+                                                const userProgressForModule = progress.filter(p => p.user_id === selectedProfile.id && p.module_id === module.id);
+                                                const percent = totalTopics > 0 ? Math.round((userProgressForModule.length / totalTopics) * 100) : 0;
+                                                
+                                                return (
+                                                    <div key={module.id} className="space-y-4">
+                                                        <div className="flex justify-between items-end">
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-[0.2em]">Module</p>
+                                                                <p className="text-sm font-serif font-bold text-[#0E5858] truncate pr-4">{module.title}</p>
+                                                            </div>
+                                                            <p className="text-xs font-black text-[#0E5858]">{percent}%</p>
+                                                        </div>
+                                                        <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden flex gap-0.5">
+                                                            {module.topics.map((t, tIdx) => {
+                                                                const completed = userProgressForModule.some(p => p.topic_code === t.code);
+                                                                return (
+                                                                    <div key={t.code} className={`h-full flex-1 rounded-sm ${completed ? 'bg-[#C0EB2F]' : 'bg-gray-100'}`}></div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* AUDIT & FEEDBACK */}
+                                    <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-gray-100 flex-1 flex flex-col">
+                                        <h4 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                                            <ClipboardList size={16} className="text-[#00B6C1]" /> Audit & Feedback Repository
+                                        </h4>
+                                        
+                                        <div className="flex-1 overflow-y-auto pr-4 space-y-4">
+                                            {audits.filter(a => a.user_id === selectedProfile.id).length === 0 && assessments.filter(a => a.user_id === selectedProfile.id).length === 0 ? (
+                                                <div className="h-40 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-3xl">
+                                                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">No Audits Logged Yet</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {assessments.filter(a => a.user_id === selectedProfile.id).map(a => (
+                                                        <div key={`quiz_${a.id}`} onClick={() => setSelectedQuiz(a)} className="p-6 bg-gray-50 border border-gray-100 rounded-3xl hover:bg-[#FAFCEE] transition-all cursor-pointer group flex items-center justify-between">
+                                                            <div>
+                                                                <div className="flex items-center gap-2 mb-2"><BrainCircuit size={12} className="text-orange-400"/><span className="text-[8px] font-black text-orange-400 uppercase tracking-widest">Assessment Log</span></div>
+                                                                <p className="text-xs font-bold text-[#0E5858] truncate">{a.topic_code}</p>
+                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Score: {Math.round((a.score / (a.total_questions || 5)) * 100)}%</p>
+                                                            </div>
+                                                            <ArrowUpRight size={16} className="text-gray-300 group-hover:text-[#00B6C1]" />
+                                                        </div>
+                                                    ))}
+                                                    {audits.filter(a => a.user_id === selectedProfile.id).map(a => (
+                                                        <div key={`audit_${a.id}`} onClick={() => setSelectedAudit(a)} className="p-6 bg-gray-50 border border-gray-100 rounded-3xl hover:bg-[#FAFCEE] transition-all cursor-pointer group flex items-center justify-between">
+                                                            <div>
+                                                            <div className="flex items-center gap-2 mb-2"><ClipboardList size={12} className="text-[#00B6C1]"/><span className="text-[8px] font-black text-[#00B6C1] uppercase tracking-widest">Peer Review</span></div>
+                                                                <p className="text-xs font-bold text-[#0E5858] truncate">{a.topic_code}</p>
+                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{new Date(a.created_at).toLocaleDateString()}</p>
+                                                            </div>
+                                                            <ArrowUpRight size={16} className="text-gray-300 group-hover:text-[#00B6C1]" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
@@ -1657,6 +1920,60 @@ function AdminDashboardContent() {
                                     return <p className="text-center py-20 text-red-400 font-bold uppercase tracking-widest">Data Decryption Error: Payload Malformed</p>;
                                 }
                             })()}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Direct Email Modal */}
+            <AnimatePresence>
+                {emailModal?.isOpen && (
+                    <div className="fixed inset-0 bg-[#0E5858]/80 backdrop-blur-md z-[100] flex items-center justify-center p-8">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-[3rem] p-10 max-w-lg w-full shadow-2xl relative overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button onClick={() => setEmailModal(null)} className="absolute top-8 right-8 text-gray-300 hover:text-[#0E5858] transition-all">
+                                <XCircle size={32} />
+                            </button>
+                            <div className="mb-8">
+                                <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em] mb-2">Direct Communication</p>
+                                <h3 className="text-3xl font-serif text-[#0E5858]">Send Email</h3>
+                                <p className="text-gray-400 font-medium mt-1 italic text-sm">To: {emailModal.userName} &lt;{emailModal.to}&gt;</p>
+                            </div>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase text-[#0E5858]/40 tracking-widest pl-4 mb-2 block">Subject Line</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Welcome to BN Academy"
+                                        value={emailForm.subject}
+                                        onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl py-3 px-6 text-sm font-semibold focus:ring-2 focus:ring-[#00B6C1]/10 outline-none transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black uppercase text-[#0E5858]/40 tracking-widest pl-4 mb-2 block">Message Body</label>
+                                    <textarea
+                                        rows={6}
+                                        placeholder="Type your message here..."
+                                        value={emailForm.message}
+                                        onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-6 text-sm font-medium focus:ring-2 focus:ring-[#00B6C1]/10 outline-none transition-all resize-none"
+                                    ></textarea>
+                                    <p className="text-[9px] font-semibold text-gray-400 mt-2 pl-4">Will be sent via vianshah1410@gmail.com with admin CC'd.</p>
+                                </div>
+                                <button
+                                    onClick={handleSendDirectEmail}
+                                    disabled={sendingEmail}
+                                    className="w-full py-4 bg-[#0E5858] text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-[#00B6C1] transition-all disabled:opacity-50"
+                                >
+                                    {sendingEmail ? "Sending..." : "Send Message"}
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { groq } from '@/lib/groq';
 import { encryptData } from '@/lib/encryption';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(req: Request) {
 

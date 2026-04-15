@@ -300,7 +300,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                 <button
                                                     onClick={() => {
                                                         setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutrinoal Inegration' });
+                                                        setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutritional Integration' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
                                                 >
@@ -308,7 +308,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                         <Stethoscope size={26} />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Nutrinoal Inegration</h4>
+                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Nutritional Integration</h4>
                                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Doctor Referral Protocol</p>
                                                     </div>
                                                     <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
@@ -327,6 +327,23 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                     <div>
                                                         <h4 className="text-lg font-serif text-[#0E5858] mb-1">Smart Clinic</h4>
                                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Diagnostics & Smart Tools</p>
+                                                    </div>
+                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setShowHealthPopup(false);
+                                                        setSelectedDocument({ url: '/HCP_Doc.pdf', label: 'HCP Document' });
+                                                    }}
+                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
+                                                >
+                                                    <div className="w-14 h-14 rounded-2xl bg-[#0E5858]/10 text-[#0E5858] flex items-center justify-center group-hover:bg-[#0E5858] group-hover:text-white transition-all">
+                                                        <FileText size={26} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">HCP Document</h4>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Healthcare Professionals Profile</p>
                                                     </div>
                                                     <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                                 </button>

@@ -14,7 +14,12 @@ export type ActivityType =
     | 'watch_video'
     | 'start_simulation'
     | 'click_audit'
-    | 'view_case_study';
+    | 'view_case_study'
+    | 'select_program_dropdown'
+    | 'select_category'
+    | 'select_subresource'
+    | 'copy_id'
+    | 'complete_simulation';
 
 export async function logActivity(activityType: ActivityType, details: {
     moduleId?: string;

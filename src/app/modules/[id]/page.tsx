@@ -79,6 +79,7 @@ export default function ModulePage() {
     const [showSimulation, setShowSimulation] = useState(false);
     const [simulationDone, setSimulationDone] = useState(false);
     const [showHealthPopup, setShowHealthPopup] = useState(false);
+    const [showGymPopup, setShowGymPopup] = useState(false);
     const [loadingContent, setLoadingContent] = useState(true);
     const [selectedDocument, setSelectedDocument] = useState<{ url: string, label: string } | null>(null);
 
@@ -743,7 +744,7 @@ export default function ModulePage() {
                                                 <button
                                                     onClick={() => {
                                                         setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutrinoal Inegration' });
+                                                        setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutritional Integration' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
                                                 >
@@ -751,7 +752,7 @@ export default function ModulePage() {
                                                         <Stethoscope size={26} />
                                                     </div>
                                                     <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Nutrinoal Inegration</h4>
+                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Nutritional Integration</h4>
                                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Doctor Referral Protocol</p>
                                                     </div>
                                                     <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
@@ -770,6 +771,23 @@ export default function ModulePage() {
                                                     <div>
                                                         <h4 className="text-lg font-serif text-[#0E5858] mb-1">Smart Clinic</h4>
                                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Diagnostics & Smart Tools</p>
+                                                    </div>
+                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setShowHealthPopup(false);
+                                                        setSelectedDocument({ url: '/HCP_Doc.pdf', label: 'HCP Document' });
+                                                    }}
+                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
+                                                >
+                                                    <div className="w-14 h-14 rounded-2xl bg-[#0E5858]/10 text-[#0E5858] flex items-center justify-center group-hover:bg-[#0E5858] group-hover:text-white transition-all">
+                                                        <FileText size={26} />
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">HCP Document</h4>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Healthcare Professionals Profile</p>
                                                     </div>
                                                     <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                                 </button>
@@ -813,6 +831,92 @@ export default function ModulePage() {
                                         )}
 
                                         <p className="mt-8 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Select a document to view protocols</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+
+                {showGymPopup && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-[#0E5858]/95 backdrop-blur-xl"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            className="w-full max-w-2xl bg-white rounded-[3rem] p-10 shadow-2xl relative overflow-hidden"
+                        >
+                            <button
+                                onClick={() => setShowGymPopup(false)}
+                                className="absolute top-8 right-8 text-[#0E5858]/40 hover:text-[#0E5858]"
+                            >
+                                <X size={24} />
+                            </button>
+
+                            <div className="mb-8 text-left">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#27AE60]/10 text-[#27AE60] rounded-full text-[10px] font-bold uppercase tracking-widest mb-4">
+                                    <Dumbbell size={12} />
+                                    Gym & B2B Partnerships
+                                </div>
+                                <h2 className="text-3xl font-serif text-[#0E5858] mb-2">Partnership Ecosystem</h2>
+                                <p className="text-gray-500 font-medium italic text-sm">"Expanding Balance Nutrition into the fitness industry."</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <button
+                                    onClick={() => {
+                                        setShowGymPopup(false);
+                                        setSelectedDocument({ url: '/docs/BNXFitnessFirst_Context.pdf', label: 'Fitness First Context' });
+                                    }}
+                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
+                                >
+                                    <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                        <Building2 size={26} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Fitness First Context</h4>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Case Study & Integration</p>
+                                    </div>
+                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setShowGymPopup(false);
+                                        setSelectedDocument({ url: '/docs/gym-brochure.pdf', label: 'Gym Brochure' });
+                                    }}
+                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
+                                >
+                                    <div className="w-14 h-14 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-all">
+                                        <Dumbbell size={26} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Gym Brochure</h4>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Product Catalog for Gyms</p>
+                                    </div>
+                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setShowGymPopup(false);
+                                        setSelectedDocument({ url: '/Gym_Partnerships.pdf', label: 'Gym Partnerships' });
+                                    }}
+                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
+                                >
+                                    <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                        <Globe size={26} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Gym & B2B Partnerships</h4>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Commercial & Business Tie-ups</p>
+                                    </div>
+                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                </button>
+                            </div>
+
+                            <p className="mt-8 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Select a document to view protocols</p>
                         </motion.div>
                     </motion.div>
                 )}
@@ -1116,13 +1220,15 @@ export default function ModulePage() {
                                 { title: "BN Franchise", url: "https://bnlifecentre.balancenutrition.in/#", desc: "Life Centre & Franchise Operations", icon: Globe, color: "#0E5858" },
                                 { title: "BN Health", url: "#", desc: "Diagnostics & Doctors Network", icon: Activity, color: "#FF5733", isPopup: true },
                                 { title: "Corporate Wellness", url: "/docs/corporate-wellness-brochure.pdf", desc: "Enterprise Health Partnerships", icon: Building2, color: "#8E44AD" },
-                                { title: "Gym & B2B Partnerships", url: "/Gym_Partnerships.pdf", desc: "Commercial & Business Tie-ups", icon: Dumbbell, color: "#27AE60" }
+                                { title: "Gym & B2B Partnerships", url: "#", desc: "Commercial & Business Tie-ups", icon: Dumbbell, color: "#27AE60", isGymPopup: true }
                             ].map((link, i) => (
                                 <motion.div
                                     key={i} 
                                     onClick={(e) => {
                                         if (link.isPopup) { 
                                             setShowHealthPopup(true); 
+                                        } else if (link.isGymPopup) {
+                                            setShowGymPopup(true);
                                         } else if (link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.endsWith('.pdf')) {
                                             setSelectedDocument({ url: link.url, label: link.title });
                                         } else {

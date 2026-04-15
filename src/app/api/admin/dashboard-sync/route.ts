@@ -1,0 +1,64 @@
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+
+export async function GET(request: Request) {
+    try {
+        const authHeader = request.headers.get('Authorization');
+        if (!authHeader) {
+            return NextResponse.json({ error: 'Missing authorization' }, { status: 401 });
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+        if (userError || !user) {
+            return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+        }
+
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator' && profile.role !== 'trainer buddy')) {
+            return NextResponse.json({ error: 'Unauthorized role' }, { status: 403 });
+        }
+
+        const [
+            { data: pData, error: pError },
+            { data: aData, error: aError },
+            { data: actData, error: actError },
+            { data: audData, error: audError },
+            { data: cData, error: cError },
+            { data: prData, error: prError },
+            { data: simData, error: simError }
+        ] = await Promise.all([
+            supabaseAdmin.from('profiles').select('*').order('created_at', { ascending: false }),
+            supabaseAdmin.from('assessment_logs').select('*').order('created_at', { ascending: false }),
+            supabaseAdmin.from('mentor_activity_logs').select('*').order('created_at', { ascending: false }),
+            supabaseAdmin.from('summary_audits').select('*').order('created_at', { ascending: false }),
+            supabaseAdmin.from('syllabus_content').select('*').order('module_id', { ascending: true }),
+            supabaseAdmin.from('mentor_progress').select('*').order('completed_at', { ascending: false }),
+            supabaseAdmin.from('simulation_logs').select('*').order('created_at', { ascending: false })
+        ]);
+
+        if (pError || aError || prError) {
+            console.error(pError, aError, prError);
+            return NextResponse.json({ error: 'Fetch failed' }, { status: 500 });
+        }
+
+        return NextResponse.json({
+            profiles: pData,
+            assessments: aData,
+            activities: actData,
+            audits: audData,
+            syllabus: cData,
+            progress: prData,
+            simulations: simData
+        });
+    } catch (err: any) {
+        return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+}
