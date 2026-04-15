@@ -25,6 +25,7 @@ export async function logActivity(activityType: ActivityType, details: {
     moduleId?: string;
     topicCode?: string;
     contentTitle?: string;
+    program?: string;
     score?: number;
     metadata?: any;
 }) {
@@ -37,7 +38,7 @@ export async function logActivity(activityType: ActivityType, details: {
             activity_type: activityType,
             module_id: details.moduleId,
             topic_code: details.topicCode,
-            content_title: details.contentTitle,
+            content_title: details.contentTitle || details.program,
         };
 
         const { error } = await supabase

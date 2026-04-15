@@ -35,7 +35,7 @@ export interface CleanPost {
   date: string | null;
 }
 
-export const CLEAN_POSTS: CleanPost[] = [
+export const CLEAN_POSTS: CleanPost[] = ([
   {
     "id": "2249",
     "title": "Slim Smart Challenge Tip 1",
@@ -41209,7 +41209,7 @@ export const CLEAN_POSTS: CleanPost[] = [
     "platforms": [],
     "date": "2024-09-24T06:08:19.000Z"
   }
-];
+]) as any as CleanPost[];
 
 export const CATEGORY_COUNTS: Record<ContentCategory, number> = {
   "Gut Health": 150,
