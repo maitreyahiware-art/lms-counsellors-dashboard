@@ -251,7 +251,11 @@ function AdminDashboardContent() {
             const res = await fetch('/api/admin/dashboard-sync', {
                 headers: { 'Authorization': `Bearer ${session.access_token}` }
             });
-            if (!res.ok) throw new DOMException("Dashboard Sync API failed", "NetworkError");
+            if (!res.ok) {
+                const errBody = await res.json().catch(() => ({}));
+                console.error("Dashboard Sync failed:", res.status, errBody);
+                return;
+            }
             
             const syncData = await res.json();
             

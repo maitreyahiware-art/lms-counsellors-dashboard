@@ -22,7 +22,8 @@ export async function GET(request: Request) {
             .eq('id', user.id)
             .single();
 
-        if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator' && profile.role !== 'trainer buddy')) {
+        const ALLOWED_ROLES = ['admin', 'moderator', 'trainer buddy', 'buddy', 'tech', 'bd', 'cs'];
+        if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
             return NextResponse.json({ error: 'Unauthorized role' }, { status: 403 });
         }
 
