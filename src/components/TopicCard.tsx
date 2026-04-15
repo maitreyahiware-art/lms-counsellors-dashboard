@@ -765,7 +765,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                     const selected = topic.links?.[0]?.subLinks?.find(sl => sl.url === e.target.value);
                                                                     if (selected) {
                                                                         setActiveSubResource(selected);
-                                                                        logActivity('select_program_dropdown', { topicCode: topic.code, program: selected.label });
+                                                                        logActivity('select_program_dropdown', { topicCode: topic.code, contentTitle: selected.label });
                                                                     }
                                                                 }}
                                                                 className="flex-1 bg-transparent border-none focus:ring-0 text-[#0E5858] font-serif text-lg py-2 px-4 cursor-pointer appearance-none"
@@ -826,7 +826,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                 onClick={() => {
                                                                     setSelectedAccordionLink(link);
                                                                     setActiveSubResource(null);
-                                                                    logActivity('select_category', { topicCode: topic.code, category: link.label });
+                                                                    logActivity('select_category', { topicCode: topic.code, contentTitle: link.label });
                                                                 }}
                                                                 className={`flex items-center gap-4 p-5 rounded-[1.5rem] border-2 transition-all duration-300 w-full ${selectedAccordionLink?.label === link.label
                                                                     ? 'bg-[#0E5858] border-[#0E5858] text-white shadow-xl shadow-[#0E5858]/20'
@@ -903,7 +903,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                                 whileTap={{ scale: 0.97 }}
                                                                                 onClick={() => {
                                                                                     setActiveSubResource(subLink);
-                                                                                    logActivity('select_subresource', { topicCode: topic.code, subLink: subLink.url });
+                                                                                    logActivity('select_subresource', { topicCode: topic.code, contentTitle: subLink.label });
                                                                                 }}
                                                                                 className={`flex-none w-[200px] h-[120px] rounded-2xl p-4 flex flex-col justify-between cursor-pointer group/sub transition-all snap-start shadow-sm hover:shadow-xl border relative ${activeSubResource?.url === subLink.url
                                                                                         ? 'bg-[#0E5858] border-[#0E5858] text-white ring-2 ring-[#00B6C1]/30'
