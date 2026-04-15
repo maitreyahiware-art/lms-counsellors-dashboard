@@ -209,6 +209,9 @@ function AdminDashboardContent() {
     const [dispatchNotif, setDispatchNotif] = useState({ title: "", message: "", type: "info" });
     const [sendingDispatch, setSendingDispatch] = useState(false);
     const [isWipingUser, setIsWipingUser] = useState(false);
+    const [editingProfile, setEditingProfile] = useState(false);
+    const [editPhone, setEditPhone] = useState("");
+    const [editRole, setEditRole] = useState("");
 
 
     useEffect(() => {
@@ -439,6 +442,23 @@ function AdminDashboardContent() {
             alert("Failed to update buddy: " + err.message);
         } finally {
             setUpdatingBuddy(false);
+        }
+    };
+
+    const handleUpdateProfileDetails = async () => {
+        if (!selectedProfile) return;
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ phone: editPhone, role: editRole })
+                .eq('id', selectedProfile.id);
+            if (error) throw error;
+            setSelectedProfile({ ...selectedProfile, phone: editPhone, role: editRole });
+            setEditingProfile(false);
+            alert("Profile updated successfully!");
+            refreshData();
+        } catch (err: any) {
+            alert("Failed to update: " + err.message);
         }
     };
 
@@ -745,11 +765,40 @@ function AdminDashboardContent() {
                             <div className="lg:w-[400px] space-y-6">
                                 <div className="bg-white rounded-[3rem] p-10 shadow-sm border border-[#0E5858]/5">
                                     <div className="text-center mb-8">
-                                        <div className="w-24 h-24 bg-[#FAFCEE] rounded-[2.5rem] flex items-center justify-center text-[#0E5858] text-4xl font-black mx-auto mb-6 shadow-inner">
-                                            {selectedProfile.full_name?.[0]}
+                                        <div className="w-24 h-24 bg-gradient-to-br from-[#0E5858] to-[#00B6C1] rounded-full flex items-center justify-center text-white text-4xl font-black mx-auto mb-6 shadow-lg shadow-[#0E5858]/20">
+                                            {selectedProfile.full_name?.[0]?.toLowerCase()}
                                         </div>
                                         <h3 className="text-3xl font-serif text-[#0E5858] mb-1">{selectedProfile.full_name}</h3>
-                                        <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">{selectedProfile.email}</p>
+                                        <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest mb-5">{selectedProfile.email}</p>
+                                        <div className="flex items-center justify-center gap-3">
+                                            <a 
+                                                href={`https://wa.me/${selectedProfile.phone?.replace(/\D/g, '') || ''}`} 
+                                                target="_blank" 
+                                                rel="noreferrer"
+                                                className="w-10 h-10 rounded-full bg-[#00B6C1] text-white flex items-center justify-center hover:brightness-110 transition-all shadow-md shadow-[#00B6C1]/30"
+                                                title="Call / WhatsApp"
+                                            >
+                                                <Phone size={16} />
+                                            </a>
+                                            <button 
+                                                onClick={() => setEmailModal({ isOpen: true, to: selectedProfile.email, userName: selectedProfile.full_name || 'Member' })}
+                                                className="w-10 h-10 rounded-full bg-[#0E5858] text-white flex items-center justify-center hover:bg-[#00B6C1] transition-all shadow-md shadow-[#0E5858]/30"
+                                                title="Send Email"
+                                            >
+                                                <Mail size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    setEditPhone(selectedProfile.phone || '');
+                                                    setEditRole(selectedProfile.role || 'counsellor');
+                                                    setEditingProfile(!editingProfile);
+                                                }}
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${editingProfile ? 'bg-[#C0EB2F] text-[#0E5858] shadow-[#C0EB2F]/30' : 'bg-gray-100 text-gray-500 hover:bg-[#C0EB2F] hover:text-[#0E5858] shadow-gray-200/30'}`}
+                                                title="Edit Profile"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-4 border-t border-gray-50 pt-8">
@@ -925,13 +974,63 @@ function AdminDashboardContent() {
                                                 </div>
                                             )}
                                         </div>
+                                        {editingProfile && (
+                                            <div className="bg-[#FAFCEE] p-5 rounded-2xl border border-[#00B6C1]/20 space-y-4">
+                                                <p className="text-[8px] font-black text-[#00B6C1] uppercase tracking-[0.2em] mb-2">Edit Profile Details</p>
+                                                <div>
+                                                    <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Phone Number</label>
+                                                    <input
+                                                        type="text"
+                                                        value={editPhone}
+                                                        onChange={e => setEditPhone(e.target.value)}
+                                                        placeholder="+91 00000 00000"
+                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00B6C1]/20"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Role</label>
+                                                    <select
+                                                        value={editRole}
+                                                        onChange={e => setEditRole(e.target.value)}
+                                                        className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00B6C1]/20 appearance-none cursor-pointer"
+                                                    >
+                                                        <option value="counsellor">Counsellor</option>
+                                                        <option value="nutripreneur">Nutripreneur</option>
+                                                        <option value="moderator">Moderator</option>
+                                                        <option value="admin">Admin</option>
+                                                        <option value="tech">Tech</option>
+                                                        <option value="bd">Business Development (BD)</option>
+                                                        <option value="cs">Customer Success (CS)</option>
+                                                        <option value="buddy">Training Buddy</option>
+                                                    </select>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={handleUpdateProfileDetails}
+                                                        className="flex-1 py-3 bg-[#0E5858] text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-[#00B6C1] transition-all"
+                                                    >
+                                                        Save Changes
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingProfile(false)}
+                                                        className="px-4 py-3 bg-gray-100 text-gray-400 rounded-xl font-bold text-[9px] uppercase"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="text-gray-400 font-bold uppercase tracking-widest text-[9px]">Joined On</span>
-                                            <span className="text-[#0E5858] font-bold">{new Date(selectedProfile.created_at || '').toLocaleDateString()}</span>
+                                            <span className="text-[#0E5858] font-bold text-lg font-serif">{new Date(selectedProfile.created_at || '').toLocaleDateString()}</span>
                                         </div>
+                                        <button className="w-full py-5 bg-[#C0EB2F] text-[#0E5858] rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest hover:brightness-110 transition-all flex flex-col items-center justify-center gap-1 shadow-md shadow-[#C0EB2F]/30">
+                                            <div className="flex items-center gap-2"><Share2 size={14} /> Share Activity Report</div>
+                                            <span className="text-[7px] text-[#0E5858]/60 uppercase tracking-[0.2em] font-bold">Sends full performance trail to buddy</span>
+                                        </button>
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="text-gray-400 font-bold uppercase tracking-widest text-[9px]">Access Level</span>
-                                            <span className="badge-teal text-[8px] uppercase">{selectedProfile.role}</span>
+                                            <span className="bg-[#E5F7F8] text-[#00B6C1] px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest">{selectedProfile.role}</span>
                                         </div>
 
                                         <div className="pt-10 border-t border-red-50 mt-10 space-y-4">
