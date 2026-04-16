@@ -301,10 +301,10 @@ export default function ModulePage() {
                         ...currentTopics[existingIndex],
                         title: d.title || currentTopics[existingIndex].title,
                         content: d.content || currentTopics[existingIndex].content,
-                        links: d.links || currentTopics[existingIndex].links,
-                        layout: d.layout !== undefined ? d.layout : currentTopics[existingIndex].layout,
-                        outcome: d.outcome !== undefined ? d.outcome : currentTopics[existingIndex].outcome,
-                        sort_order: d.sort_order !== undefined ? d.sort_order : (currentTopics[existingIndex].sort_order ?? existingIndex)
+                        links: (d.links && d.links.length > 0) ? d.links : currentTopics[existingIndex].links,
+                        layout: d.layout != null ? d.layout : currentTopics[existingIndex].layout,
+                        outcome: d.outcome != null ? d.outcome : currentTopics[existingIndex].outcome,
+                        sort_order: d.sort_order != null ? d.sort_order : (currentTopics[existingIndex].sort_order ?? existingIndex)
                     };
                 } else {
                     // Append new dynamic segment
@@ -867,7 +867,7 @@ export default function ModulePage() {
                                 <button
                                     onClick={() => {
                                         setShowGymPopup(false);
-                                        setSelectedDocument({ url: '/docs/BNXFitnessFirst_Context.pdf', label: 'Fitness First Context' });
+                                        setSelectedDocument({ url: '/docs/BNXFitnessFirst_Context.pdf', label: 'Gym Partnership Context' });
                                     }}
                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
                                 >
@@ -875,7 +875,7 @@ export default function ModulePage() {
                                         <Building2 size={26} />
                                     </div>
                                     <div>
-                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Fitness First Context</h4>
+                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Gym Partnership Context</h4>
                                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Case Study & Integration</p>
                                     </div>
                                     <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />

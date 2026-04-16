@@ -34,6 +34,8 @@ import {
     MessageCircle,
     ChevronDown,
     ChevronUp,
+    ChevronLeft,
+    ChevronRight,
     LayoutDashboard,
     Headphones,
     Mic,
@@ -295,96 +297,96 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                 </button>
                             </div>
 
-                                        {healthTab === 'doctors' ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                                <button
-                                                    onClick={() => {
-                                                        setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutritional Integration' });
-                                                    }}
-                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
-                                                >
-                                                    <div className="w-14 h-14 rounded-2xl bg-[#00B6C1]/10 text-[#00B6C1] flex items-center justify-center group-hover:bg-[#00B6C1] group-hover:text-white transition-all">
-                                                        <Stethoscope size={26} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Nutritional Integration</h4>
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Doctor Referral Protocol</p>
-                                                    </div>
-                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                </button>
+                            {healthTab === 'doctors' ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <button
+                                        onClick={() => {
+                                            setShowHealthPopup(false);
+                                            setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutritional Integration' });
+                                        }}
+                                        className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-[#00B6C1]/10 text-[#00B6C1] flex items-center justify-center group-hover:bg-[#00B6C1] group-hover:text-white transition-all">
+                                            <Stethoscope size={26} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-serif text-[#0E5858] mb-1">Nutritional Integration</h4>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Doctor Referral Protocol</p>
+                                        </div>
+                                        <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </button>
 
-                                                <button
-                                                    onClick={() => {
-                                                        setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/BN_Smart_Clinic_Pitch.pdf', label: 'BN Smart Clinic' });
-                                                    }}
-                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
-                                                >
-                                                    <div className="w-14 h-14 rounded-2xl bg-[#FFCC00]/10 text-[#FFCC00] flex items-center justify-center group-hover:bg-[#FFCC00] group-hover:text-[#0E5858] transition-all">
-                                                        <FlaskConical size={26} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Smart Clinic</h4>
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Diagnostics & Smart Tools</p>
-                                                    </div>
-                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowHealthPopup(false);
+                                            setSelectedDocument({ url: '/BN_Smart_Clinic_Pitch.pdf', label: 'BN Smart Clinic' });
+                                        }}
+                                        className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-[#FFCC00]/10 text-[#FFCC00] flex items-center justify-center group-hover:bg-[#FFCC00] group-hover:text-[#0E5858] transition-all">
+                                            <FlaskConical size={26} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-serif text-[#0E5858] mb-1">Smart Clinic</h4>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Diagnostics & Smart Tools</p>
+                                        </div>
+                                        <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </button>
 
-                                                <button
-                                                    onClick={() => {
-                                                        setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/HCP_Doc.pdf', label: 'HCP Document' });
-                                                    }}
-                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
-                                                >
-                                                    <div className="w-14 h-14 rounded-2xl bg-[#0E5858]/10 text-[#0E5858] flex items-center justify-center group-hover:bg-[#0E5858] group-hover:text-white transition-all">
-                                                        <FileText size={26} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">HCP Document</h4>
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Healthcare Professionals Profile</p>
-                                                    </div>
-                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                                <button
-                                                    onClick={() => {
-                                                        setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/Pharma_Pitch_Deck.pdf', label: 'Pharma Partnerships' });
-                                                    }}
-                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
-                                                >
-                                                    <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all">
-                                                        <FlaskConical size={26} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Pharma Partnerships</h4>
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pharmaceutical Alliances</p>
-                                                    </div>
-                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                </button>
+                                    <button
+                                        onClick={() => {
+                                            setShowHealthPopup(false);
+                                            setSelectedDocument({ url: '/HCP_Doc.pdf', label: 'HCP Document' });
+                                        }}
+                                        className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-[#0E5858]/10 text-[#0E5858] flex items-center justify-center group-hover:bg-[#0E5858] group-hover:text-white transition-all">
+                                            <FileText size={26} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-serif text-[#0E5858] mb-1">HCP Document</h4>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Healthcare Professionals Profile</p>
+                                        </div>
+                                        <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <button
+                                        onClick={() => {
+                                            setShowHealthPopup(false);
+                                            setSelectedDocument({ url: '/Pharma_Pitch_Deck.pdf', label: 'Pharma Partnerships' });
+                                        }}
+                                        className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all">
+                                            <FlaskConical size={26} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-serif text-[#0E5858] mb-1">Pharma Partnerships</h4>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pharmaceutical Alliances</p>
+                                        </div>
+                                        <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </button>
 
-                                                <button
-                                                    onClick={() => {
-                                                        setShowHealthPopup(false);
-                                                        setSelectedDocument({ url: '/BN_Chemist_Deck.pdf', label: 'Chemist Partnerships' });
-                                                    }}
-                                                    className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
-                                                >
-                                                    <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all">
-                                                        <ShoppingBag size={26} />
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-lg font-serif text-[#0E5858] mb-1">Chemist Partnerships</h4>
-                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Retail Pharmacy Network</p>
-                                                    </div>
-                                                    <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                                </button>
-                                            </div>
-                                        )}
+                                    <button
+                                        onClick={() => {
+                                            setShowHealthPopup(false);
+                                            setSelectedDocument({ url: '/BN_Chemist_Deck.pdf', label: 'Chemist Partnerships' });
+                                        }}
+                                        className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
+                                    >
+                                        <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all">
+                                            <ShoppingBag size={26} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-serif text-[#0E5858] mb-1">Chemist Partnerships</h4>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Retail Pharmacy Network</p>
+                                        </div>
+                                        <ArrowUpRight size={16} className="text-[#00B6C1] mt-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                    </button>
+                                </div>
+                            )}
 
                             <p className="mt-8 text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center">Select a document to view protocols</p>
                         </motion.div>
@@ -400,20 +402,64 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className={`fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-12 transition-all duration-500 ${(selectedDocument.label.toLowerCase().includes('clip') || selectedDocument.label.toLowerCase().includes('call'))
-                                ? 'bg-black/40 backdrop-blur-sm'
-                                : 'bg-[#0E5858]/95 backdrop-blur-xl'
+                            ? 'bg-black/40 backdrop-blur-sm'
+                            : 'bg-[#0E5858]/95 backdrop-blur-xl'
                             }`}
                     >
                         <div className={`w-full transition-all duration-500 ${(selectedDocument.label.toLowerCase().includes('clip') || selectedDocument.label.toLowerCase().includes('call'))
-                                ? 'max-w-xl bg-[#0E5858] p-8 rounded-[2.5rem] shadow-2xl border border-white/10'
-                                : 'max-w-5xl'
+                            ? 'max-w-xl bg-[#0E5858] p-8 rounded-[2.5rem] shadow-2xl border border-white/10'
+                            : 'max-w-5xl'
                             }`}>
                             <div className="flex justify-between items-center mb-8">
-                                <div>
-                                    <h3 className="text-3xl font-serif text-white mb-1">{selectedDocument.label}</h3>
-                                    <p className="text-[#00B6C1] text-xs font-bold uppercase tracking-widest">
-                                        {selectedDocument.label.toLowerCase().includes('clip') || selectedDocument.label.toLowerCase().includes('call') ? 'Audio Player' : 'Document Viewer'}
-                                    </p>
+                                <div className="flex items-center gap-6">
+                                    {/* Navigation Controls */}
+                                    <div className="flex items-center gap-2">
+                                        {(() => {
+                                            const idx = displayLinks.findIndex(l => l.url === selectedDocument.url);
+                                            return (
+                                                <>
+                                                    <button
+                                                        disabled={idx <= 0}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const prev = displayLinks[idx - 1];
+                                                            if (prev) setSelectedDocument({ url: prev.url, label: prev.label });
+                                                        }}
+                                                        className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all ${idx > 0 ? 'bg-white/10 border-white/20 text-white hover:bg-[#00B6C1]' : 'opacity-20 border-white/10 text-white/40'}`}
+                                                    >
+                                                        <ChevronLeft size={20} />
+                                                    </button>
+                                                    <button
+                                                        disabled={idx < 0 || idx >= displayLinks.length - 1}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const next = displayLinks[idx + 1];
+                                                            if (next) setSelectedDocument({ url: next.url, label: next.label });
+                                                        }}
+                                                        className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all ${idx >= 0 && idx < displayLinks.length - 1 ? 'bg-white/10 border-white/20 text-white hover:bg-[#00B6C1]' : 'opacity-20 border-white/10 text-white/40'}`}
+                                                    >
+                                                        <ChevronRight size={20} />
+                                                    </button>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-3xl font-serif text-white mb-1">{selectedDocument.label}</h3>
+                                        <p className="text-[#00B6C1] text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                                            {selectedDocument.label.toLowerCase().includes('clip') || selectedDocument.label.toLowerCase().includes('call') ? 'Audio Player' : 'Document Viewer'}
+                                            <span className="opacity-30">•</span>
+                                            <a
+                                                href={selectedDocument.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="hover:text-white underline underline-offset-4 flex items-center gap-1"
+                                            >
+                                                Open Externally <ExternalLink size={10} />
+                                            </a>
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setSelectedDocument(null)}
@@ -469,6 +515,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                         </div>
                     </motion.div>
                 )}
+
             </AnimatePresence>
 
             {/* Background Accent */}
@@ -665,11 +712,11 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                             }
                                                             logActivity('click_link', { topicCode: topic.code, contentTitle: link.label });
                                                         }}
-                                                        className={`group/grid-card cursor-pointer flex flex-col bg-white rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 border border-[#0E5858]/10 hover:border-[#00B6C1]/20 relative overflow-hidden h-[300px] ${activeGridVideo === link.url ? 'ring-4 ring-[#00B6C1] z-50' : ''}`}
+                                                        className={`group/grid-card cursor-pointer flex flex-col bg-white rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500 border border-[#0E5858]/10 hover:border-[#00B6C1]/20 relative overflow-hidden h-full ${activeGridVideo === link.url ? 'ring-4 ring-[#00B6C1] z-50' : ''}`}
                                                     >
                                                         {activeGridVideo === link.url ? (
                                                             <div className="absolute inset-0 bg-black animate-in fade-in duration-500">
-                                                                <button 
+                                                                <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         setActiveGridVideo(null);
@@ -678,23 +725,23 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                 >
                                                                     <X size={20} />
                                                                 </button>
-                                                                <iframe 
-                                                                    src={getEmbedUrl(link.url) || link.url} 
-                                                                    className="w-full h-full border-0" 
+                                                                <iframe
+                                                                    src={getEmbedUrl(link.url) || link.url}
+                                                                    className="w-full h-full border-0"
                                                                     allow="autoplay; fullscreen"
                                                                 />
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <div className={`aspect-video w-full relative overflow-hidden flex items-center justify-center ${isVideo ? 'bg-black' : link.isCopyOnly ? 'bg-gradient-to-br from-[#E1306C]/10 via-[#C13584]/10 to-[#833AB4]/10' : 'bg-[#FAFCEE]'}`}>
+                                                                <div className={`${isVideo ? 'aspect-video' : 'h-28'} w-full relative overflow-hidden flex items-center justify-center ${isVideo ? 'bg-black' : link.isCopyOnly ? 'bg-gradient-to-br from-[#E1306C]/10 via-[#C13584]/10 to-[#833AB4]/10' : 'bg-[#FAFCEE]'}`}>
                                                                     {isVideo ? (
                                                                         <div className="absolute inset-0 flex items-center justify-center">
                                                                             <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover/grid-card:scale-110 transition-transform z-20">
                                                                                 <Play size={32} className="text-white fill-current translate-x-1" />
                                                                             </div>
-                                                                            <img 
-                                                                                src={`https://images.unsplash.com/photo-1576091160550-217359f4bd01?w=800&q=80&auto=format&fit=crop`} 
-                                                                                className="w-full h-full object-cover opacity-60 grayscale group-hover/grid-card:grayscale-0 transition-all duration-700" 
+                                                                            <img
+                                                                                src={`https://images.unsplash.com/photo-1576091160550-217359f4bd01?w=800&q=80&auto=format&fit=crop`}
+                                                                                className="w-full h-full object-cover opacity-60 grayscale group-hover/grid-card:grayscale-0 transition-all duration-700"
                                                                                 alt="Video Preview"
                                                                             />
                                                                         </div>
@@ -724,13 +771,13 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                     )}
                                                                 </div>
 
-                                                                <div className="p-5 flex flex-col flex-1">
+                                                                <div className={`${isVideo ? 'p-5' : 'p-4'} flex flex-col flex-1`}>
                                                                     <div className={`text-[9px] font-black uppercase tracking-[0.2em] mb-1.5 ${isVideo ? 'text-[#00B6C1]' : link.isCopyOnly ? 'text-[#E1306C]' : 'text-gray-400'}`}>
                                                                         {isVideo ? 'Training Video' : link.isCopyOnly ? 'Tap to Copy · Instagram' : 'Reference Material'}
                                                                     </div>
                                                                     <h5 className="text-base font-serif text-[#0E5858] mb-2 group-hover/grid-card:text-[#00B6C1] transition-colors">{link.label}</h5>
                                                                     <p className="text-[12px] font-medium leading-relaxed text-gray-500 mb-4 line-clamp-2">{link.subtitle || (link.isCopyOnly ? 'Tap to copy this ID, then paste in Instagram search on your phone.' : 'Review this resource to strengthen your understanding.')}</p>
-                                                                    
+
                                                                     <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-50">
                                                                         <span className="text-[9px] font-bold text-[#0E5858]/60 uppercase tracking-widest">
                                                                             {isVideo ? 'Play on Dashboard' : link.isCopyOnly ? (copiedId === link.url ? '✓ Copied to Clipboard' : 'Click to Copy ID') : 'View in Dashboard'}
@@ -790,8 +837,8 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                         >
                                                             <div className="absolute -inset-4 bg-white/50 blur-3xl -z-10"></div>
                                                             <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(14,88,88,0.2)] border-4 border-white bg-black group/player relative">
-                                                                <YouTubePlayer 
-                                                                    videoId={getYouTubeVideoId(activeSubResource.url) || ""} 
+                                                                <YouTubePlayer
+                                                                    videoId={getYouTubeVideoId(activeSubResource.url) || ""}
                                                                     onComplete={() => setVideoCompleted(true)}
                                                                 />
                                                                 <div className="absolute top-6 left-6 z-10">
@@ -806,7 +853,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                     <h4 className="text-xl font-serif text-[#0E5858]">{activeSubResource.label}</h4>
                                                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Foundational Program Training • v3.1</p>
                                                                 </div>
-                                                                <button 
+                                                                <button
                                                                     onClick={() => window.open(activeSubResource.url, '_blank')}
                                                                     className="flex items-center gap-2 px-4 py-2 bg-[#FAFCEE] text-[#0E5858] rounded-xl text-[10px] font-black uppercase tracking-widest border border-[#0E5858]/10 hover:bg-[#0E5858] hover:text-white transition-all shadow-sm"
                                                                 >
@@ -861,8 +908,8 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                 {/* Centered Player - Dynamic Height based on content */}
                                                                 <div className={`w-full max-w-lg ${activeSubResource?.url?.includes('youtube.com') || activeSubResource?.url?.includes('youtu.be') ? 'aspect-video' : 'h-[120px]'} bg-black rounded-2xl overflow-hidden shadow-xl border border-white/10 relative mx-auto transition-all duration-500`}>
                                                                     {activeSubResource?.url?.includes('youtube.com') || activeSubResource?.url?.includes('youtu.be') ? (
-                                                                        <YouTubePlayer 
-                                                                            videoId={getYouTubeVideoId(activeSubResource.url) || ""} 
+                                                                        <YouTubePlayer
+                                                                            videoId={getYouTubeVideoId(activeSubResource.url) || ""}
                                                                             onComplete={() => setVideoCompleted(true)}
                                                                         />
                                                                     ) : (
@@ -872,7 +919,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                             allow="autoplay"
                                                                         />
                                                                     )}
-                                                                    
+
                                                                     {!activeSubResource && (
                                                                         <div className="absolute inset-0 bg-[#0E5858]/80 backdrop-blur-md flex items-center justify-center gap-3 text-white cursor-pointer" onClick={() => setActiveSubResource(selectedAccordionLink.subLinks?.[0])}>
                                                                             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -906,8 +953,8 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                                     logActivity('select_subresource', { topicCode: topic.code, contentTitle: subLink.label });
                                                                                 }}
                                                                                 className={`flex-none w-[200px] h-[120px] rounded-2xl p-4 flex flex-col justify-between cursor-pointer group/sub transition-all snap-start shadow-sm hover:shadow-xl border relative ${activeSubResource?.url === subLink.url
-                                                                                        ? 'bg-[#0E5858] border-[#0E5858] text-white ring-2 ring-[#00B6C1]/30'
-                                                                                        : 'bg-[#FAFCEE] border-[#0E5858]/5 text-[#0E5858] hover:bg-white hover:border-[#00B6C1]/30'
+                                                                                    ? 'bg-[#0E5858] border-[#0E5858] text-white ring-2 ring-[#00B6C1]/30'
+                                                                                    : 'bg-[#FAFCEE] border-[#0E5858]/5 text-[#0E5858] hover:bg-white hover:border-[#00B6C1]/30'
                                                                                     }`}
                                                                             >
                                                                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-colors ${activeSubResource?.url === subLink.url ? 'bg-white/10 text-white' : 'bg-white text-[#00B6C1]'}`}>
@@ -925,75 +972,43 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {displayLinks.map(link => {
-                                                const isDocs = link.isPopup || link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.toLowerCase().includes('.pdf') || link.label.toLowerCase().includes('catalogue') || link.label.toLowerCase().includes('catelogue');
-
-                                                const content = (
-                                                    <div className="flex items-start gap-4 h-full">
-                                                        <div className="flex-1 min-w-0 flex flex-col justify-between h-full">
-                                                            <div>
-                                                                <h5 className="text-sm font-bold text-[#0E5858] group-hover/link:text-[#00B6C1] transition-colors line-clamp-1">{link.label}</h5>
-                                                                {link.subtitle ? (
-                                                                    <div className="mt-2 p-3 bg-[#FAFCEE] rounded-xl border border-[#00B6C1]/10">
-                                                                        <p className="text-[11px] text-[#0E5858] leading-relaxed italic font-medium">
-                                                                            <span className="text-[9px] font-black text-[#00B6C1] uppercase tracking-widest block mb-1">Mentor Note</span>
-                                                                            {link.subtitle}
-                                                                        </p>
-                                                                    </div>
-                                                                ) : (
-                                                                    <p className="text-[10px] text-gray-400 mt-2 leading-relaxed line-clamp-2">
-                                                                        {link.isCopyOnly ? 'Click this button to copy the ID.' : 'Essential resource link required for your training journey.'}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                            {link.isCopyOnly && copiedId === link.url && (
-                                                                <div className="mt-3 text-[#E1306C] text-[10px] font-bold uppercase flex items-center gap-1 opacity-0 animate-in fade-in duration-300">
-                                                                    <CheckCircle size={12} /> Copied to clipboard!
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className={`mt-1 shrink-0 ${link.isCopyOnly ? 'text-[#E1306C] bg-[#E1306C]/10 p-2 rounded-full' : 'text-[#00B6C1]'} transition-transform group-hover/link:scale-110`}>
-                                                            {link.isCopyOnly ? <Copy size={16} /> : <ArrowUpRight size={16} />}
-                                                        </div>
-                                                    </div>
-                                                );
-
-                                                if (link.isCopyOnly) {
-                                                    return (
-                                                        <button
-                                                            key={link.label}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {displayLinks.map((link) => {
+                                                return (
+                                                    <motion.div
+                                                        key={link.label}
+                                                        layout
+                                                        whileHover={{ scale: 1.02 }}
+                                                        onClick={() => {
+                                                            if (link.isCopyOnly) {
                                                                 navigator.clipboard.writeText(link.url);
                                                                 setCopiedId(link.url);
                                                                 setTimeout(() => setCopiedId(null), 2000);
-                                                                logActivity('copy_id', { topicCode: topic.code, contentTitle: link.label });
-                                                            }}
-                                                            className="group/link text-left flex flex-col justify-between p-5 bg-white shadow-sm hover:shadow-xl rounded-3xl border border-[#0E5858]/5 hover:border-[#E1306C]/30 transition-all gap-4"
-                                                        >
-                                                            {content}
-                                                        </button>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <a
-                                                        key={link.label}
-                                                        href={isDocs ? undefined : link.url}
-                                                        target={isDocs ? undefined : "_blank"}
-                                                        rel="noopener noreferrer"
-                                                        onClick={(e) => {
-                                                            if (isDocs) {
-                                                                e.preventDefault();
+                                                                return;
+                                                            }
+                                                            if (link.isPopup) {
+                                                                setShowHealthPopup(true);
+                                                            } else {
                                                                 setSelectedDocument({ url: link.url, label: link.label });
                                                             }
                                                             logActivity('click_link', { topicCode: topic.code, contentTitle: link.label });
                                                         }}
-                                                        className="group/link flex flex-col justify-between p-5 bg-white shadow-sm hover:shadow-xl rounded-3xl border border-[#0E5858]/5 hover:border-[#00B6C1]/30 transition-all gap-4"
+                                                        className="group cursor-pointer flex bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-[#0E5858]/10 hover:border-[#00B6C1]/20 p-6 items-center"
                                                     >
-                                                        {content}
-                                                    </a>
+                                                        <div className="flex-1 min-w-0 pr-4">
+                                                            <h5 className="text-lg font-serif text-[#0E5858] font-bold truncate mb-1 group-hover:text-[#00B6C1] transition-colors">{link.label}</h5>
+                                                            <p className="text-xs font-medium text-gray-400 line-clamp-1">{link.subtitle || (link.isCopyOnly ? 'Tap to copy this ID, then paste in Instagram search on your phone.' : 'Essential resource link required for your training journey.')}</p>
+                                                        </div>
+                                                        <div className="shrink-0 flex items-center justify-center">
+                                                            {link.isCopyOnly ? (
+                                                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#E1306C]/10 text-[#E1306C] group-hover:bg-[#E1306C] group-hover:text-white transition-colors">
+                                                                    {copiedId === link.url ? <CheckCircle size={16} /> : <Copy size={16} />}
+                                                                </div>
+                                                            ) : (
+                                                                <ArrowUpRight size={20} className="text-[#00B6C1] group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
                                                 )
                                             })}
                                         </div>
@@ -1001,367 +1016,367 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                 </div>
                             )}
                         </div>
-                    </div>
 
-                    {/* Main Engagement Area */}
-                    <div className="space-y-12">
-                        {/* PHASE 1: MATERIAL CONSUMPTION / RESEARCH */}
-                        <div className="max-w-5xl">
-                            {/* Case Study Grid OR Video/Mark as Read OR Assignment Resources OR Practice Booking */}
-                            {topic.isBooking ? (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="w-12 h-12 bg-[#FFCC00] rounded-2xl flex items-center justify-center text-[#0E5858] shadow-xl shadow-[#FFCC00]/20">
-                                            <Calendar size={24} />
+                        {/* Main Engagement Area */}
+                        <div className="space-y-12 mt-6 w-full">
+                            {/* PHASE 1: MATERIAL CONSUMPTION / RESEARCH */}
+                            <div className="max-w-5xl">
+                                {/* Case Study Grid OR Video/Mark as Read OR Assignment Resources OR Practice Booking */}
+                                {topic.isBooking ? (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-10 duration-1000">
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-12 h-12 bg-[#FFCC00] rounded-2xl flex items-center justify-center text-[#0E5858] shadow-xl shadow-[#FFCC00]/20">
+                                                <Calendar size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-2xl font-serif text-[#0E5858]">Schedule Your Mock Call</h3>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact a mentor to schedule</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-2xl font-serif text-[#0E5858]">Schedule Your Mock Call</h3>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Contact a mentor to schedule</p>
-                                        </div>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Mentor Epshita */}
-                                        <div className="premium-card p-6 bg-white rounded-3xl border border-[#0E5858]/10 shadow-xl flex flex-col gap-6 relative overflow-hidden group/contact">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B6C1]/5 rounded-bl-full -z-10 group-hover/contact:scale-150 transition-transform duration-700"></div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Mentor Epshita */}
+                                            <div className="premium-card p-6 bg-white rounded-3xl border border-[#0E5858]/10 shadow-xl flex flex-col gap-6 relative overflow-hidden group/contact">
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B6C1]/5 rounded-bl-full -z-10 group-hover/contact:scale-150 transition-transform duration-700"></div>
 
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-16 h-16 rounded-full bg-[#FAFCEE] flex items-center justify-center text-[#0E5858] font-serif text-2xl shadow-inner border border-[#0E5858]/10">
-                                                    E
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-16 h-16 rounded-full bg-[#FAFCEE] flex items-center justify-center text-[#0E5858] font-serif text-2xl shadow-inner border border-[#0E5858]/10">
+                                                        E
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-serif text-[#0E5858]">Mentor Epshita</h4>
+                                                        <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">Training Lead</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="text-xl font-serif text-[#0E5858]">Mentor Epshita</h4>
-                                                    <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">Training Lead</p>
+
+                                                <div className="flex flex-col gap-3 mt-auto">
+                                                    <button
+                                                        onClick={() => sendMockCallEmail('Mentor Epshita', 'mentor.epshita@balancenutrition.in')}
+                                                        disabled={emailStatus['mentor.epshita@balancenutrition.in'] === 'sending' || emailStatus['mentor.epshita@balancenutrition.in'] === 'sent'}
+                                                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${emailStatus['mentor.epshita@balancenutrition.in'] === 'sent'
+                                                            ? 'bg-green-500 text-white'
+                                                            : emailStatus['mentor.epshita@balancenutrition.in'] === 'error'
+                                                                ? 'bg-red-100 text-red-600'
+                                                                : emailStatus['mentor.epshita@balancenutrition.in'] === 'sending'
+                                                                    ? 'bg-[#0E5858]/60 text-white cursor-wait'
+                                                                    : 'bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white'
+                                                            }`}
+                                                    >
+                                                        <Mail size={16} />
+                                                        {emailStatus['mentor.epshita@balancenutrition.in'] === 'sending' ? 'Sending...' : emailStatus['mentor.epshita@balancenutrition.in'] === 'sent' ? '✓ Email Sent!' : emailStatus['mentor.epshita@balancenutrition.in'] === 'error' ? 'Failed — Retry' : 'Email Epshita'}
+                                                    </button>
+                                                    <a
+                                                        href="https://wa.me/917021963284?text=Hi%20Mentor%20Epshita,%20I%20would%20like%20to%20schedule%20my%20mock%20call."
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="w-full flex items-center justify-center gap-2 py-3 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-xl text-sm font-bold transition-colors"
+                                                    >
+                                                        <MessageCircle size={16} /> WhatsApp Epshita
+                                                    </a>
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col gap-3 mt-auto">
+                                            {/* Mentor Omanshi */}
+                                            <div className="premium-card p-6 bg-white rounded-3xl border border-[#0E5858]/10 shadow-xl flex flex-col gap-6 relative overflow-hidden group/contact">
+                                                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B6C1]/5 rounded-bl-full -z-10 group-hover/contact:scale-150 transition-transform duration-700"></div>
+
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-16 h-16 rounded-full bg-[#FAFCEE] flex items-center justify-center text-[#0E5858] font-serif text-2xl shadow-inner border border-[#0E5858]/10">
+                                                        O
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-xl font-serif text-[#0E5858]">Mentor Omanshi</h4>
+                                                        <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">Training Lead</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-3 mt-auto">
+                                                    <button
+                                                        onClick={() => sendMockCallEmail('Mentor Omanshi', 'mentor.omanshi@balancenutrition.in')}
+                                                        disabled={emailStatus['mentor.omanshi@balancenutrition.in'] === 'sending' || emailStatus['mentor.omanshi@balancenutrition.in'] === 'sent'}
+                                                        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${emailStatus['mentor.omanshi@balancenutrition.in'] === 'sent'
+                                                            ? 'bg-green-500 text-white'
+                                                            : emailStatus['mentor.omanshi@balancenutrition.in'] === 'error'
+                                                                ? 'bg-red-100 text-red-600'
+                                                                : emailStatus['mentor.omanshi@balancenutrition.in'] === 'sending'
+                                                                    ? 'bg-[#0E5858]/60 text-white cursor-wait'
+                                                                    : 'bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white'
+                                                            }`}
+                                                    >
+                                                        <Mail size={16} />
+                                                        {emailStatus['mentor.omanshi@balancenutrition.in'] === 'sending' ? 'Sending...' : emailStatus['mentor.omanshi@balancenutrition.in'] === 'sent' ? '✓ Email Sent!' : emailStatus['mentor.omanshi@balancenutrition.in'] === 'error' ? 'Failed — Retry' : 'Email Omanshi'}
+                                                    </button>
+                                                    <a
+                                                        href="https://wa.me/919820017056?text=Hi%20Mentor%20Omanshi,%20I%20would%20like%20to%20schedule%20my%20mock%20call."
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="w-full flex items-center justify-center gap-2 py-3 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-xl text-sm font-bold transition-colors"
+                                                    >
+                                                        <MessageCircle size={16} /> WhatsApp Omanshi
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-8 bg-[#FAFCEE] rounded-3xl border border-[#0E5858]/5 flex items-start gap-4">
+                                            <div className="p-3 bg-white rounded-xl text-[#00B6C1] shadow-sm">
+                                                <Sparkles size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-[#0E5858] mb-1">Post-Booking Protocol</h4>
+                                                <p className="text-xs text-gray-400 leading-relaxed">Once you message or email your preferred mentor, an automated email invitation will be sent to both you and your counselor with the meeting link. Please ensure your camera is active for the mock call.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : topic.isAssignment && !assignmentCompleted && !videoCompleted ? (
+                                    <div className="p-8 bg-gradient-to-br from-[#0E5858] to-[#00B6C1] rounded-[2.5rem] text-center shadow-2xl shadow-[#0E5858]/20 animate-in fade-in zoom-in duration-700">
+                                        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md">
+                                            <BrainCircuit size={32} className="text-white animate-pulse" />
+                                        </div>
+                                        <h3 className="text-2xl font-serif text-white mb-2">Ready for Performance Audit?</h3>
+                                        <p className="text-white/60 text-sm mb-8 max-w-md mx-auto">Use the peer resource links above to gather your data, then click below to initialize your audit matrix.</p>
+                                        <button
+                                            onClick={() => {
+                                                setVideoCompleted(true);
+                                                logActivity('click_audit', { topicCode: topic.code, contentTitle: topic.title });
+                                                setTimeout(() => {
+                                                    document.getElementById(`assignment-${topic.code}`)?.scrollIntoView({ behavior: 'smooth' });
+                                                }, 100);
+                                            }}
+                                            className="inline-flex items-center gap-4 px-12 py-5 bg-white text-[#0E5858] rounded-2xl font-black text-xs uppercase tracking-[0.25em] hover:bg-[#FAFCEE] transition-all hover:-translate-y-1 shadow-xl"
+                                        >
+                                            <Sparkles size={20} className="text-[#00B6C1]" />
+                                            Initialize Audit Matrix
+                                        </button>
+                                    </div>
+                                ) : topic.isAssignment ? (
+                                    <div id={`assignment-${topic.code}`} className="mt-8 animate-in fade-in slide-in-from-bottom-10 duration-700">
+                                        <AssignmentForm
+                                            topicCode={topic.code}
+                                            questions={topic.assignmentQuestions || []}
+                                            persona={topic.persona}
+                                            userId={userId}
+                                            onComplete={() => setAssignmentCompleted(true)}
+                                        />
+                                    </div>
+                                ) : (topic.caseStudies || topic.caseStudyLinks) ? (
+                                    <div className="space-y-10">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                            {(topic.caseStudies || topic.caseStudyLinks?.map((l, i) => ({ label: `Patient Journal #${String(i + 1).padStart(2, '0')}`, url: l })) || [])
+                                                .slice(0, showAllCaseStudies ? undefined : 8)
+                                                .map((cs: any, i: number) => {
+                                                    const thumbnail = cs.thumbnail || getSlideThumbnail(cs.url);
+
+                                                    return (
+                                                        <motion.div
+                                                            key={i}
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: i * 0.05 }}
+                                                            whileHover={{ y: -10, scale: 1.02 }}
+                                                            onClick={() => {
+                                                                setSelectedCaseStudy(cs.url);
+                                                                logActivity('view_case_study', { topicCode: topic.code, contentTitle: cs.label });
+                                                            }}
+                                                            className="group/case aspect-[4/5] bg-white border border-[#0E5858]/10 rounded-[2.5rem] flex flex-col cursor-pointer shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden relative"
+                                                        >
+                                                            {/* Thumbnail / Image Area - ZOOMED PREVIEW */}
+                                                            <div className="flex-1 bg-[#FAFCEE] relative overflow-hidden flex items-center justify-center">
+                                                                {thumbnail ? (
+                                                                    <div className="w-full h-full overflow-hidden">
+                                                                        <img
+                                                                            src={thumbnail}
+                                                                            alt={cs.label}
+                                                                            className="w-full h-full object-cover object-[70%_50%] origin-right scale-[1.55] group-hover/case:scale-[1.8] transition-transform duration-1000 ease-out"
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center text-[#00B6C1] shadow-sm transform group-hover/case:rotate-12 transition-transform">
+                                                                        <FileText size={28} />
+                                                                    </div>
+                                                                )}
+                                                                <div className="absolute inset-0 bg-gradient-to-t from-[#0E5858]/40 via-transparent to-transparent opacity-60 group-hover/case:opacity-80 transition-opacity" />
+
+                                                                {/* Floating Play Indicator */}
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/case:opacity-100 transition-opacity duration-500">
+                                                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                                                                        <Maximize2 size={20} className="text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Footer / Label */}
+                                                            <div className="p-6 bg-white relative">
+                                                                <div className="absolute -top-3 left-6 px-3 py-1 bg-[#00B6C1] text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg">
+                                                                    Lead case study
+                                                                </div>
+                                                                <p className="text-[14px] font-bold text-[#0E5858] leading-tight line-clamp-2 mt-2 min-h-[40px] flex items-center">{cs.label}</p>
+                                                                <p className="text-[10px] font-medium text-gray-400 mt-2 flex items-center gap-1.5 font-serif italic">
+                                                                    View Clinical Journal →
+                                                                </p>
+                                                            </div>
+                                                        </motion.div>
+                                                    );
+                                                })}
+                                        </div>
+
+                                        {(topic.caseStudies?.length || 0) > 8 && (
+                                            <div className="flex justify-center pt-4">
                                                 <button
-                                                    onClick={() => sendMockCallEmail('Mentor Epshita', 'mentor.epshita@balancenutrition.in')}
-                                                    disabled={emailStatus['mentor.epshita@balancenutrition.in'] === 'sending' || emailStatus['mentor.epshita@balancenutrition.in'] === 'sent'}
-                                                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${emailStatus['mentor.epshita@balancenutrition.in'] === 'sent'
-                                                        ? 'bg-green-500 text-white'
-                                                        : emailStatus['mentor.epshita@balancenutrition.in'] === 'error'
-                                                            ? 'bg-red-100 text-red-600'
-                                                            : emailStatus['mentor.epshita@balancenutrition.in'] === 'sending'
-                                                                ? 'bg-[#0E5858]/60 text-white cursor-wait'
-                                                                : 'bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white'
-                                                        }`}
+                                                    onClick={() => setShowAllCaseStudies(!showAllCaseStudies)}
+                                                    className="group flex items-center gap-3 px-8 py-3 bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white rounded-full font-bold text-xs uppercase tracking-widest transition-all shadow-sm hover:shadow-xl border border-[#0E5858]/10"
                                                 >
-                                                    <Mail size={16} />
-                                                    {emailStatus['mentor.epshita@balancenutrition.in'] === 'sending' ? 'Sending...' : emailStatus['mentor.epshita@balancenutrition.in'] === 'sent' ? '✓ Email Sent!' : emailStatus['mentor.epshita@balancenutrition.in'] === 'error' ? 'Failed — Retry' : 'Email Epshita'}
+                                                    {showAllCaseStudies ? (
+                                                        <>Show Less <ChevronUp size={16} /></>
+                                                    ) : (
+                                                        <>Load More Case Studies ({topic.caseStudies!.length - 8} more) <ChevronDown size={16} /></>
+                                                    )}
                                                 </button>
-                                                <a
-                                                    href="https://wa.me/917021963284?text=Hi%20Mentor%20Epshita,%20I%20would%20like%20to%20schedule%20my%20mock%20call."
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-xl text-sm font-bold transition-colors"
-                                                >
-                                                    <MessageCircle size={16} /> WhatsApp Epshita
-                                                </a>
                                             </div>
+                                        )}
+                                    </div>
+                                ) : (embedUrl && topic.layout !== 'grid') ? (
+                                    <div className={`transition-all duration-700 ${videoCompleted ? "opacity-60 grayscale-[0.5]" : ""}`}>
+                                        <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-gray-100 ring-1 ring-black/[0.03]">
+                                            {embedUrl.includes('youtube.com') ? (
+                                                <YouTubePlayer videoId={embedUrl.split('/').pop() || ''} onComplete={handleVideoComplete} topicCode={topic.code} topicTitle={topic.title} />
+                                            ) : (
+                                                <iframe
+                                                    src={embedUrl}
+                                                    className="w-full h-full"
+                                                    allow="autoplay"
+                                                    allowFullScreen
+                                                />
+                                            )}
                                         </div>
-
-                                        {/* Mentor Omanshi */}
-                                        <div className="premium-card p-6 bg-white rounded-3xl border border-[#0E5858]/10 shadow-xl flex flex-col gap-6 relative overflow-hidden group/contact">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B6C1]/5 rounded-bl-full -z-10 group-hover/contact:scale-150 transition-transform duration-700"></div>
-
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-16 h-16 rounded-full bg-[#FAFCEE] flex items-center justify-center text-[#0E5858] font-serif text-2xl shadow-inner border border-[#0E5858]/10">
-                                                    O
+                                    </div>
+                                ) : null}
+                                {/* AI Simulation Overlay - CENTERED LARGE MODAL */}
+                                <AnimatePresence>
+                                    {showSimulation && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                            className="fixed inset-0 z-[300] bg-[#0E5858]/95 backdrop-blur-3xl flex items-center justify-center p-4 lg:p-12"
+                                        >
+                                            <motion.div
+                                                initial={{ scale: 0.9, y: 20 }}
+                                                animate={{ scale: 1, y: 0 }}
+                                                className="w-full max-w-4xl h-[85vh] bg-white rounded-[3rem] shadow-4xl overflow-hidden flex flex-col relative border border-white/20"
+                                            >
+                                                <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-14 h-14 rounded-2xl bg-[#0E5858] text-white flex items-center justify-center shadow-xl">
+                                                            <BrainCircuit size={32} />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-2xl font-serif text-[#0E5858]">Protocol Proficiency Hub</h3>
+                                                            <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest">Live Client Simulation</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowSimulation(false);
+                                                            setSimulationCompleted(true);
+                                                        }}
+                                                        className="w-12 h-12 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-2xl flex items-center justify-center transition-all shadow-sm border border-gray-100"
+                                                    >
+                                                        <X size={24} />
+                                                    </button>
                                                 </div>
-                                                <div>
-                                                    <h4 className="text-xl font-serif text-[#0E5858]">Mentor Omanshi</h4>
-                                                    <p className="text-[10px] font-bold text-[#00B6C1] uppercase tracking-widest">Training Lead</p>
+
+                                                <div className="flex-1 overflow-hidden">
+                                                    <AcademySimulator
+                                                        topicTitle={topic.title}
+                                                        topicContent={topic.content}
+                                                        topicCode={topic.code}
+                                                        onComplete={() => {
+                                                            setSimulationCompleted(true);
+                                                            logActivity('complete_simulation', { topicCode: topic.code });
+                                                        }}
+                                                    />
                                                 </div>
-                                            </div>
 
-                                            <div className="flex flex-col gap-3 mt-auto">
-                                                <button
-                                                    onClick={() => sendMockCallEmail('Mentor Omanshi', 'mentor.omanshi@balancenutrition.in')}
-                                                    disabled={emailStatus['mentor.omanshi@balancenutrition.in'] === 'sending' || emailStatus['mentor.omanshi@balancenutrition.in'] === 'sent'}
-                                                    className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${emailStatus['mentor.omanshi@balancenutrition.in'] === 'sent'
-                                                        ? 'bg-green-500 text-white'
-                                                        : emailStatus['mentor.omanshi@balancenutrition.in'] === 'error'
-                                                            ? 'bg-red-100 text-red-600'
-                                                            : emailStatus['mentor.omanshi@balancenutrition.in'] === 'sending'
-                                                                ? 'bg-[#0E5858]/60 text-white cursor-wait'
-                                                                : 'bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white'
-                                                        }`}
-                                                >
-                                                    <Mail size={16} />
-                                                    {emailStatus['mentor.omanshi@balancenutrition.in'] === 'sending' ? 'Sending...' : emailStatus['mentor.omanshi@balancenutrition.in'] === 'sent' ? '✓ Email Sent!' : emailStatus['mentor.omanshi@balancenutrition.in'] === 'error' ? 'Failed — Retry' : 'Email Omanshi'}
-                                                </button>
-                                                <a
-                                                    href="https://wa.me/919820017056?text=Hi%20Mentor%20Omanshi,%20I%20would%20like%20to%20schedule%20my%20mock%20call."
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="w-full flex items-center justify-center gap-2 py-3 bg-green-50 hover:bg-green-500 text-green-600 hover:text-white rounded-xl text-sm font-bold transition-colors"
-                                                >
-                                                    <MessageCircle size={16} /> WhatsApp Omanshi
-                                                </a>
-                                            </div>
-                                        </div>
+                                                <div className="p-6 bg-gray-50/50 border-t border-gray-100 text-center">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Complete the interaction to proceed to the next module</p>
+                                                </div>
+                                            </motion.div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* FOOTER: THE "MARK COMPLETED" ACTION */}
+                                <div className="pt-10 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-3 h-3 rounded-full ${isReadyToComplete ? 'bg-green-500 animate-pulse' : 'bg-gray-200'}`}></div>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                            {isCompleted ? 'Segment Completed & Logged' : (isReadyToComplete ? 'Requirements Met • Ready to Mark' : 'Incomplete Requirements')}
+                                        </p>
                                     </div>
 
-                                    <div className="p-8 bg-[#FAFCEE] rounded-3xl border border-[#0E5858]/5 flex items-start gap-4">
-                                        <div className="p-3 bg-white rounded-xl text-[#00B6C1] shadow-sm">
-                                            <Sparkles size={20} />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-[#0E5858] mb-1">Post-Booking Protocol</h4>
-                                            <p className="text-xs text-gray-400 leading-relaxed">Once you message or email your preferred mentor, an automated email invitation will be sent to both you and your counselor with the meeting link. Please ensure your camera is active for the mock call.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : topic.isAssignment && !assignmentCompleted && !videoCompleted ? (
-                                <div className="p-8 bg-gradient-to-br from-[#0E5858] to-[#00B6C1] rounded-[2.5rem] text-center shadow-2xl shadow-[#0E5858]/20 animate-in fade-in zoom-in duration-700">
-                                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md">
-                                        <BrainCircuit size={32} className="text-white animate-pulse" />
-                                    </div>
-                                    <h3 className="text-2xl font-serif text-white mb-2">Ready for Performance Audit?</h3>
-                                    <p className="text-white/60 text-sm mb-8 max-w-md mx-auto">Use the peer resource links above to gather your data, then click below to initialize your audit matrix.</p>
                                     <button
-                                        onClick={() => {
-                                            setVideoCompleted(true);
-                                            logActivity('click_audit', { topicCode: topic.code, contentTitle: topic.title });
-                                            setTimeout(() => {
-                                                document.getElementById(`assignment-${topic.code}`)?.scrollIntoView({ behavior: 'smooth' });
-                                            }, 100);
+                                        onClick={async () => {
+                                            if (isCompleted) {
+                                                onMoveNext?.(topic.code);
+                                                return;
+                                            }
+                                            if (isSyncing) return;
+
+                                            setIsSyncing(true);
+                                            try {
+                                                // Immediate UI feedback for internal states
+                                                setVideoCompleted(true);
+                                                setSimulationCompleted(true);
+                                                setAssignmentCompleted(true);
+
+                                                // Trigger DB sync
+                                                await onToggleComplete();
+
+                                                // Optional: log specific activity
+                                                logActivity('complete_quiz', { topicCode: topic.code, contentTitle: topic.title });
+                                            } catch (err) {
+                                                console.error("Completion Sync Failed:", err);
+                                            } finally {
+                                                setTimeout(() => setIsSyncing(false), 1000);
+                                            }
                                         }}
-                                        className="inline-flex items-center gap-4 px-12 py-5 bg-white text-[#0E5858] rounded-2xl font-black text-xs uppercase tracking-[0.25em] hover:bg-[#FAFCEE] transition-all hover:-translate-y-1 shadow-xl"
+                                        disabled={isSyncing}
+                                        className={`group flex items-center gap-4 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.25em] transition-all duration-500 relative transform active:scale-95 ${isCompleted
+                                            ? 'bg-[#00B6C1] text-white hover:bg-[#0E5858] hover:-translate-y-1 shadow-2xl scale-105'
+                                            : (isSyncing ? 'bg-green-500 text-white shadow-xl shadow-green-500/20' : 'bg-[#0E5858] text-white hover:bg-[#00B6C1] hover:-translate-y-1 shadow-2xl shadow-[#0E5858]/30 scale-105')
+                                            }`}
                                     >
-                                        <Sparkles size={20} className="text-[#00B6C1]" />
-                                        Initialize Audit Matrix
+                                        {!isCompleted && !isSyncing && (
+                                            <div className="absolute inset-0 bg-white/20 rounded-2xl animate-pulse pointer-events-none"></div>
+                                        )}
+                                        {isCompleted ? (
+                                            <>
+                                                <ArrowRight size={20} className="animate-pulse" />
+                                                {isLastTopic ? "Next Module" : "Move Next"}
+                                            </>
+                                        ) : (
+                                            <>
+                                                {isSyncing ? (
+                                                    <>
+                                                        <CheckCircle2 size={20} className="animate-bounce" />
+                                                        Verified!
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle size={20} />
+                                                        Complete Segment
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
                                     </button>
                                 </div>
-                            ) : topic.isAssignment ? (
-                                <div id={`assignment-${topic.code}`} className="mt-8 animate-in fade-in slide-in-from-bottom-10 duration-700">
-                                    <AssignmentForm
-                                        topicCode={topic.code}
-                                        questions={topic.assignmentQuestions || []}
-                                        persona={topic.persona}
-                                        userId={userId}
-                                        onComplete={() => setAssignmentCompleted(true)}
-                                    />
-                                </div>
-                            ) : (topic.caseStudies || topic.caseStudyLinks) ? (
-                                <div className="space-y-10">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                                        {(topic.caseStudies || topic.caseStudyLinks?.map((l, i) => ({ label: `Patient Journal #${String(i + 1).padStart(2, '0')}`, url: l })) || [])
-                                            .slice(0, showAllCaseStudies ? undefined : 8)
-                                            .map((cs: any, i: number) => {
-                                            const thumbnail = cs.thumbnail || getSlideThumbnail(cs.url);
-                                            
-                                            return (
-                                                <motion.div
-                                                    key={i}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: i * 0.05 }}
-                                                    whileHover={{ y: -10, scale: 1.02 }}
-                                                    onClick={() => {
-                                                        setSelectedCaseStudy(cs.url);
-                                                        logActivity('view_case_study', { topicCode: topic.code, contentTitle: cs.label });
-                                                    }}
-                                                    className="group/case aspect-[4/5] bg-white border border-[#0E5858]/10 rounded-[2.5rem] flex flex-col cursor-pointer shadow-md hover:shadow-2xl transition-all duration-500 overflow-hidden relative"
-                                                >
-                                                    {/* Thumbnail / Image Area - ZOOMED PREVIEW */}
-                                                    <div className="flex-1 bg-[#FAFCEE] relative overflow-hidden flex items-center justify-center">
-                                                        {thumbnail ? (
-                                                            <div className="w-full h-full overflow-hidden">
-                                                                <img 
-                                                                    src={thumbnail} 
-                                                                    alt={cs.label} 
-                                                                    className="w-full h-full object-cover object-[70%_50%] origin-right scale-[1.55] group-hover/case:scale-[1.8] transition-transform duration-1000 ease-out"
-                                                                />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center text-[#00B6C1] shadow-sm transform group-hover/case:rotate-12 transition-transform">
-                                                                <FileText size={28} />
-                                                            </div>
-                                                        )}
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-[#0E5858]/40 via-transparent to-transparent opacity-60 group-hover/case:opacity-80 transition-opacity" />
-                                                        
-                                                        {/* Floating Play Indicator */}
-                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/case:opacity-100 transition-opacity duration-500">
-                                                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
-                                                                <Maximize2 size={20} className="text-white" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Footer / Label */}
-                                                    <div className="p-6 bg-white relative">
-                                                        <div className="absolute -top-3 left-6 px-3 py-1 bg-[#00B6C1] text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg">
-                                                            Lead case study
-                                                        </div>
-                                                        <p className="text-[14px] font-bold text-[#0E5858] leading-tight line-clamp-2 mt-2 min-h-[40px] flex items-center">{cs.label}</p>
-                                                        <p className="text-[10px] font-medium text-gray-400 mt-2 flex items-center gap-1.5 font-serif italic">
-                                                            View Clinical Journal →
-                                                        </p>
-                                                    </div>
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {(topic.caseStudies?.length || 0) > 8 && (
-                                        <div className="flex justify-center pt-4">
-                                            <button
-                                                onClick={() => setShowAllCaseStudies(!showAllCaseStudies)}
-                                                className="group flex items-center gap-3 px-8 py-3 bg-[#FAFCEE] hover:bg-[#0E5858] text-[#0E5858] hover:text-white rounded-full font-bold text-xs uppercase tracking-widest transition-all shadow-sm hover:shadow-xl border border-[#0E5858]/10"
-                                            >
-                                                {showAllCaseStudies ? (
-                                                    <>Show Less <ChevronUp size={16} /></>
-                                                ) : (
-                                                    <>Load More Case Studies ({topic.caseStudies!.length - 8} more) <ChevronDown size={16} /></>
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (embedUrl && topic.layout !== 'grid') ? (
-                                <div className={`transition-all duration-700 ${videoCompleted ? "opacity-60 grayscale-[0.5]" : ""}`}>
-                                    <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-gray-100 ring-1 ring-black/[0.03]">
-                                        {embedUrl.includes('youtube.com') ? (
-                                            <YouTubePlayer videoId={embedUrl.split('/').pop() || ''} onComplete={handleVideoComplete} topicCode={topic.code} topicTitle={topic.title} />
-                                        ) : (
-                                            <iframe
-                                                src={embedUrl}
-                                                className="w-full h-full"
-                                                allow="autoplay"
-                                                allowFullScreen
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            ) : null}
-            {/* AI Simulation Overlay - CENTERED LARGE MODAL */}
-            <AnimatePresence>
-                {showSimulation && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[300] bg-[#0E5858]/95 backdrop-blur-3xl flex items-center justify-center p-4 lg:p-12"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            className="w-full max-w-4xl h-[85vh] bg-white rounded-[3rem] shadow-4xl overflow-hidden flex flex-col relative border border-white/20"
-                        >
-                            <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-[#0E5858] text-white flex items-center justify-center shadow-xl">
-                                        <BrainCircuit size={32} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-serif text-[#0E5858]">Protocol Proficiency Hub</h3>
-                                        <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest">Live Client Simulation</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setShowSimulation(false);
-                                        setSimulationCompleted(true);
-                                    }}
-                                    className="w-12 h-12 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-2xl flex items-center justify-center transition-all shadow-sm border border-gray-100"
-                                >
-                                    <X size={24} />
-                                </button>
                             </div>
-                            
-                            <div className="flex-1 overflow-hidden">
-                                <AcademySimulator 
-                                    topicTitle={topic.title} 
-                                    topicContent={topic.content} 
-                                    topicCode={topic.code}
-                                    onComplete={() => {
-                                        setSimulationCompleted(true);
-                                        logActivity('complete_simulation', { topicCode: topic.code });
-                                    }} 
-                                />
-                            </div>
-
-                            <div className="p-6 bg-gray-50/50 border-t border-gray-100 text-center">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Complete the interaction to proceed to the next module</p>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-                        {/* FOOTER: THE "MARK COMPLETED" ACTION */}
-                        <div className="pt-10 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-full ${isReadyToComplete ? 'bg-green-500 animate-pulse' : 'bg-gray-200'}`}></div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {isCompleted ? 'Segment Completed & Logged' : (isReadyToComplete ? 'Requirements Met • Ready to Mark' : 'Incomplete Requirements')}
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={async () => {
-                                    if (isCompleted) {
-                                        onMoveNext?.(topic.code);
-                                        return;
-                                    }
-                                    if (isSyncing) return;
-
-                                    setIsSyncing(true);
-                                    try {
-                                        // Immediate UI feedback for internal states
-                                        setVideoCompleted(true);
-                                        setSimulationCompleted(true);
-                                        setAssignmentCompleted(true);
-
-                                        // Trigger DB sync
-                                        await onToggleComplete();
-
-                                        // Optional: log specific activity
-                                        logActivity('complete_quiz', { topicCode: topic.code, contentTitle: topic.title });
-                                    } catch (err) {
-                                        console.error("Completion Sync Failed:", err);
-                                    } finally {
-                                        setTimeout(() => setIsSyncing(false), 1000);
-                                    }
-                                }}
-                                disabled={isSyncing}
-                                className={`group flex items-center gap-4 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.25em] transition-all duration-500 relative transform active:scale-95 ${isCompleted
-                                    ? 'bg-[#00B6C1] text-white hover:bg-[#0E5858] hover:-translate-y-1 shadow-2xl scale-105'
-                                    : (isSyncing ? 'bg-green-500 text-white shadow-xl shadow-green-500/20' : 'bg-[#0E5858] text-white hover:bg-[#00B6C1] hover:-translate-y-1 shadow-2xl shadow-[#0E5858]/30 scale-105')
-                                    }`}
-                            >
-                                {!isCompleted && !isSyncing && (
-                                    <div className="absolute inset-0 bg-white/20 rounded-2xl animate-pulse pointer-events-none"></div>
-                                )}
-                                {isCompleted ? (
-                                    <>
-                                        <ArrowRight size={20} className="animate-pulse" />
-                                        {isLastTopic ? "Next Module" : "Move Next"}
-                                    </>
-                                ) : (
-                                    <>
-                                        {isSyncing ? (
-                                            <>
-                                                <CheckCircle2 size={20} className="animate-bounce" />
-                                                Verified!
-                                            </>
-                                        ) : (
-                                            <>
-                                                <CheckCircle size={20} />
-                                                Complete Segment
-                                            </>
-                                        )}
-                                    </>
-                                )}
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
         </div>
     );
 }
