@@ -1,9 +1,0 @@
-{
-    "rootDirectory": "lms-platform",
-    "crons": [
-        {
-            "path": "/api/cron/buddy-daily-report",
-            "schedule": "0 18 * * *"
-        }
-    ]
-}
