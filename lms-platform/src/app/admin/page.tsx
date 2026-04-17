@@ -79,6 +79,7 @@ interface AssessmentRecord {
     score: number;
     total_questions: number;
     raw_data: any;
+    admin_overrides?: any;
     created_at: string;
 }
 
