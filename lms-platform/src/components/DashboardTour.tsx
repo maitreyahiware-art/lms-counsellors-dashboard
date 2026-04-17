@@ -144,7 +144,7 @@ export default function DashboardTour({ userId, onComplete }: { userId: string, 
                             width: targetBounds.width,
                             height: targetBounds.height
                         }}
-                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                        transition={{ duration: 0.5, ease: "easeInOut" as const }}
                     >
                         <div className="absolute -inset-1 border border-[#00B6C1]/30 rounded-[28px] animate-ping" />
                     </motion.div>

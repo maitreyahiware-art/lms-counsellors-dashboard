@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
     Sparkles, Search, BookOpen, Brain, ArrowRight,
     ChevronRight, X, GraduationCap, Layers, Zap, CheckCircle2
@@ -32,7 +32,7 @@ const slides = [
         title: "The Educators\nModule",
         subtitle: "A semantic intelligence layer built for health educators.",
         features: [
-            { icon: Search, label: "Semantic RAG Search", desc: "Search across all videos, blogs, and protocols using natural language." },
+            { icon: Search, label: "Semantic Search", desc: "Search across all videos, blogs, and protocols using natural language." },
             { icon: Brain, label: "Condition Mapping", desc: "Instantly surface content mapped to specific health conditions." },
             { icon: Layers, label: "Resource Library", desc: "Access curated success stories, content audits, and educational assets." },
             { icon: Zap, label: "AI-Powered Insights", desc: "Discover patterns and recommendations from the Balance Nutrition knowledge base." },
@@ -75,9 +75,17 @@ export default function EducatorsDiscovery({ onDismiss, onExplore }: EducatorsDi
 
     const variants = {
         enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 60 : -60 }),
-        center: { opacity: 1, x: 0, transition: { duration: 0.4, ease: "easeOut" } },
-        exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -60 : 60, transition: { duration: 0.3 } }),
-    };
+        center: { 
+            opacity: 1, 
+            x: 0, 
+            transition: { duration: 0.4, ease: "easeOut" as const } 
+        },
+        exit: (dir: number) => ({ 
+            opacity: 0, 
+            x: dir > 0 ? -60 : 60, 
+            transition: { duration: 0.3 } 
+        }),
+    } satisfies Variants;
 
     const IconComp = slide.icon;
 
