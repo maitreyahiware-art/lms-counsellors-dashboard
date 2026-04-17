@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FAFCEE;
+  --foreground: #0E5858;
+  --brand-teal: #00B6C1;
+  --brand-deep: #0E5858;
+  --brand-yellow: #FFCC00;
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Outfit', sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-[#FAFCEE] text-[#0E5858] antialiased overflow-x-hidden;
+    font-family: var(--font-sans);
+    background-image:
+      radial-gradient(at 0% 0%, rgba(0, 182, 193, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(255, 204, 0, 0.03) 0px, transparent 50%);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif tracking-tight;
+  }
+}
+
+@layer components {
+  .premium-card {
+    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-premium rounded-[2.5rem] transition-all duration-500;
+  }
+
+  .premium-card:hover {
+    @apply shadow-premium-hover -translate-y-1;
+  }
+
+  .glass-button {
+    @apply bg-white/40 backdrop-blur-md border border-white/60 shadow-sm hover:bg-white/60 transition-all rounded-2xl;
+  }
+
+  .badge-teal {
+    @apply bg-[#00B6C1]/10 text-[#00B6C1] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[#00B6C1]/10;
+  }
+}
+
+/* Custom Scrollbar - Minimal & Elegant */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-[#0E5858]/10 rounded-full hover:bg-[#0E5858]/20;
+}
+
+/* Animations - Subtle & Smooth */
+@keyframes soft-float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-soft-float {
+  animation: soft-float 6s ease-in-out infinite;
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(0, 182, 193, 0.2);
+}
