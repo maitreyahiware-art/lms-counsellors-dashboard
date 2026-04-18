@@ -297,9 +297,11 @@ export default function Home() {
       const totalAssignedTopics = totalStaticAccessible + dynamicAccessible.length;
       const totalFinishedAssigned = finishedStaticAccessible + finishedDynamicAccessible;
 
-      const assignedProgressPercent = totalAssignedTopics > 0 ? (totalFinishedAssigned / totalAssignedTopics) : 0;
+      // ─── Educators Discovery Trigger ──────────────────────────────────────
+      // Use the same composite progress logic as the main dashboard (which includes quizzes)
+      const currentProgress = totalTopics > 0 ? Math.round((filteredCompletedCount / totalTopics) * 100) : 0;
 
-      if (assignedProgressPercent >= 0.9 && totalAssignedTopics > 0) {
+      if (currentProgress >= 90 && totalAssignedTopics > 0 && accessIds.includes('educators')) {
         setIsTrainingComplete(true);
 
         // Check if we arrived here from a quiz redirect (pending flag)
