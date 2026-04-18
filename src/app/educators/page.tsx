@@ -216,6 +216,20 @@ export default function EducatorsModulePage() {
         animate="visible"
         className="p-6 lg:p-10 max-w-[1800px] mx-auto min-h-screen flex flex-col gap-8"
       >
+        {/* Marquee Note */}
+        <div className="w-full max-w-4xl mx-auto overflow-hidden bg-red-50 border border-red-100 py-3 rounded-2xl flex items-center mb-[-1rem] shrink-0 relative shadow-sm">
+            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-red-50 to-transparent z-10"></div>
+            <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: "-100%" }}
+                transition={{ duration: 15, ease: "linear", repeat: Infinity }}
+                className="whitespace-nowrap text-[11px] font-black uppercase tracking-[0.2em] text-red-500 whitespace-pre"
+            >
+                ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️                  ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️                  ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️
+            </motion.div>
+            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-red-50 to-transparent z-10"></div>
+        </div>
+
         {/* ── Header ────────────────────────────────────────────────────── */}
         <motion.header variants={itemVariants} className="text-center max-w-4xl mx-auto shrink-0">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#FAFCEE] border border-[#00B6C1]/20 rounded-full text-[#00B6C1] text-xs font-bold uppercase tracking-widest mb-6">

@@ -15,7 +15,8 @@ import {
     CheckCircle2,
     UserPlus,
     ClipboardList,
-    Shield
+    Shield,
+    BookOpen
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -32,6 +33,7 @@ const navItems = [
 const adminNavItems = [
     { name: 'Dashboard Hub', href: '/admin?tab=hub', icon: Shield },
     { name: 'Training Modules', href: '/training', icon: GraduationCap },
+    { name: 'Educators Module', href: '/educators', icon: BookOpen },
     { name: 'Content Bank', href: '/content-bank', icon: BarChart3 },
     { name: 'Provision Keys', href: '/admin?tab=provisioning', icon: UserPlus },
     { name: 'Content Architect', href: '/admin?tab=architect', icon: LayoutDashboard },
