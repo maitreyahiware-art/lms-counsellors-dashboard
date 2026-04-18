@@ -141,17 +141,21 @@ export default function Home() {
 
       setCompletedModules(dbCompletedModules);
 
-      // Total Topics = Static Syllabus + Dynamic Content (only accessible modules)
-      const totalStaticTopics = syllabusData
-        .filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id))
-        .reduce((acc, m) => acc + m.topics.length, 0);
+      // Total Topics = Static Syllabus + Dynamic Content (only accessible modules) + Quizzes
+      const accessibleModulesForCount = syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id));
+      
+      const totalStaticTopics = accessibleModulesForCount.reduce((acc, m) => acc + m.topics.length, 0);
 
-      const validCodesSet = new Set(syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id)).flatMap(m => m.topics.map(t => t.code)));
+      const validCodesSet = new Set(accessibleModulesForCount.flatMap(m => m.topics.map(t => t.code)));
       // Also add dynamic topic codes as valid
       const dynamicAccessibleForCount = (dynContent || []).filter(d => accessIds.includes(d.module_id));
       dynamicAccessibleForCount.forEach(d => validCodesSet.add(`DYN-${d.id}`));
       
-      const totalTopics = totalStaticTopics + dynamicAccessibleForCount.length;
+      // Add quiz codes to validCodesSet so completed quizzes count as valid segments (except module-1 which has no quiz)
+      const modulesWithQuizzes = accessibleModulesForCount.filter(m => m.id !== 'module-1');
+      modulesWithQuizzes.forEach(m => validCodesSet.add(`MODULE_${m.id}`));
+      
+      const totalTopics = totalStaticTopics + dynamicAccessibleForCount.length + modulesWithQuizzes.length;
       const filteredCompletedCount = Array.from(completedTopicCodes).filter(code => validCodesSet.has(code)).length;
       const compositeProgress = totalTopics > 0 ? Math.round((filteredCompletedCount / totalTopics) * 100) : 0;
 
@@ -216,50 +220,32 @@ export default function Home() {
 
       setAllMentors(mentorData);
 
-      // 5. Fetch Last Activity to determine Resume Module
-      const { data: lastLog, error: logError } = await supabase
-        .from('mentor_activity_logs')
-        .select('module_id, content_title, topic_code')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (logError && logError.code !== 'PGRST116') {
-        // PGRST116 is code for 'no rows returned' from .single(), which is okay
-        console.error("Activity log lookup failed:", logError.message);
-      }
-
+      // 5. Instead of strictly last activity, find the NEXT actionable segment based on last activity.
+      // Easiest reliable path: Find the first incomplete module, then the first incomplete topic within it.
       let targetModule = null;
       let resumeTopicCode: string | null = null;
-      if (lastLog?.module_id && lastLog.module_id !== 'System') {
-        const mod = syllabusData.find(m => m.id === lastLog.module_id);
-        if (mod && accessIds.includes(mod.id)) {
-          targetModule = { id: mod.id, title: mod.title };
-          if (lastLog.topic_code) {
-             resumeTopicCode = lastLog.topic_code;
-          } else if (lastLog.content_title) {
-             // fallback
-             const topicMatch = lastLog.content_title.match(/^([A-Z0-9]+-\d+)/);  
-             if (topicMatch) resumeTopicCode = topicMatch[1];
-          }
-        }
-      }
+      
+      const firstIncompleteMod = syllabusData
+        .filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id))
+        .find(m => !dbCompletedModules.includes(m.id));
 
-      // If no activity or invalid module, find first incomplete module + first incomplete topic
-      if (!targetModule) {
-        const firstIncomplete = syllabusData
-          .filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id))
-          .find(m => !dbCompletedModules.includes(m.id));
-        if (firstIncomplete) {
-          targetModule = { id: firstIncomplete.id, title: firstIncomplete.title };
-          // Find first incomplete topic in this module
-          const firstIncompleteTopic = firstIncomplete.topics.find(t => !completedTopicCodes.has(t.code));
-          if (firstIncompleteTopic) resumeTopicCode = firstIncompleteTopic.code;
+      if (firstIncompleteMod) {
+        targetModule = { id: firstIncompleteMod.id, title: firstIncompleteMod.title };
+        // Find the first incomplete static topic
+        const firstIncompleteTopic = firstIncompleteMod.topics.find(t => !completedTopicCodes.has(t.code));
+        if (firstIncompleteTopic) {
+           resumeTopicCode = firstIncompleteTopic.code;
         } else {
-          // All complete? Link to first
-          targetModule = { id: syllabusData[0].id, title: syllabusData[0].title };
+           // If static topics are done, check dynamic topics
+           const modDyn = dynamicArray.filter(d => d.module_id === firstIncompleteMod.id);
+           const firstIncDyn = modDyn.find(d => !completedTopicCodes.has(`DYN-${d.id}`));
+           if (firstIncDyn) {
+               resumeTopicCode = `DYN-${firstIncDyn.id}`;
+           }
         }
+      } else {
+        // All complete? Link to first
+        targetModule = { id: syllabusData[0].id, title: syllabusData[0].title };
       }
       setLastModule(targetModule);
       setLastTopicCode(resumeTopicCode);
@@ -440,18 +426,10 @@ export default function Home() {
                   ></motion.div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="text-center">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Baseline</p>
-                    <p className="text-xs font-bold text-white/80">Static 74</p>
-                  </div>
-                  <div className="text-center border-x border-white/10">
                     <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Quizzes</p>
-                    <p className="text-xs font-bold text-white/80">Active AI</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Growth</p>
-                    <p className="text-xs font-bold text-[#00B6C1]">Dynamic</p>
+                    <p className="text-xs font-bold text-white/80">Active AI Assessment</p>
                   </div>
                 </div>
               </div>

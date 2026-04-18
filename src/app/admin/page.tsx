@@ -1227,11 +1227,22 @@ function AdminDashboardContent() {
                                         {syllabusData.filter(m => m.id !== 'resource-bank').map(module => {
                                             const dynamicForModule = dynamicContent.filter(d => d.module_id === module.id);
                                             const moduleProgress = progress.filter(p => p.user_id === selectedProfile.id && p.module_id === module.id);
-                                            const totalTopics = module.topics.length + dynamicForModule.length;
-                                            const percent = totalTopics > 0 ? (moduleProgress.length / totalTopics) * 100 : 0;
+                                            const hasPassedQuiz = assessments.some(a => a.user_id === selectedProfile.id && a.topic_code === `MODULE_${module.id}`);
+                                            const hasQuiz = module.id !== 'module-1';
+                                            
+                                            // Total includes +1 for the quiz (if applicable)
+                                            const totalTopics = module.topics.length + dynamicForModule.length + (hasQuiz ? 1 : 0);
+                                            const completedCount = moduleProgress.length + (hasPassedQuiz && hasQuiz ? 1 : 0);
+                                            const percent = totalTopics > 0 ? (completedCount / totalTopics) * 100 : 0;
 
-                                            // Create an array that includes both static topics and dynamic placeholders/identifiers
-                                            const allTopics = [...module.topics, ...dynamicForModule.map(d => ({ code: `DYN-${d.id}`, title: d.title }))];
+                                            // Create an array that includes both static topics, dynamic placeholders, and the Quiz (if applicable)
+                                            const allTopics = [
+                                                ...module.topics,
+                                                ...dynamicForModule.map(d => ({ code: `DYN-${d.id}`, title: d.title }))
+                                            ];
+                                            if (hasQuiz) {
+                                                allTopics.push({ code: `MODULE_${module.id}`, title: 'Mastery Quiz' });
+                                            }
 
                                             return (
                                                 <div key={module.id} className="space-y-4">
@@ -1251,7 +1262,9 @@ function AdminDashboardContent() {
                                                     </div>
                                                     <div className="grid grid-cols-5 gap-2">
                                                         {allTopics.map((topic, i) => {
-                                                            const isDone = progress.some(p => p.user_id === selectedProfile.id && p.topic_code === topic.code);
+                                                            const isDone = topic.code.startsWith('MODULE_') 
+                                                                ? assessments.some(a => a.user_id === selectedProfile.id && a.topic_code === topic.code) 
+                                                                : progress.some(p => p.user_id === selectedProfile.id && p.topic_code === topic.code);
                                                             return (
                                                                 <div
                                                                     key={topic.code}

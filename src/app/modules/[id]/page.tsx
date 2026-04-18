@@ -526,8 +526,8 @@ export default function ModulePage() {
                 return;
             }
 
-            // Universal Module Quiz Check
-            if (!assessmentPassed) {
+            // Universal Module Quiz Check (Except Module 1 which is orientation only)
+            if (moduleId !== 'module-1' && !assessmentPassed) {
                 setShowVivaIntro(true); // This shows the quiz invitation
                 return;
             }
