@@ -216,32 +216,6 @@ export default function EducatorsModulePage() {
         animate="visible"
         className="relative p-6 lg:p-10 max-w-[1800px] mx-auto min-h-screen flex flex-col gap-8"
       >
-        {/* Lead Shortcut Buttons */}
-        <div className="flex justify-between w-full absolute top-6 left-0 px-6 lg:px-25 lg:top-10 pointer-events-none z-20">
-            <a 
-                href="https://mentor.balancenutrition.in/mentor-dashboard?type=Lead"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="pointer-events-auto px-4 py-2 bg-white/90 backdrop-blur-sm border border-[#0E5858]/10 text-[#0E5858] text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md hover:shadow-xl hover:bg-[#00B6C1] hover:text-white hover:border-transparent transition-all flex items-center gap-2 group"
-            >
-                <div className="w-5 h-5 bg-[#FAFCEE] rounded-lg flex items-center justify-center text-[#0E5858] group-hover:bg-white/20 group-hover:text-white transition-colors">
-                    <Users size={12} />
-                </div>
-                Dashboard Access
-            </a>
-            <a 
-                href="https://mentor.balancenutrition.in/mentor-dashboard?type=Lead"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="pointer-events-auto px-4 py-2 bg-white/90 backdrop-blur-sm border border-[#0E5858]/10 text-[#0E5858] text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md hover:shadow-xl hover:bg-[#00B6C1] hover:text-white hover:border-transparent transition-all flex items-center gap-2 group"
-            >
-                <div className="w-5 h-5 bg-[#FAFCEE] rounded-lg flex items-center justify-center text-[#0E5858] group-hover:bg-white/20 group-hover:text-white transition-colors">
-                    <Users size={12} />
-                </div>
-                
-            </a>
-        </div>
-
         {/* Marquee Note */}
         <div className="w-full max-w-4xl mx-auto overflow-hidden bg-red-50 border border-red-100 py-3 rounded-2xl flex items-center mb-[-1rem] shrink-0 relative shadow-sm">
             <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-red-50 to-transparent z-10"></div>
