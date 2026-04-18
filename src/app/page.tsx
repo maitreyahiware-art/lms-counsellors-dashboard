@@ -299,7 +299,7 @@ export default function Home() {
 
       const assignedProgressPercent = totalAssignedTopics > 0 ? (totalFinishedAssigned / totalAssignedTopics) : 0;
 
-      if (assignedProgressPercent >= 0.8 && totalAssignedTopics > 0) {
+      if (assignedProgressPercent >= 0.9 && totalAssignedTopics > 0) {
         setIsTrainingComplete(true);
 
         // Check if we arrived here from a quiz redirect (pending flag)
@@ -421,7 +421,7 @@ export default function Home() {
                   <Sparkles size={12} className="text-[#00B6C1]" />
                   Session Highlight
                 </div>
-                <h2 className="text-5xl lg:text-6xl font-serif mb-6 leading-tight">Master the Art of <br />Counselling</h2>
+                <h2 className="text-5xl lg:text-6xl font-serif mb-6 leading-tight">Master the Art of <br />Learning</h2>
                 <button
                   onClick={() => {
                     const base = `/modules/${lastModule?.id || 'module-1'}`;

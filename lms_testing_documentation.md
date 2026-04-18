@@ -417,7 +417,33 @@
 ### TC-07.01 — Page Load
 | # | Step | Expected Result | Status |
 |---|------|----------------|--------|
-| 1 | Navigate to `/educators` | Kanban board loads with 6 columns | `[ ]` |
+| 1 | Navigate to `/educators` (after reaching 90% progress) | Kanban board loads with 6 columns | `[ ]` |
+...
+### TS-15.03 — Activity Logging
+...
+### TS-13.02 — Global Training Efficiency
+| # | Step | Expected Result | Status |
+|---|------|----------------|--------|
+| 1 | Check progress percentage | Calculated from valid topic codes for user's accessible modules | `[ ]` |
+| 2 | Verify progress bar | Width matches percentage | `[ ]` |
+| 3 | Verify "Total Engagements Recorded" | Count equals `activity_logs` rows for user | `[ ]` |
+| 4 | Verify "Active: {date}" badge | Shows last activity date | `[ ]` |
+...
+### TC-02.05 — Dashboard Tour
+| # | Step | Expected Result | Status |
+|---|------|----------------|--------|
+| 1 | New user's first login | Dashboard tour overlay appears (if `DashboardTour` triggered) | `[ ]` |
+| 2 | Step through all tour steps | Each step highlights correct UI element | `[ ]` |
+| 3 | Complete tour | `localStorage` flag set, tour does not show again | `[ ]` |
+| 4 | Clear localStorage and reload | Tour reappears | `[ ]` |
+
+### TC-02.06 — Educators Discovery Popup
+| # | Step | Expected Result | Status |
+|---|------|----------------|--------|
+| 1 | Reach 90% training progress | Educators Discovery overlay appears automatically | `[ ]` |
+| 2 | Step through all 3 slides | Slides explain features and access | `[ ]` |
+| 3 | Click "Explore Now" | Navigates to `/educators` | `[ ]` |
+| 4 | Click "Remind me later" | Popup closes, disappears until next login or 100% completion | `[ ]` |
 | 2 | Verify column headers | Videos & Reads, Gyan & Tips, Recipes, Success Stories, Podcasts, Challenges | `[ ]` |
 | 3 | Verify total post count in header | "{N} posts ready to use" | `[ ]` |
 | 4 | Verify marquee banner | Scrolling announcement visible at top | `[ ]` |
