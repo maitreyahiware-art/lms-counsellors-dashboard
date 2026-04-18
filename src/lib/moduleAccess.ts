@@ -57,3 +57,49 @@ export const SELECTIVE_MODULE_LABELS: Record<string, string> = {
     'educators': 'Educators Module',
 };
 
+/**
+ * Training modules only (excludes 'educators' which is a reward/tool, not training).
+ */
+export const TRAINING_MODULE_IDS = ['module-1', 'module-2', 'module-3', 'module-4', 'module-5'];
+
+/**
+ * Checks whether the user has any role-specific (selective) training modules
+ * beyond the general modules (1 & 2). Excludes 'educators' since it's a
+ * reward module, not part of the training sequence.
+ */
+export function hasRoleSpecificModules(accessibleIds: string[]): boolean {
+    const ROLE_SPECIFIC = ['module-3', 'module-4', 'module-5'];
+    return accessibleIds.some(id => ROLE_SPECIFIC.includes(id));
+}
+
+/**
+ * Given a user's accessible module IDs (ordered) and their completed topic codes,
+ * returns the ID of the next module that still has incomplete topics.
+ * Returns null if all modules are complete.
+ */
+export function getNextIncompleteModuleId(
+    accessibleIds: string[],
+    completedCodes: Set<string>,
+    syllabusModules: { id: string; topics: { code: string }[] }[],
+    afterModuleId?: string
+): string | null {
+    // Filter to training modules only, in syllabus order
+    const ordered = TRAINING_MODULE_IDS.filter(id => accessibleIds.includes(id));
+
+    // If afterModuleId is specified, only look at modules that come after it
+    let startIndex = 0;
+    if (afterModuleId) {
+        const idx = ordered.indexOf(afterModuleId);
+        if (idx >= 0) startIndex = idx + 1;
+    }
+
+    for (let i = startIndex; i < ordered.length; i++) {
+        const mod = syllabusModules.find(m => m.id === ordered[i]);
+        if (!mod) continue;
+        const hasIncomplete = mod.topics.some(t => !completedCodes.has(t.code));
+        if (hasIncomplete) return ordered[i];
+    }
+
+    return null;
+}
+

@@ -95,7 +95,7 @@ export default function Home() {
       // 1. Fetch Dynamic Content Metadata (to count total topics)
       const { data: dynContent, error: dynError } = await supabase
         .from('syllabus_content')
-        .select('id, module_id');
+        .select('id, module_id, topic_code');
 
       if (dynError) console.error("Dynamic content fetch failed:", dynError.message);
 
@@ -127,14 +127,37 @@ export default function Home() {
       // Calculate which modules are done based on syllabus (static) + dynamic topics
       // Only consider modules the user can access
       syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id)).forEach(module => {
-        const dynamicForModule = dynamicArray.filter(d => d.module_id === module.id);
+        const purelyDynamic = dynamicArray.filter(d => d.module_id === module.id && !module.topics.some(st => st.code === d.topic_code));
+        
+        let allRequiredDone = true;
+        
+        // Check Static + Any Overrides
+        for (const st of module.topics) {
+           const overrideDyn = dynamicArray.find(d => d.module_id === module.id && d.topic_code === st.code);
+           const isDone = completedTopicCodes.has(st.code) || (overrideDyn && completedTopicCodes.has(`DYN-${overrideDyn.id}`));
+           if (!isDone) {
+              allRequiredDone = false;
+              break;
+           }
+        }
+        
+        // Check Purely Dynamic
+        for (const d of purelyDynamic) {
+           if (!completedTopicCodes.has(`DYN-${d.id}`)) {
+              allRequiredDone = false;
+              break;
+           }
+        }
 
-        const staticTopicsDone = module.topics.every(t => completedTopicCodes.has(t.code));
-        const dynamicTopicsDone = dynamicForModule.every(d => completedTopicCodes.has(`DYN-${d.id}`));
+        // Check Quiz Requirement (Skip module-1 as it has no quiz)
+        let quizDone = true;
+        if (module.id !== 'module-1' && !completedTopicCodes.has(`MODULE_${module.id}`)) {
+           quizDone = false;
+        }
 
-        const hasContent = module.topics.length > 0 || dynamicForModule.length > 0;
+        const hasContent = module.topics.length > 0 || purelyDynamic.length > 0;
 
-        if (staticTopicsDone && dynamicTopicsDone && hasContent) {
+        if (allRequiredDone && quizDone && hasContent) {
           dbCompletedModules.push(module.id);
         }
       });
@@ -147,8 +170,14 @@ export default function Home() {
       const totalStaticTopics = accessibleModulesForCount.reduce((acc, m) => acc + m.topics.length, 0);
 
       const validCodesSet = new Set(accessibleModulesForCount.flatMap(m => m.topics.map(t => t.code)));
-      // Also add dynamic topic codes as valid
-      const dynamicAccessibleForCount = (dynContent || []).filter(d => accessIds.includes(d.module_id));
+      // Also add PURELY dynamic topic codes as valid
+      const dynamicAccessibleForCount = (dynContent || []).filter(d => {
+         if (!accessIds.includes(d.module_id)) return false;
+         // Check if this dynamic topic overrides a static topic in its module
+         const mod = accessibleModulesForCount.find(m => m.id === d.module_id);
+         if (mod && mod.topics.some(st => st.code === d.topic_code)) return false;
+         return true;
+      });
       dynamicAccessibleForCount.forEach(d => validCodesSet.add(`DYN-${d.id}`));
       
       // Add quiz codes to validCodesSet so completed quizzes count as valid segments (except module-1 which has no quiz)
@@ -506,10 +535,26 @@ export default function Home() {
 
                   {/* Per-module mini progress bar */}
                   {(() => {
-                    const dynForMod = dynamicContent.filter((d: any) => d.module_id === module.id);
-                    const totalSegments = module.topics.length + dynForMod.length;
-                    const doneSegments = module.topics.filter(t => completedTopicCodesSet.has(t.code)).length
-                      + dynForMod.filter((d: any) => completedTopicCodesSet.has(`DYN-${d.id}`)).length;
+                    const purelyDynForMod = dynamicContent.filter((d: any) => 
+                      d.module_id === module.id && !module.topics.some(st => st.code === d.topic_code)
+                    );
+                    const totalSegments = module.topics.length + purelyDynForMod.length;
+                    
+                    let doneSegments = 0;
+                    
+                    module.topics.forEach(t => {
+                       const overrideDyn = dynamicContent.find((d: any) => d.module_id === module.id && d.topic_code === t.code);
+                       if (completedTopicCodesSet.has(t.code) || (overrideDyn && completedTopicCodesSet.has(`DYN-${overrideDyn.id}`))) {
+                          doneSegments++;
+                       }
+                    });
+
+                    purelyDynForMod.forEach((d: any) => {
+                       if (completedTopicCodesSet.has(`DYN-${d.id}`)) {
+                          doneSegments++;
+                       }
+                    });
+
                     const pct = totalSegments > 0 ? Math.round((doneSegments / totalSegments) * 100) : 0;
                     return (
                       <div className="pt-5 border-t border-gray-50 mt-auto">

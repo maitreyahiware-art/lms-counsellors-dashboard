@@ -6,7 +6,7 @@ import { Sparkles, Brain, CheckCircle2, ChevronRight, Loader2, Lock, Clock, Grad
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { syllabusData } from "@/data/syllabus";
-import { getAccessibleModuleIds } from "@/lib/moduleAccess";
+import { getAccessibleModuleIds, GENERAL_MODULES, hasRoleSpecificModules, getNextIncompleteModuleId } from "@/lib/moduleAccess";
 import { logActivity } from "@/lib/activity";
 import TrainingCertificate from "@/components/TrainingCertificate";
 
@@ -35,7 +35,10 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
     const [showResult, setShowResult] = useState(false);
     const [finalScoreStats, setFinalScoreStats] = useState<{ score: number, total: number, results?: any[] } | null>(null);
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes default
-    const [isTrainingComplete, setIsTrainingComplete] = useState(false);
+    const [completionType, setCompletionType] = useState<'training_complete' | 'transition_to_role' | null>(null);
+    const [nextModuleId, setNextModuleId] = useState<string | null>(null);
+    const [nextModuleTitle, setNextModuleTitle] = useState<string>('');
+    const [hasEducatorsAccess, setHasEducatorsAccess] = useState(false);
     const [certificateData, setCertificateData] = useState<{ userName: string; completionDate: string; certificateId: string } | null>(null);
     const [emailSent, setEmailSent] = useState(false);
     const router = useRouter();
@@ -182,8 +185,11 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                 onComplete();
             }
 
-            // ─── Training Completion Check ───────────────────────────────
-            // After saving the quiz, check if ALL accessible modules are now done
+            // ─── Training Completion / Transition Check ───────────────────
+            // After saving the quiz, determine what screen to show next:
+            // 1. "transition_to_role" — generic modules done, role-specific remain
+            // 2. "training_complete" — ALL assigned modules are done
+            // 3. null — normal close (mid-training, more topics in current module)
             try {
                 const { data: profileData } = await supabase
                     .from('profiles')
@@ -195,6 +201,9 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                 const allowedMods = profileData?.allowed_modules || [];
                 const accessIds = getAccessibleModuleIds(role, allowedMods);
 
+                // Check if user has educators access
+                setHasEducatorsAccess(accessIds.includes('educators'));
+
                 // Fetch all completed topic codes
                 const { data: progress } = await supabase
                     .from('mentor_progress')
@@ -203,21 +212,29 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
 
                 const completedCodes = new Set(progress?.map(p => p.topic_code) || []);
 
-                // Calculate total accessible topics vs completed
-                const accessibleModules = syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id));
-                const totalAccessibleTopics = accessibleModules.reduce((acc, m) => acc + m.topics.length, 0);
-                
-                const completedAccessibleTopics = accessibleModules.reduce((acc, m) => {
-                    const completedInModule = m.topics.filter(t => completedCodes.has(t.code)).length;
-                    return acc + completedInModule;
-                }, 0);
+                // Determine which module this quiz belongs to
+                const currentModuleId = syllabusData.find(m =>
+                    m.topics.some(t => t.code === topicCode) || topicCode === `MODULE_${m.id}`
+                )?.id || topicCode.replace('MODULE_', '');
 
-                const progressPercentage = totalAccessibleTopics > 0 ? (completedAccessibleTopics / totalAccessibleTopics) : 0;
+                const isGenericModule = GENERAL_MODULES.includes(currentModuleId);
+                const userHasRoleSpecific = hasRoleSpecificModules(accessIds);
 
-                // Trigger if >= 80% complete
-                if (progressPercentage >= 0.8) {
+                // Find the next incomplete module after the current one
+                const trainingModules = syllabusData.filter(m => m.id !== 'resource-bank' && m.id !== 'educators');
+                const nextIncomplete = getNextIncompleteModuleId(accessIds, completedCodes, trainingModules, currentModuleId);
+
+                if (isGenericModule && userHasRoleSpecific && nextIncomplete) {
+                    // Scenario: Generic modules done, role-specific modules remain
+                    // Show transition screen
+                    setCompletionType('transition_to_role');
+                    setNextModuleId(nextIncomplete);
+                    const nextMod = syllabusData.find(m => m.id === nextIncomplete);
+                    setNextModuleTitle(nextMod?.title?.replace(/^Module \d+:\s*/i, '') || 'Next Module');
+                } else if (!nextIncomplete) {
+                    // Scenario: ALL assigned training modules are complete
+                    setCompletionType('training_complete');
                     localStorage.setItem('educators_discovery_pending', 'true');
-                    setIsTrainingComplete(true);
 
                     // Generate certificate data
                     const userName = session.user.user_metadata?.full_name || 'Counsellor';
@@ -245,6 +262,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                         console.warn('Certificate email dispatch failed:', emailErr);
                     }
                 }
+                // else: completionType stays null → standard close button
             } catch (e) {
                 // Non-critical — don't block quiz results
                 console.warn('Training completion check failed:', e);
@@ -447,35 +465,65 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                                     </div>
                                 )}
 
-                                {/* Close / Dashboard button */}
-                                {isTrainingComplete && certificateData ? (
+                                {/* Close / Transition / Completion CTA */}
+                                {completionType === 'training_complete' ? (
                                     <div className="space-y-4">
-                                        {/* Congratulations Banner */}
+                                        {/* Final Training Completion Banner */}
                                         <div className="p-5 bg-gradient-to-br from-[#0E5858] to-[#00B6C1] rounded-2xl text-white text-center">
                                             <GraduationCap size={32} className="mx-auto mb-2" />
                                             <p className="text-sm font-black uppercase tracking-widest mb-1">🎉 Congratulations on completing the training!</p>
-                                            <p className="text-xs font-medium opacity-80">You've finished all your assigned modules. Your certificate is ready below.</p>
+                                            <p className="text-xs font-medium opacity-80">You've finished all your assigned modules. Great work on your learning journey!</p>
                                             {emailSent && (
-                                                <p className="text-[10px] font-medium opacity-60 mt-2">📧 A copy has been sent to your registered email.</p>
+                                                <p className="text-[10px] font-medium opacity-60 mt-2">📧 A certificate copy has been sent to your email.</p>
                                             )}
                                         </div>
 
-                                        {/* Certificate Component */}
-                                        <TrainingCertificate
-                                            userName={certificateData.userName}
-                                            completionDate={certificateData.completionDate}
-                                            certificateId={certificateData.certificateId}
-                                        />
+                                        {/* CTA: Educators Module (if access) or Dashboard */}
+                                        {hasEducatorsAccess ? (
+                                            <button
+                                                onClick={() => {
+                                                    setShowResult(false);
+                                                    router.push('/');
+                                                }}
+                                                className="w-full py-4 bg-[#0E5858] text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-2 hover:bg-[#00B6C1] transition-all shadow-lg"
+                                            >
+                                                Explore Educator Module <ArrowRight size={16} />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    setShowResult(false);
+                                                    router.push('/');
+                                                }}
+                                                className="w-full py-4 bg-[#0E5858] text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-2 hover:bg-[#00B6C1] transition-all shadow-lg"
+                                            >
+                                                Return to Dashboard <ArrowRight size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : completionType === 'transition_to_role' && nextModuleId ? (
+                                    <div className="space-y-4">
+                                        {/* Transition Banner — generic done, role-specific ahead */}
+                                        <div className="p-6 bg-gradient-to-br from-[#FAFCEE] to-white rounded-2xl border-2 border-[#00B6C1]/20 text-center">
+                                            <div className="w-14 h-14 bg-[#00B6C1]/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                <Sparkles size={28} className="text-[#00B6C1]" />
+                                            </div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#00B6C1] mb-2">General Overview Complete</p>
+                                            <p className="text-lg font-serif text-[#0E5858] mb-2">Great work on the business overview!</p>
+                                            <p className="text-xs text-gray-500 font-medium leading-relaxed max-w-sm mx-auto">
+                                                You now understand how Balance Nutrition works. Let's dive deeper into training built specifically for your role.
+                                            </p>
+                                        </div>
 
-                                        {/* Explore Educators CTA */}
+                                        {/* CTA to next role-specific module */}
                                         <button
                                             onClick={() => {
                                                 setShowResult(false);
-                                                router.push('/');
+                                                router.push(`/modules/${nextModuleId}`);
                                             }}
-                                            className="w-full py-4 bg-[#0E5858] text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-2 hover:bg-[#00B6C1] transition-all shadow-lg"
+                                            className="w-full py-4 bg-[#0E5858] text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] flex items-center justify-center gap-2 hover:bg-[#00B6C1] transition-all shadow-lg group"
                                         >
-                                            Explore Now <ArrowRight size={16} />
+                                            Start {nextModuleTitle} <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                         </button>
                                     </div>
                                 ) : (

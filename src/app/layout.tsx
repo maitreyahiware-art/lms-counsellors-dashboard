@@ -120,7 +120,6 @@ export default function RootLayout({
   };
 
   const isNutripreneurPage = pathname.startsWith("/nutripreneur");
-  const isNutripreneur = userRole === "nutripreneur";
 
   // Show nothing until auth is checked to prevent flickering
   if (!isAuthChecked) {
@@ -168,7 +167,7 @@ export default function RootLayout({
           )}
 
           <div
-            className={`flex-1 transition-all duration-500 ease-in-out ${(isNutripreneurPage || isNutripreneur) ? 'ml-0' : (isCollapsed ? 'ml-[88px]' : 'ml-[280px]')
+            className={`flex-1 transition-all duration-500 ease-in-out ${isNutripreneurPage ? 'ml-0' : (isCollapsed ? 'ml-[88px]' : 'ml-[280px]')
               } relative overflow-hidden`}
           >
             {/* Top Bar */}

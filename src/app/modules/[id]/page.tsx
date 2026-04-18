@@ -39,7 +39,7 @@ import AIAssessment from "@/components/AIAssessment";
 import AcademySimulator from "@/components/AcademySimulator";
 import { AnimatePresence } from "framer-motion";
 import { logActivity } from "@/lib/activity";
-import { canAccessModule, getAccessibleModuleIds } from "@/lib/moduleAccess";
+import { canAccessModule, getAccessibleModuleIds, hasRoleSpecificModules } from "@/lib/moduleAccess";
 
 function getDocEmbedUrl(url: string | null): string {
     if (!url) return '';
@@ -532,13 +532,15 @@ export default function ModulePage() {
                 return;
             }
 
-            // Show general modules transition screen after completing Module 2
-            if (moduleId === 'module-2' && nextModule) {
+            // Show transition screen after Module 2 ONLY if user has role-specific modules
+            if (moduleId === 'module-2' && nextModule && hasRoleSpecificModules(userAccessibleIds)) {
                 setShowGeneralCompleteScreen(true);
                 return;
             }
 
-            // Move to Next Module
+            // For generic-only users finishing Module 2 (or Module 1),
+            // the AIAssessment post-quiz screen handles the final completion state.
+            // Just go to next module or dashboard.
             if (nextModule) {
                 router.push(`/modules/${nextModule.id}`);
             } else {
