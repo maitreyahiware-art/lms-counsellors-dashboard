@@ -168,7 +168,7 @@ export default function EducatorsModulePage() {
       posts = posts.filter(p => {
         const isVideo = !!(p.videoUrl || p.videoType === "youtube" || p.mediaType === "reel" || (p.instagramUrl && p.instagramUrl.includes("reel")));
         const hasImage = !!p.imageUrl;
-        
+
         if (activeFormat === "video") return isVideo;
         if (activeFormat === "blog") return !isVideo && hasImage;
         if (activeFormat === "static") return !isVideo && !hasImage;
@@ -240,16 +240,16 @@ export default function EducatorsModulePage() {
       >
         {/* Marquee Note */}
         <div className="w-full max-w-4xl mx-auto overflow-hidden bg-red-50 border border-red-100 py-3 rounded-2xl flex items-center mb-[-1rem] shrink-0 relative shadow-sm">
-            <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-red-50 to-transparent z-10"></div>
-            <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: "-100%" }}
-                transition={{ duration: 15, ease: "linear", repeat: Infinity }}
-                className="whitespace-nowrap text-[11px] font-black uppercase tracking-[0.2em] text-red-500 whitespace-pre"
-            >
-                ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️                  ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️                  ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️
-            </motion.div>
-            <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-red-50 to-transparent z-10"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-red-50 to-transparent z-10"></div>
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: "-100%" }}
+            transition={{ duration: 15, ease: "linear", repeat: Infinity }}
+            className="whitespace-nowrap text-[11px] font-black uppercase tracking-[0.2em] text-red-500 whitespace-pre"
+          >
+            ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️                  ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️                  ⚠️ ONE WEEK UNTIL THE FINAL CERTIFICATION VIVA ⚠️
+          </motion.div>
+          <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-red-50 to-transparent z-10"></div>
         </div>
 
         {/* ── Header ────────────────────────────────────────────────────── */}
@@ -303,8 +303,8 @@ export default function EducatorsModulePage() {
                   key={condition.id}
                   onClick={() => setActiveTab(condition.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all text-sm font-medium ${isActive
-                      ? "bg-[#0E5858] text-white border-[#0E5858] shadow-lg"
-                      : "bg-white text-gray-500 border-gray-200 hover:border-[#00B6C1]/50 hover:text-[#0E5858]"
+                    ? "bg-[#0E5858] text-white border-[#0E5858] shadow-lg"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-[#00B6C1]/50 hover:text-[#0E5858]"
                     }`}
                 >
                   <Icon size={14} className={isActive ? "text-[#00B6C1]" : "opacity-60"} />
@@ -323,8 +323,8 @@ export default function EducatorsModulePage() {
                   key={format.id}
                   onClick={() => setActiveFormat(format.id)}
                   className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isActive
-                      ? "bg-[#0E5858] text-white shadow-md"
-                      : "bg-[#0E5858]/5 text-[#0E5858]/60 hover:bg-[#0E5858]/10"
+                    ? "bg-[#0E5858] text-white shadow-md"
+                    : "bg-[#0E5858]/5 text-[#0E5858]/60 hover:bg-[#0E5858]/10"
                     }`}
                 >
                   {format.label}
