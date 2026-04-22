@@ -1,3 +1,4 @@
+// @ts-nocheck
 // AUTO-GENERATED — do not edit manually.
 // Run: node scripts/hydrate_educator_content.js
 // Generated: 2026-04-22T10:29:22.890Z
