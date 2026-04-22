@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseAdmin } from "@/lib/supabase-admin";
-
 /**
  * Verifies the calling user is an authenticated admin.
  * 

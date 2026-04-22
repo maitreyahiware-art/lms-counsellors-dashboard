@@ -95,7 +95,7 @@ export default function Home() {
       // 1. Fetch Dynamic Content Metadata (to count total topics)
       const { data: dynContent, error: dynError } = await supabase
         .from('syllabus_content')
-        .select('id, module_id');
+        .select('id, module_id, topic_code');
 
       if (dynError) console.error("Dynamic content fetch failed:", dynError.message);
 
@@ -127,31 +127,64 @@ export default function Home() {
       // Calculate which modules are done based on syllabus (static) + dynamic topics
       // Only consider modules the user can access
       syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id)).forEach(module => {
-        const dynamicForModule = dynamicArray.filter(d => d.module_id === module.id);
+        const purelyDynamic = dynamicArray.filter(d => d.module_id === module.id && !module.topics.some(st => st.code === d.topic_code));
+        
+        let allRequiredDone = true;
+        
+        // Check Static + Any Overrides
+        for (const st of module.topics) {
+           const overrideDyn = dynamicArray.find(d => d.module_id === module.id && d.topic_code === st.code);
+           const isDone = completedTopicCodes.has(st.code) || (overrideDyn && completedTopicCodes.has(`DYN-${overrideDyn.id}`));
+           if (!isDone) {
+              allRequiredDone = false;
+              break;
+           }
+        }
+        
+        // Check Purely Dynamic
+        for (const d of purelyDynamic) {
+           if (!completedTopicCodes.has(`DYN-${d.id}`)) {
+              allRequiredDone = false;
+              break;
+           }
+        }
 
-        const staticTopicsDone = module.topics.every(t => completedTopicCodes.has(t.code));
-        const dynamicTopicsDone = dynamicForModule.every(d => completedTopicCodes.has(`DYN-${d.id}`));
+        // Check Quiz Requirement (Skip module-1 as it has no quiz)
+        let quizDone = true;
+        if (module.id !== 'module-1' && !completedTopicCodes.has(`MODULE_${module.id}`)) {
+           quizDone = false;
+        }
 
-        const hasContent = module.topics.length > 0 || dynamicForModule.length > 0;
+        const hasContent = module.topics.length > 0 || purelyDynamic.length > 0;
 
-        if (staticTopicsDone && dynamicTopicsDone && hasContent) {
+        if (allRequiredDone && quizDone && hasContent) {
           dbCompletedModules.push(module.id);
         }
       });
 
       setCompletedModules(dbCompletedModules);
 
-      // Total Topics = Static Syllabus + Dynamic Content (only accessible modules)
-      const totalStaticTopics = syllabusData
-        .filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id))
-        .reduce((acc, m) => acc + m.topics.length, 0);
+      // Total Topics = Static Syllabus + Dynamic Content (only accessible modules) + Quizzes
+      const accessibleModulesForCount = syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id));
+      
+      const totalStaticTopics = accessibleModulesForCount.reduce((acc, m) => acc + m.topics.length, 0);
 
-      const validCodesSet = new Set(syllabusData.filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id)).flatMap(m => m.topics.map(t => t.code)));
-      // Also add dynamic topic codes as valid
-      const dynamicAccessibleForCount = (dynContent || []).filter(d => accessIds.includes(d.module_id));
+      const validCodesSet = new Set(accessibleModulesForCount.flatMap(m => m.topics.map(t => t.code)));
+      // Also add PURELY dynamic topic codes as valid
+      const dynamicAccessibleForCount = (dynContent || []).filter(d => {
+         if (!accessIds.includes(d.module_id)) return false;
+         // Check if this dynamic topic overrides a static topic in its module
+         const mod = accessibleModulesForCount.find(m => m.id === d.module_id);
+         if (mod && mod.topics.some(st => st.code === d.topic_code)) return false;
+         return true;
+      });
       dynamicAccessibleForCount.forEach(d => validCodesSet.add(`DYN-${d.id}`));
       
-      const totalTopics = totalStaticTopics + dynamicAccessibleForCount.length;
+      // Add quiz codes to validCodesSet so completed quizzes count as valid segments (except module-1 which has no quiz)
+      const modulesWithQuizzes = accessibleModulesForCount.filter(m => m.id !== 'module-1');
+      modulesWithQuizzes.forEach(m => validCodesSet.add(`MODULE_${m.id}`));
+      
+      const totalTopics = totalStaticTopics + dynamicAccessibleForCount.length + modulesWithQuizzes.length;
       const filteredCompletedCount = Array.from(completedTopicCodes).filter(code => validCodesSet.has(code)).length;
       const compositeProgress = totalTopics > 0 ? Math.round((filteredCompletedCount / totalTopics) * 100) : 0;
 
@@ -216,50 +249,32 @@ export default function Home() {
 
       setAllMentors(mentorData);
 
-      // 5. Fetch Last Activity to determine Resume Module
-      const { data: lastLog, error: logError } = await supabase
-        .from('mentor_activity_logs')
-        .select('module_id, content_title, topic_code')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (logError && logError.code !== 'PGRST116') {
-        // PGRST116 is code for 'no rows returned' from .single(), which is okay
-        console.error("Activity log lookup failed:", logError.message);
-      }
-
+      // 5. Instead of strictly last activity, find the NEXT actionable segment based on last activity.
+      // Easiest reliable path: Find the first incomplete module, then the first incomplete topic within it.
       let targetModule = null;
       let resumeTopicCode: string | null = null;
-      if (lastLog?.module_id && lastLog.module_id !== 'System') {
-        const mod = syllabusData.find(m => m.id === lastLog.module_id);
-        if (mod && accessIds.includes(mod.id)) {
-          targetModule = { id: mod.id, title: mod.title };
-          if (lastLog.topic_code) {
-             resumeTopicCode = lastLog.topic_code;
-          } else if (lastLog.content_title) {
-             // fallback
-             const topicMatch = lastLog.content_title.match(/^([A-Z0-9]+-\d+)/);  
-             if (topicMatch) resumeTopicCode = topicMatch[1];
-          }
-        }
-      }
+      
+      const firstIncompleteMod = syllabusData
+        .filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id))
+        .find(m => !dbCompletedModules.includes(m.id));
 
-      // If no activity or invalid module, find first incomplete module + first incomplete topic
-      if (!targetModule) {
-        const firstIncomplete = syllabusData
-          .filter(m => m.id !== 'resource-bank' && accessIds.includes(m.id))
-          .find(m => !dbCompletedModules.includes(m.id));
-        if (firstIncomplete) {
-          targetModule = { id: firstIncomplete.id, title: firstIncomplete.title };
-          // Find first incomplete topic in this module
-          const firstIncompleteTopic = firstIncomplete.topics.find(t => !completedTopicCodes.has(t.code));
-          if (firstIncompleteTopic) resumeTopicCode = firstIncompleteTopic.code;
+      if (firstIncompleteMod) {
+        targetModule = { id: firstIncompleteMod.id, title: firstIncompleteMod.title };
+        // Find the first incomplete static topic
+        const firstIncompleteTopic = firstIncompleteMod.topics.find(t => !completedTopicCodes.has(t.code));
+        if (firstIncompleteTopic) {
+           resumeTopicCode = firstIncompleteTopic.code;
         } else {
-          // All complete? Link to first
-          targetModule = { id: syllabusData[0].id, title: syllabusData[0].title };
+           // If static topics are done, check dynamic topics
+           const modDyn = dynamicArray.filter(d => d.module_id === firstIncompleteMod.id);
+           const firstIncDyn = modDyn.find(d => !completedTopicCodes.has(`DYN-${d.id}`));
+           if (firstIncDyn) {
+               resumeTopicCode = `DYN-${firstIncDyn.id}`;
+           }
         }
+      } else {
+        // All complete? Link to first
+        targetModule = { id: syllabusData[0].id, title: syllabusData[0].title };
       }
       setLastModule(targetModule);
       setLastTopicCode(resumeTopicCode);
@@ -282,9 +297,11 @@ export default function Home() {
       const totalAssignedTopics = totalStaticAccessible + dynamicAccessible.length;
       const totalFinishedAssigned = finishedStaticAccessible + finishedDynamicAccessible;
 
-      const assignedProgressPercent = totalAssignedTopics > 0 ? (totalFinishedAssigned / totalAssignedTopics) : 0;
+      // ─── Educators Discovery Trigger ──────────────────────────────────────
+      // Use the same composite progress logic as the main dashboard (which includes quizzes)
+      const currentProgress = totalTopics > 0 ? Math.round((filteredCompletedCount / totalTopics) * 100) : 0;
 
-      if (assignedProgressPercent >= 0.8 && totalAssignedTopics > 0) {
+      if (currentProgress >= 90 && totalAssignedTopics > 0 && accessIds.includes('educators')) {
         setIsTrainingComplete(true);
 
         // Check if we arrived here from a quiz redirect (pending flag)
@@ -349,7 +366,9 @@ export default function Home() {
                 <User size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-serif text-[#0E5858]">Welcome back, {userName}</h1>
+                <h1 className="text-3xl font-serif text-[#0E5858]">
+                  {completedSegments === 0 ? `Welcome, ${userName}` : `Welcome back, ${userName}`}
+                </h1>
                 <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em]">counsellor training track</p>
               </div>
             </div>
@@ -406,7 +425,7 @@ export default function Home() {
                   <Sparkles size={12} className="text-[#00B6C1]" />
                   Session Highlight
                 </div>
-                <h2 className="text-5xl lg:text-6xl font-serif mb-6 leading-tight">Master the Art of <br />Counselling</h2>
+                <h2 className="text-5xl lg:text-6xl font-serif mb-6 leading-tight">Master the Art of <br />Learning</h2>
                 <button
                   onClick={() => {
                     const base = `/modules/${lastModule?.id || 'module-1'}`;
@@ -440,18 +459,10 @@ export default function Home() {
                   ></motion.div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="text-center">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Baseline</p>
-                    <p className="text-xs font-bold text-white/80">Static 74</p>
-                  </div>
-                  <div className="text-center border-x border-white/10">
                     <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Quizzes</p>
-                    <p className="text-xs font-bold text-white/80">Active AI</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Growth</p>
-                    <p className="text-xs font-bold text-[#00B6C1]">Dynamic</p>
+                    <p className="text-xs font-bold text-white/80">Active AI Assessment</p>
                   </div>
                 </div>
               </div>
@@ -464,7 +475,9 @@ export default function Home() {
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-serif text-[#0E5858]">Training Support</h3>
             <div className="h-0.5 flex-1 bg-gray-100 mx-6 opacity-50" />
-            <button onClick={() => setShowBuddyModal(true)} className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest hover:underline transition-all">View All Mentors</button>
+            {allMentors.length >= 3 && (
+              <button onClick={() => setShowBuddyModal(true)} className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest hover:underline transition-all">View All Mentors</button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -528,10 +541,26 @@ export default function Home() {
 
                   {/* Per-module mini progress bar */}
                   {(() => {
-                    const dynForMod = dynamicContent.filter((d: any) => d.module_id === module.id);
-                    const totalSegments = module.topics.length + dynForMod.length;
-                    const doneSegments = module.topics.filter(t => completedTopicCodesSet.has(t.code)).length
-                      + dynForMod.filter((d: any) => completedTopicCodesSet.has(`DYN-${d.id}`)).length;
+                    const purelyDynForMod = dynamicContent.filter((d: any) => 
+                      d.module_id === module.id && !module.topics.some(st => st.code === d.topic_code)
+                    );
+                    const totalSegments = module.topics.length + purelyDynForMod.length;
+                    
+                    let doneSegments = 0;
+                    
+                    module.topics.forEach(t => {
+                       const overrideDyn = dynamicContent.find((d: any) => d.module_id === module.id && d.topic_code === t.code);
+                       if (completedTopicCodesSet.has(t.code) || (overrideDyn && completedTopicCodesSet.has(`DYN-${overrideDyn.id}`))) {
+                          doneSegments++;
+                       }
+                    });
+
+                    purelyDynForMod.forEach((d: any) => {
+                       if (completedTopicCodesSet.has(`DYN-${d.id}`)) {
+                          doneSegments++;
+                       }
+                    });
+
                     const pct = totalSegments > 0 ? Math.round((doneSegments / totalSegments) * 100) : 0;
                     return (
                       <div className="pt-5 border-t border-gray-50 mt-auto">

@@ -28,7 +28,7 @@ const slides = [
         icon: Sparkles,
         iconColor: "#00B6C1",
         iconBg: "from-[#00B6C1]/20 to-[#00B6C1]/5",
-        label: "What's Inside",
+        label: "Introducing",
         title: "The Educators\nModule",
         subtitle: "A semantic intelligence layer built for health educators.",
         features: [
@@ -48,8 +48,8 @@ const slides = [
         subtitle: "The Educators Module is live and ready in your dashboard.",
         steps: [
             { num: "01", label: "Dashboard", desc: "Find the Educators Module card on your main dashboard grid." },
-            { num: "02", label: "Sidebar", desc: "Access it anytime via the sidebar navigation in your portal." },
-            { num: "03", label: "Search Anything", desc: "Type any health condition, topic, or keyword and get instant results." },
+            { num: "02", label: "Search Anything", desc: "Type any health condition, topic, or keyword and get instant results." },
+            { num: "03", label: "Share", desc: "Share the insights and resources with clients via Whatapp" },
         ]
     }
 ];

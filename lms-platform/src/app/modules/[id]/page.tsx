@@ -39,7 +39,7 @@ import AIAssessment from "@/components/AIAssessment";
 import AcademySimulator from "@/components/AcademySimulator";
 import { AnimatePresence } from "framer-motion";
 import { logActivity } from "@/lib/activity";
-import { canAccessModule, getAccessibleModuleIds } from "@/lib/moduleAccess";
+import { canAccessModule, getAccessibleModuleIds, hasRoleSpecificModules } from "@/lib/moduleAccess";
 
 function getDocEmbedUrl(url: string | null): string {
     if (!url) return '';
@@ -86,6 +86,7 @@ export default function ModulePage() {
     const [hasModuleAccess, setHasModuleAccess] = useState(true);
     const [userAccessibleIds, setUserAccessibleIds] = useState<string[]>([]);
     const [showGeneralCompleteScreen, setShowGeneralCompleteScreen] = useState(false);
+    const [module1Complete, setModule1Complete] = useState(false);
 
     const [isAdmin, setIsAdmin] = useState(false);
     // Admin Edit Mode States
@@ -422,6 +423,20 @@ export default function ModulePage() {
                     setAssessmentPassed(true);
                 }
 
+                // 3b. If on Module 2, check that Module 1 topics are all done
+                if (moduleId === 'module-2') {
+                    const mod1Module = syllabusData.find(m => m.id === 'module-1');
+                    const { data: mod1Progress } = await supabase
+                        .from('mentor_progress')
+                        .select('topic_code')
+                        .eq('user_id', session.user.id)
+                        .eq('module_id', 'module-1');
+
+                    const mod1CompletedCodes = new Set((mod1Progress || []).map((p: any) => p.topic_code));
+                    const mod1AllDone = mod1Module?.topics.every(t => mod1CompletedCodes.has(t.code)) ?? false;
+                    setModule1Complete(mod1AllDone);
+                }
+
                 // 4. Check Simulation
                 const { data: simData } = await supabase
                     .from('simulation_logs')
@@ -526,19 +541,22 @@ export default function ModulePage() {
                 return;
             }
 
-            // Universal Module Quiz Check
+            // Universal Module Quiz Check 
             if (!assessmentPassed) {
                 setShowVivaIntro(true); // This shows the quiz invitation
                 return;
             }
 
-            // Show general modules transition screen after completing Module 2
-            if (moduleId === 'module-2' && nextModule) {
+            // Show transition screen after BOTH Module 1 AND Module 2 are complete (with quiz)
+            // and only if the user has role-specific modules beyond the general track
+            if (moduleId === 'module-2' && nextModule && hasRoleSpecificModules(userAccessibleIds) && module1Complete) {
                 setShowGeneralCompleteScreen(true);
                 return;
             }
 
-            // Move to Next Module
+            // For generic-only users finishing Module 2 (or Module 1),
+            // the AIAssessment post-quiz screen handles the final completion state.
+            // Just go to next module or dashboard.
             if (nextModule) {
                 router.push(`/modules/${nextModule.id}`);
             } else {

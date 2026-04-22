@@ -51,9 +51,7 @@ export default function LoginPage() {
 
         const role = profile?.role;
 
-        if (role === 'nutripreneur') {
-            router.push('/nutripreneur');
-        } else if (role === 'admin' || role === 'moderator') {
+        if (role === 'admin' || role === 'moderator') {
             router.push('/admin');
         } else {
             router.push('/');
@@ -147,7 +145,7 @@ export default function LoginPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto"
                         >
                             {/* Path 1: Counsellors */}
                             <div
@@ -166,25 +164,7 @@ export default function LoginPage() {
                                 </button>
                             </div>
 
-                            {/* Path 2: Nutripreneur Academy */}
-                            <div
-                                onClick={() => enterForm('nutripreneur')}
-                                className="premium-card p-10 border border-white cursor-pointer group flex flex-col transition-all overflow-hidden relative"
-                                style={{ background: 'linear-gradient(135deg, #0D2A1E, #1A3A2A)', borderColor: 'rgba(201,168,76,0.25)' }}
-                            >
-                                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle at top right, #C9A84C, transparent 60%)' }} />
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-xl relative z-10 transition-all group-hover:scale-110"
-                                    style={{ background: 'linear-gradient(135deg, #C9A84C, #A8843A)' }}>
-                                    <Leaf size={32} style={{ color: '#0D2A1E' }} />
-                                </div>
-                                <h2 className="text-2xl font-serif mb-3 relative z-10" style={{ color: '#FAF7F0' }}>Nutripreneur Academy</h2>
-                                <p className="text-sm font-medium mb-8 leading-relaxed relative z-10" style={{ color: 'rgba(250,247,240,0.5)' }}>
-                                    Elite entrepreneurial training for health educators building India's nutrition economy.
-                                </p>
-                                <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest group-hover:translate-x-2 transition-all relative z-10" style={{ color: '#C9A84C' }}>
-                                    Enter Academy <ChevronRight size={16} />
-                                </button>
-                            </div>
+
 
                             {/* Path 3: Admin Portal */}
                             <div

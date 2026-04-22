@@ -15,7 +15,8 @@ import {
     CheckCircle2,
     UserPlus,
     ClipboardList,
-    Shield
+    Shield,
+    BookOpen
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -32,10 +33,11 @@ const navItems = [
 const adminNavItems = [
     { name: 'Dashboard Hub', href: '/admin?tab=hub', icon: Shield },
     { name: 'Training Modules', href: '/training', icon: GraduationCap },
+    { name: 'Educators Module', href: '/educators', icon: BookOpen },
     { name: 'Content Bank', href: '/content-bank', icon: BarChart3 },
-    { name: 'Provision Keys', href: '/admin?tab=provisioning', icon: UserPlus },
-    { name: 'Content Architect', href: '/admin?tab=architect', icon: LayoutDashboard },
-    { name: 'Counsellor Registry', href: '/admin?tab=registry', icon: ClipboardList },
+    { name: 'Account Creation', href: '/admin?tab=provisioning', icon: UserPlus },
+    { name: 'Content Uploader', href: '/admin?tab=architect', icon: LayoutDashboard },
+    { name: 'Registry', href: '/admin?tab=registry', icon: ClipboardList },
 ];
 
 function getInitials(name: string): string {
@@ -59,8 +61,9 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, userName, userEma
     const searchParams = useSearchParams();
     const initials = getInitials(userName || 'M');
 
-    // Disable sidebar for Nutripreneur role
-    if (userRole === 'nutripreneur') return null;
+    // Disable sidebar for Nutripreneur role ONLY on nutripreneur pages
+    const isNutripreneurPage = pathname.startsWith('/nutripreneur');
+    if (userRole === 'nutripreneur' && isNutripreneurPage) return null;
 
     // Use admin specific items if role is admin
     const currentNavItems = userRole === 'admin' ? adminNavItems : navItems;

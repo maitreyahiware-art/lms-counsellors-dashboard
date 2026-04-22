@@ -7,6 +7,7 @@ import {
     BookOpen,
     Brain,
     Phone,
+    MessageCircle,
     FileText,
     BarChart3,
     ChevronRight,
@@ -55,7 +56,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { syllabusData } from "@/data/syllabus";
 import AssetCentral from "@/components/admin/AssetCentral";
 import ContentArchitect from "@/components/admin/ContentArchitect";
-import { SELECTIVE_MODULES, SELECTIVE_MODULE_LABELS, FULL_ACCESS_ROLES } from "@/lib/moduleAccess";
+import { SELECTIVE_MODULES, SELECTIVE_MODULE_LABELS, FULL_ACCESS_ROLES, canAccessModule } from "@/lib/moduleAccess";
 import QuizProtocolEditor from "@/components/admin/QuizProtocolEditor";
 
 
@@ -111,6 +112,7 @@ const TOTAL_SYLLABUS_TOPICS = syllabusData
 interface DynamicContent {
     id: string;
     module_id: string;
+    topic_code: string;
     title: string;
     content_type: string;
     content: string;
@@ -788,9 +790,9 @@ function AdminDashboardContent() {
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="w-10 h-10 rounded-full bg-[#00B6C1] text-white flex items-center justify-center hover:brightness-110 transition-all shadow-md shadow-[#00B6C1]/30"
-                                                title="Call / WhatsApp"
+                                                title="WhatsApp"
                                             >
-                                                <Phone size={16} />
+                                                <MessageCircle size={16} />
                                             </a>
                                             <button
                                                 onClick={() => setEmailModal({ isOpen: true, to: selectedProfile.email, userName: selectedProfile.full_name || 'Member' })}
@@ -816,10 +818,34 @@ function AdminDashboardContent() {
                                     <div className="space-y-4 border-t border-gray-50 pt-8">
                                         <div className="bg-[#FAFCEE] p-4 rounded-2xl border border-[#0E5858]/5 text-center mb-4">
                                             {(() => {
-                                                const validTopicCodes = new Set(syllabusData.filter(m => m.id !== 'resource-bank').flatMap(m => m.topics.map(t => t.code)));
-                                                const userProgressCount = progress.filter(pr => pr.user_id === selectedProfile.id && validTopicCodes.has(pr.topic_code)).length;
+                                                const role = selectedProfile?.role || 'counsellor';
+                                                const allowedModIds = selectedProfile?.allowed_modules || [];
+                                                
+                                                // 1. Determine accessible modules for this user
+                                                const validCodesSet = new Set(syllabusData.filter(m => m.id !== 'resource-bank' && canAccessModule(m.id, role, allowedModIds)).flatMap(m => m.topics.map(t => t.code)));
+                                                
+                                                // 2. Add purely dynamic topic codes as valid
+                                                const purelyDynamic = dynamicContent.filter(d => {
+                                                    if (!canAccessModule(d.module_id, role, allowedModIds)) return false;
+                                                    const mod = syllabusData.find(m => m.id === d.module_id);
+                                                    if (mod && mod.topics.some(st => st.code === d.topic_code)) return false;
+                                                    return true;
+                                                });
+                                                purelyDynamic.forEach(d => validCodesSet.add(`DYN-${d.id}`));
+                                                
+                                                // 3. Add quiz codes
+                                                syllabusData.filter(m => m.id !== 'resource-bank' && m.id !== 'module-1' && canAccessModule(m.id, role, allowedModIds)).forEach(m => validCodesSet.add(`MODULE_${m.id}`));
+                                                
+                                                // 4. Calculate
+                                                const totalTopics = validCodesSet.size;
+                                                const completedValid = new Set();
+                                                
+                                                progress.filter(pr => pr.user_id === selectedProfile.id && validCodesSet.has(pr.topic_code)).forEach(pr => completedValid.add(pr.topic_code));
+                                                assessments.filter(a => a.user_id === selectedProfile.id && validCodesSet.has(a.topic_code)).forEach(a => completedValid.add(a.topic_code));
+                                                
+                                                const globalPercent = totalTopics > 0 ? Math.min(100, Math.round((completedValid.size / totalTopics) * 100)) : 0;
+                                                
                                                 const userActivity = activity.filter(a => a.user_id === selectedProfile.id);
-                                                const globalPercent = Math.min(100, Math.round((userProgressCount / (TOTAL_SYLLABUS_TOPICS || 1)) * 100));
                                                 const lastAct = userActivity[0];
 
                                                 return (
@@ -1119,7 +1145,7 @@ function AdminDashboardContent() {
                                     </div>
                                 </div>
 
-                                <div className="bg-[#0E5858] text-white rounded-[3rem] p-10 shadow-xl space-y-8">
+                                <div className="hidden bg-[#0E5858] text-white rounded-[3rem] p-10 shadow-xl space-y-8">
                                     <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#00B6C1]">Add Audit Report</h4>
                                     <form onSubmit={handleSubmitAudit} className="space-y-4">
                                         <div>
@@ -1225,13 +1251,29 @@ function AdminDashboardContent() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                                         {syllabusData.filter(m => m.id !== 'resource-bank').map(module => {
-                                            const dynamicForModule = dynamicContent.filter(d => d.module_id === module.id);
+                                            // Filter out dynamic records that are just overrides of existing static topics
+                                            const purelyDynamicForModule = dynamicContent.filter(d => 
+                                                d.module_id === module.id && !module.topics.some(st => st.code === d.topic_code)
+                                            );
+                                            
+                                            // Handle case where static topics are overriden (no length change, just content change)
                                             const moduleProgress = progress.filter(p => p.user_id === selectedProfile.id && p.module_id === module.id);
-                                            const totalTopics = module.topics.length + dynamicForModule.length;
-                                            const percent = totalTopics > 0 ? (moduleProgress.length / totalTopics) * 100 : 0;
+                                            const hasPassedQuiz = assessments.some(a => a.user_id === selectedProfile.id && a.topic_code === `MODULE_${module.id}`);
+                                            const hasQuiz = module.id !== 'module-1';
+                                            
+                                            // Total includes +1 for the quiz (if applicable)
+                                            const totalTopics = module.topics.length + purelyDynamicForModule.length + (hasQuiz ? 1 : 0);
+                                            const completedCount = moduleProgress.length + (hasPassedQuiz && hasQuiz ? 1 : 0);
+                                            const percent = totalTopics > 0 ? (completedCount / totalTopics) * 100 : 0;
 
-                                            // Create an array that includes both static topics and dynamic placeholders/identifiers
-                                            const allTopics = [...module.topics, ...dynamicForModule.map(d => ({ code: `DYN-${d.id}`, title: d.title }))];
+                                            // Create an array that includes both static topics, PURLEY dynamic placeholders, and the Quiz (if applicable)
+                                            const allTopics = [
+                                                ...module.topics,
+                                                ...purelyDynamicForModule.map(d => ({ code: `DYN-${d.id}`, title: d.title }))
+                                            ];
+                                            if (hasQuiz) {
+                                                allTopics.push({ code: `MODULE_${module.id}`, title: 'Mastery Quiz' });
+                                            }
 
                                             return (
                                                 <div key={module.id} className="space-y-4">
@@ -1251,7 +1293,9 @@ function AdminDashboardContent() {
                                                     </div>
                                                     <div className="grid grid-cols-5 gap-2">
                                                         {allTopics.map((topic, i) => {
-                                                            const isDone = progress.some(p => p.user_id === selectedProfile.id && p.topic_code === topic.code);
+                                                            const isDone = topic.code.startsWith('MODULE_') 
+                                                                ? assessments.some(a => a.user_id === selectedProfile.id && a.topic_code === topic.code) 
+                                                                : progress.some(p => p.user_id === selectedProfile.id && p.topic_code === topic.code);
                                                             return (
                                                                 <div
                                                                     key={topic.code}
@@ -1391,7 +1435,7 @@ function AdminDashboardContent() {
                 ) : activeTab === 'provisioning' ? (
                     <motion.div key="provisioning" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-12 max-w-3xl mx-auto">
                         <header className="text-center pt-8">
-                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight mb-4 text-center">Provision Access</h2>
+                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight mb-4 text-center">Account Creation</h2>
                             <p className="text-gray-400 font-medium max-w-md mx-auto italic text-sm">Deploy secure credentials to new team members.</p>
                         </header>
 
@@ -1575,14 +1619,14 @@ function AdminDashboardContent() {
                                 disabled={creatingUser}
                                 className="w-full py-5 bg-[#0E5858] text-white rounded-xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-[#00B6C1] transition-all"
                             >
-                                {creatingUser ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Provision Account"}
+                                {creatingUser ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Create Account"}
                             </button>
                         </form>
                     </motion.div>
                 ) : activeTab === 'architect' ? (
                     <motion.div key="architect" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-12">
                         <header>
-                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Content Architect</h2>
+                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Content Uploader</h2>
                             <p className="text-gray-400 font-medium mt-3 italic text-sm">Synchronize resources across the academy.</p>
                         </header>
 
@@ -1640,7 +1684,7 @@ function AdminDashboardContent() {
                     <motion.div key="registry" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-12">
                         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                             <div>
-                                <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Unified Registry</h2>
+                                <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Registry</h2>
                                 <p className="text-gray-400 font-medium mt-3 italic text-sm">Full historical searchable directory of all academy members.</p>
                             </div>
                             <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
@@ -1679,8 +1723,31 @@ function AdminDashboardContent() {
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
                                         {filteredRegistry.map(p => {
+                                            const role = p.role || 'counsellor';
+                                            const allowedModIds = p.allowed_modules || [];
+                                            const validTopicCodes = new Set(syllabusData.filter(m => m.id !== 'resource-bank' && canAccessModule(m.id, role, allowedModIds)).flatMap(m => m.topics.map(t => t.code)));
+
+                                            const dynamicAccessibleForCount = (dynamicContent || []).filter(d => {
+                                                if (!canAccessModule(d.module_id, role, allowedModIds)) return false;
+                                                const mod = syllabusData.find(m => m.id === d.module_id);
+                                                if (mod && mod.topics.some(st => st.code === d.topic_code)) return false;
+                                                return true;
+                                            });
+
+                                            dynamicAccessibleForCount.forEach(d => validTopicCodes.add(`DYN-${d.id}`));
+
+                                            syllabusData.filter(m => m.id !== 'resource-bank' && m.id !== 'module-1' && canAccessModule(m.id, role, allowedModIds)).forEach(m => validTopicCodes.add(`MODULE_${m.id}`));
+
+                                            const expectedTotal = validTopicCodes.size || 1;
+                                            const completedValid = new Set();
+
                                             const userProgress = progress.filter(pr => pr.user_id === p.id);
-                                            const globalPercent = Math.min(100, Math.round((userProgress.length / (TOTAL_SYLLABUS_TOPICS || 1)) * 100));
+                                            const userAssess = assessments.filter(a => a.user_id === p.id);
+
+                                            userProgress.forEach(pr => { if (validTopicCodes.has(pr.topic_code)) completedValid.add(pr.topic_code); });
+                                            userAssess.forEach(a => { if (validTopicCodes.has(a.topic_code)) completedValid.add(a.topic_code); });
+
+                                            const globalPercent = Math.min(100, Math.round((completedValid.size / expectedTotal) * 100));
 
                                             return (
                                                 <tr key={p.id} className="group hover:bg-[#FAFCEE]/50 transition-all cursor-pointer" onClick={() => setSelectedProfile(p)}>

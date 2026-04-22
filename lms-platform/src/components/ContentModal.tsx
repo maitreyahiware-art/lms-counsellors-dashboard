@@ -7,7 +7,7 @@ import {
   Calendar, Tag, Globe, Video, FileText, ChevronDown, ChevronUp, Send
 } from "lucide-react";
 import { CleanPost } from "@/data/social_content_clean";
-import { sendToWhatsApp } from "@/lib/whatsapp";
+import { sendToWhatsApp, getPostShareText } from "@/lib/whatsapp";
 
 interface ContentModalProps {
   post: CleanPost;
@@ -53,7 +53,7 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
   }, []);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(post.descriptionPlain);
+    await navigator.clipboard.writeText(getPostShareText(post));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -113,8 +113,17 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
                 className="w-full max-h-72 object-cover"
               />
             ) : (
-              <div className={`w-full h-40 flex items-center justify-center ${cat.bg}`}>
-                <FileText size={48} className={`${cat.text} opacity-30`} />
+              <div className={`w-full h-48 flex flex-col items-center justify-center p-6 text-center ${cat.bg}`}>
+                {post.instagramUrl ? (
+                  <Instagram size={48} className={`${cat.text} opacity-40 mb-3`} />
+                ) : post.videoType === "youtube" || post.videoUrl || post.mediaType === "reel" ? (
+                  <Play size={48} className={`${cat.text} opacity-40 mb-3`} fill="currentColor" />
+                ) : (
+                  <FileText size={48} className={`${cat.text} opacity-40 mb-3`} />
+                )}
+                <span className={`text-sm font-black uppercase tracking-wider ${cat.text} opacity-60 leading-relaxed drop-shadow-sm`}>
+                  {post.title}
+                </span>
               </div>
             )}
 

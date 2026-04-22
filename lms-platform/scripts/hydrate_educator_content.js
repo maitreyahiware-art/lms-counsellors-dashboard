@@ -150,7 +150,7 @@ function extractMediaUrl(field) {
 /** YouTube ID extractor */
 function parseYouTubeId(url) {
   if (!url) return null;
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return match ? match[1] : null;
 }
 
@@ -159,6 +159,15 @@ function extractInstagramUrl(instaAccount) {
   if (!instaAccount || typeof instaAccount !== "object") return null;
   for (const val of Object.values(instaAccount)) {
     if (typeof val === "string" && val.includes("instagram.com")) return val;
+  }
+  return null;
+}
+
+/** Extract YouTube URL from youtube_account object */
+function extractYouTubeUrl(ytAccount) {
+  if (!ytAccount || typeof ytAccount !== "object") return null;
+  for (const val of Object.values(ytAccount)) {
+    if (typeof val === "string" && (val.includes("youtube.com") || val.includes("youtu.be"))) return val;
   }
   return null;
 }
@@ -311,7 +320,8 @@ async function main() {
     }
 
     // ── Media extraction ─────────────────────────────────────────────────
-    const videoUrl = extractMediaUrl(raw.video);
+    let videoUrl = extractMediaUrl(raw.video);
+    if (!videoUrl) videoUrl = extractYouTubeUrl(raw.youtube_account);
     const imageUrl = extractMediaUrl(raw.image) || extractMediaUrl(raw.thumbnailImage);
 
     // ── Rejection: No media AND no description ───────────────────────────

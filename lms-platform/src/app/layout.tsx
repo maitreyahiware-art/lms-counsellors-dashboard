@@ -4,7 +4,7 @@ import { Playfair_Display, Outfit } from "next/font/google";
 import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 import { useState, useEffect } from "react";
-import { Bell, LogOut, Loader2 } from "lucide-react";
+import { Bell, LogOut, Loader2, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Analytics } from "@vercel/analytics/react";
@@ -120,7 +120,6 @@ export default function RootLayout({
   };
 
   const isNutripreneurPage = pathname.startsWith("/nutripreneur");
-  const isNutripreneur = userRole === "nutripreneur";
 
   // Show nothing until auth is checked to prevent flickering
   if (!isAuthChecked) {
@@ -168,7 +167,7 @@ export default function RootLayout({
           )}
 
           <div
-            className={`flex-1 transition-all duration-500 ease-in-out ${(isNutripreneurPage || isNutripreneur) ? 'ml-0' : (isCollapsed ? 'ml-[88px]' : 'ml-[280px]')
+            className={`flex-1 transition-all duration-500 ease-in-out ${isNutripreneurPage ? 'ml-0' : (isCollapsed ? 'ml-[88px]' : 'ml-[280px]')
               } relative overflow-hidden`}
           >
             {/* Top Bar */}
@@ -181,6 +180,18 @@ export default function RootLayout({
               </div>
 
               <div className="flex items-center gap-6">
+                {pathname === '/educators' && (
+                  <a 
+                    href="https://mentor.balancenutrition.in/mentor-dashboard?type=Lead"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 px-6 py-2.5 bg-white border border-[#00B6C1]/20 text-[#0E5858] text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-[#00B6C1] hover:text-white transition-all transform hover:-translate-y-0.5"
+                  >
+                    <Users size={16} className="text-[#00B6C1] group-hover:text-white" />
+                    Dashboard Access
+                  </a>
+                )}
+                <div className="h-6 w-px bg-[#0E5858]/10 mx-2 hidden lg:block" />
                 <button className="relative p-2 text-[#0E5858]/60 hover:text-[#0E5858] transition-colors">
                   <Bell size={22} />
                   <span className="absolute top-2 right-2 w-2 h-2 bg-[#FFCC00] rounded-full ring-2 ring-[#FAFCEE]"></span>
