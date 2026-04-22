@@ -4,8 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Play, FileText, Instagram, Copy, CheckCheck, ExternalLink, ArrowRight, Send } from "lucide-react";
 import { CleanPost } from "@/data/social_content_clean";
-import { sendToWhatsApp } from "@/lib/whatsapp";
-
+import { sendToWhatsApp, getPostShareText } from "@/lib/whatsapp";
 interface ContentCardProps {
   post: CleanPost;
   clientPhone?: string;
@@ -36,7 +35,7 @@ export default function ContentCard({ post, clientPhone, onClick }: ContentCardP
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await navigator.clipboard.writeText(post.descriptionPlain);
+    await navigator.clipboard.writeText(getPostShareText(post));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -48,13 +47,17 @@ export default function ContentCard({ post, clientPhone, onClick }: ContentCardP
     .join(" — ");
 
   let thumbnailUrl = post.imageUrl;
-  const hasVideo = !!post.videoUrl;
+  const hasVideo = !!post.videoUrl || post.videoType === "youtube" || !!post.instagramUrl;
 
-  // Fallback for Cloudinary video thumbnails if imageUrl is missing
-  if (!thumbnailUrl && hasVideo && post.videoType === "cloudinary" && post.videoUrl) {
-    thumbnailUrl = post.videoUrl
-      .replace(".mp4", ".jpg")
-      .replace("/upload/", "/upload/so_1/"); // Get frame at 1s to avoid black first frames
+  // Fallback for video thumbnails if imageUrl is missing
+  if (!thumbnailUrl) {
+    if (post.videoType === "cloudinary" && post.videoUrl) {
+      thumbnailUrl = post.videoUrl
+        .replace(".mp4", ".jpg")
+        .replace("/upload/", "/upload/so_1/"); // Get frame at 1s to avoid black first frames
+    } else if (post.videoType === "youtube" && post.youtubeId) {
+      thumbnailUrl = `https://img.youtube.com/vi/${post.youtubeId}/hqdefault.jpg`;
+    }
   }
 
   return (
@@ -67,26 +70,35 @@ export default function ContentCard({ post, clientPhone, onClick }: ContentCardP
       className="bg-white rounded-3xl border border-[#0E5858]/8 shadow-sm hover:shadow-xl hover:border-[#00B6C1]/40 transition-all cursor-pointer group overflow-hidden"
     >
       {/* ── Thumbnail ─────────────────────────────────────────────────── */}
-      <div className="relative w-full h-36 overflow-hidden shrink-0">
+      <div className="relative w-full overflow-hidden shrink-0 bg-gray-50">
         {thumbnailUrl ? (
           <>
             <img
               src={thumbnailUrl}
               alt={post.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-auto max-h-[300px] object-contain group-hover:scale-105 transition-transform duration-500"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
           </>
         ) : (
-          <div className={`w-full h-full flex items-center justify-center ${cat.bg}`}>
-            <FileText size={32} className={`${cat.text} opacity-30`} />
+          <div className={`w-full aspect-video flex flex-col items-center justify-center p-6 text-center ${cat.bg}`}>
+            {post.instagramUrl ? (
+              <Instagram size={36} className={`${cat.text} opacity-40 mb-3`} />
+            ) : hasVideo || post.platforms?.includes("youtube") ? (
+              <Play size={36} className={`${cat.text} opacity-40 mb-3`} fill="currentColor" />
+            ) : (
+              <FileText size={36} className={`${cat.text} opacity-40 mb-3`} />
+            )}
+            <span className={`text-xs font-black uppercase tracking-wider ${cat.text} opacity-60 line-clamp-3 leading-relaxed drop-shadow-sm`}>
+              {post.title}
+            </span>
           </div>
         )}
 
         {/* Play overlay for video posts */}
         {hasVideo && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
               <Play size={18} className="text-[#0E5858] translate-x-0.5" fill="currentColor" />
             </div>
@@ -103,7 +115,7 @@ export default function ContentCard({ post, clientPhone, onClick }: ContentCardP
         </div>
 
         {/* Category accent bar (bottom of thumbnail) */}
-        <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${cat.bar}`} />
+        <div className={`absolute bottom-0 left-0 right-0 h-0.5 z-10 ${cat.bar}`} />
       </div>
 
       {/* ── Body ──────────────────────────────────────────────────────── */}

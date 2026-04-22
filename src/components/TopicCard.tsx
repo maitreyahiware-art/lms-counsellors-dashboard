@@ -1311,71 +1311,93 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                     )}
                                 </AnimatePresence>
 
-                                {/* FOOTER: THE "MARK COMPLETED" ACTION */}
+                                {/* FOOTER: SEGMENT NAVIGATION — Complete → Move Next */}
                                 <div className="pt-10 border-t border-gray-50 flex flex-col md:flex-row items-center justify-between gap-6">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-3 h-3 rounded-full ${isReadyToComplete ? 'bg-green-500 animate-pulse' : 'bg-gray-200'}`}></div>
+                                        <div className={`w-3 h-3 rounded-full transition-colors duration-500 ${isCompleted ? 'bg-[#00B6C1]' : (isReadyToComplete ? 'bg-green-400 animate-pulse' : 'bg-gray-200')}`}></div>
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                             {isCompleted ? 'Segment Completed & Logged' : (isReadyToComplete ? 'Requirements Met • Ready to Mark' : 'Incomplete Requirements')}
                                         </p>
                                     </div>
 
-                                    <button
-                                        onClick={async () => {
-                                            if (isCompleted) {
-                                                onMoveNext?.(topic.code);
-                                                return;
-                                            }
-                                            if (isSyncing) return;
-
-                                            setIsSyncing(true);
-                                            try {
-                                                // Immediate UI feedback for internal states
-                                                setVideoCompleted(true);
-                                                setSimulationCompleted(true);
-                                                setAssignmentCompleted(true);
-
-                                                // Trigger DB sync
-                                                await onToggleComplete();
-
-                                                // Optional: log specific activity
-                                                logActivity('complete_quiz', { topicCode: topic.code, contentTitle: topic.title });
-                                            } catch (err) {
-                                                console.error("Completion Sync Failed:", err);
-                                            } finally {
-                                                setTimeout(() => setIsSyncing(false), 1000);
-                                            }
-                                        }}
-                                        disabled={isSyncing}
-                                        className={`group flex items-center gap-4 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.25em] transition-all duration-500 relative transform active:scale-95 ${isCompleted
-                                            ? 'bg-[#00B6C1] text-white hover:bg-[#0E5858] hover:-translate-y-1 shadow-2xl scale-105'
-                                            : (isSyncing ? 'bg-green-500 text-white shadow-xl shadow-green-500/20' : 'bg-[#0E5858] text-white hover:bg-[#00B6C1] hover:-translate-y-1 shadow-2xl shadow-[#0E5858]/30 scale-105')
-                                            }`}
-                                    >
-                                        {!isCompleted && !isSyncing && (
-                                            <div className="absolute inset-0 bg-white/20 rounded-2xl animate-pulse pointer-events-none"></div>
-                                        )}
-                                        {isCompleted ? (
-                                            <>
-                                                <ArrowRight size={20} className="animate-pulse" />
+                                    {/* ── Two-phase CTA ── */}
+                                    {isCompleted ? (
+                                        /* ── Phase 2: Move Next (slide-in after completion) ── */
+                                        <motion.button
+                                            initial={{ opacity: 0, x: 24 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                                            onClick={() => onMoveNext?.(topic.code)}
+                                            className="group/nav-btn relative flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#0E5845] text-white font-black text-xs uppercase tracking-[0.25em] shadow-2xl shadow-[#00B6C1]/30 overflow-hidden hover:-translate-y-1 transition-all duration-300 active:scale-95"
+                                        >
+                                            {/* Hover fill layer */}
+                                            <span
+                                                className="absolute inset-0 bg-[#072C2C] origin-left scale-x-0 group-hover/nav-btn:scale-x-100 transition-transform duration-500 ease-in-out"
+                                                aria-hidden="true"
+                                            />
+                                            <span className="relative z-10 flex items-center gap-3">
+                                                {/* Tick badge */}
+                                                <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                                                    <CheckCircle2 size={14} className="text-white" />
+                                                </span>
                                                 {isLastTopic ? "Next Module" : "Move Next"}
-                                            </>
-                                        ) : (
-                                            <>
+                                                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform duration-200" />
+                                            </span>
+                                        </motion.button>
+                                    ) : (
+                                        /* ── Phase 1: Complete Segment — outlined, fills on hover ── */
+                                        <button
+                                            onClick={async () => {
+                                                if (isSyncing) return;
+                                                setIsSyncing(true);
+                                                try {
+                                                    setVideoCompleted(true);
+                                                    setSimulationCompleted(true);
+                                                    setAssignmentCompleted(true);
+                                                    await onToggleComplete();
+                                                    logActivity('complete_quiz', { topicCode: topic.code, contentTitle: topic.title });
+                                                } catch (err) {
+                                                    console.error("Completion Sync Failed:", err);
+                                                } finally {
+                                                    setTimeout(() => setIsSyncing(false), 1000);
+                                                }
+                                            }}
+                                            disabled={isSyncing}
+                                            className={`
+                                                group/nav-btn relative flex items-center gap-3 px-10 py-5 rounded-2xl
+                                                font-black text-xs uppercase tracking-[0.25em]
+                                                border-2 border-[#0E5858] text-[#0E5858]
+                                                overflow-hidden
+                                                transition-all duration-500 active:scale-95
+                                                disabled:opacity-60 disabled:cursor-not-allowed
+                                                hover:text-white hover:shadow-xl hover:shadow-[#0E5858]/30
+                                                hover:-translate-y-0.5
+                                            `}
+                                        >
+                                            {/* Hover fill layer — scoped strictly to direct button hover */}
+                                            <span
+                                                className="absolute inset-0 bg-[#072C2C] origin-left scale-x-0 group-hover/nav-btn:scale-x-100 transition-transform duration-500 ease-in-out"
+                                                aria-hidden="true"
+                                            />
+                                            {/* Syncing fill layer */}
+                                            {isSyncing && (
+                                                <span className="absolute inset-0 bg-green-500 animate-in fade-in duration-300" aria-hidden="true" />
+                                            )}
+                                            <span className="relative z-10 flex items-center gap-3">
                                                 {isSyncing ? (
                                                     <>
-                                                        <CheckCircle2 size={20} className="animate-bounce" />
+                                                        <CheckCircle2 size={18} className="animate-bounce" />
                                                         Verified!
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <CheckCircle size={20} />
+                                                        <CheckCircle size={18} />
                                                         Complete Segment
                                                     </>
                                                 )}
-                                            </>
-                                        )}
-                                    </button>
+                                            </span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

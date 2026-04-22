@@ -28,8 +28,16 @@ const HEALTH_CONDITIONS: { id: string; label: string; icon: React.ElementType; m
   { id: "child", label: "Child Nutrition", icon: Stethoscope, maps: ["Child Nutrition"] },
 ];
 
+// ── Media Format Filter Tabs ────────────────────────────────────────────────
+const MEDIA_FORMATS = [
+  { id: "all", label: "All Formats" },
+  { id: "video", label: "Video" },
+  { id: "blog", label: "Blogs" },
+  { id: "static", label: "Static" },
+];
+
 // ── Kanban Column Definitions (mapped to PostSubType) ─────────────────────
-type ColumnId = "videos" | "gyan" | "recipes" | "success" | "podcasts" | "challenges";
+type ColumnId = "general" | "gyan" | "recipes" | "success" | "podcasts" | "challenges";
 
 const KANBAN_COLUMNS: {
   id: ColumnId;
@@ -41,13 +49,13 @@ const KANBAN_COLUMNS: {
   filter: (p: CleanPost) => boolean;
 }[] = [
     {
-      id: "videos",
-      title: "Videos & Reads",
-      icon: Video,
+      id: "general",
+      title: "General",
+      icon: Users,
       color: "text-blue-500",
       bg: "bg-blue-50",
-      description: "Video reels, YouTube & articles",
-      filter: (p) => (p.mediaType === "reel" && p.videoType === "cloudinary") || p.videoType === "youtube",
+      description: "General posts, reads, and more",
+      filter: (p) => p.subType === "General",
     },
     {
       id: "gyan",
@@ -100,6 +108,7 @@ const KANBAN_COLUMNS: {
 export default function EducatorsModulePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [activeFormat, setActiveFormat] = useState("all");
   const [selectedPost, setSelectedPost] = useState<CleanPost | null>(null);
   const [clientPhone, setClientPhone] = useState("");
   const [tempPhone, setTempPhone] = useState("");
@@ -154,7 +163,20 @@ export default function EducatorsModulePage() {
       });
     }
 
-    // 2. Search filter (Enhanced Natural Language Search)
+    // 2. Format Filter
+    if (activeFormat !== "all") {
+      posts = posts.filter(p => {
+        const isVideo = !!(p.videoUrl || p.videoType === "youtube" || p.mediaType === "reel" || (p.instagramUrl && p.instagramUrl.includes("reel")));
+        const hasImage = !!p.imageUrl;
+        
+        if (activeFormat === "video") return isVideo;
+        if (activeFormat === "blog") return !isVideo && hasImage;
+        if (activeFormat === "static") return !isVideo && !hasImage;
+        return true;
+      });
+    }
+
+    // 3. Search filter (Enhanced Natural Language Search)
     if (searchQuery.trim().length >= 2) {
       const q = searchQuery.toLowerCase();
 
@@ -198,7 +220,7 @@ export default function EducatorsModulePage() {
     }
 
     return posts;
-  }, [activeTab, searchQuery, activeCondition]);
+  }, [activeTab, activeFormat, searchQuery, activeCondition]);
 
   // ── Posts per Kanban column ──────────────────────────────────────────────
   const getColumnPosts = useCallback(
@@ -272,7 +294,7 @@ export default function EducatorsModulePage() {
           </div>
 
           {/* Health condition tabs */}
-          <div id="edu-tour-health-tabs" className="flex flex-wrap justify-center gap-2.5 mb-8">
+          <div id="edu-tour-health-tabs" className="flex flex-wrap justify-center gap-2.5 mb-4">
             {HEALTH_CONDITIONS.map((condition) => {
               const isActive = activeTab === condition.id;
               const Icon = condition.icon;
@@ -287,6 +309,25 @@ export default function EducatorsModulePage() {
                 >
                   <Icon size={14} className={isActive ? "text-[#00B6C1]" : "opacity-60"} />
                   {condition.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Format tabs */}
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            {MEDIA_FORMATS.map((format) => {
+              const isActive = activeFormat === format.id;
+              return (
+                <button
+                  key={format.id}
+                  onClick={() => setActiveFormat(format.id)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${isActive
+                      ? "bg-[#0E5858] text-white shadow-md"
+                      : "bg-[#0E5858]/5 text-[#0E5858]/60 hover:bg-[#0E5858]/10"
+                    }`}
+                >
+                  {format.label}
                 </button>
               );
             })}

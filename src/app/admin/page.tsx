@@ -7,6 +7,7 @@ import {
     BookOpen,
     Brain,
     Phone,
+    MessageCircle,
     FileText,
     BarChart3,
     ChevronRight,
@@ -789,9 +790,9 @@ function AdminDashboardContent() {
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="w-10 h-10 rounded-full bg-[#00B6C1] text-white flex items-center justify-center hover:brightness-110 transition-all shadow-md shadow-[#00B6C1]/30"
-                                                title="Call / WhatsApp"
+                                                title="WhatsApp"
                                             >
-                                                <Phone size={16} />
+                                                <MessageCircle size={16} />
                                             </a>
                                             <button
                                                 onClick={() => setEmailModal({ isOpen: true, to: selectedProfile.email, userName: selectedProfile.full_name || 'Member' })}
@@ -1144,7 +1145,7 @@ function AdminDashboardContent() {
                                     </div>
                                 </div>
 
-                                <div className="bg-[#0E5858] text-white rounded-[3rem] p-10 shadow-xl space-y-8">
+                                <div className="hidden bg-[#0E5858] text-white rounded-[3rem] p-10 shadow-xl space-y-8">
                                     <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#00B6C1]">Add Audit Report</h4>
                                     <form onSubmit={handleSubmitAudit} className="space-y-4">
                                         <div>
