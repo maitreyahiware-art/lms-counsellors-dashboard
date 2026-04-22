@@ -366,7 +366,9 @@ export default function Home() {
                 <User size={24} />
               </div>
               <div>
-                <h1 className="text-3xl font-serif text-[#0E5858]">Welcome back, {userName}</h1>
+                <h1 className="text-3xl font-serif text-[#0E5858]">
+                  {completedSegments === 0 ? `Welcome, ${userName}` : `Welcome back, ${userName}`}
+                </h1>
                 <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em]">counsellor training track</p>
               </div>
             </div>
@@ -473,7 +475,9 @@ export default function Home() {
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-serif text-[#0E5858]">Training Support</h3>
             <div className="h-0.5 flex-1 bg-gray-100 mx-6 opacity-50" />
-            <button onClick={() => setShowBuddyModal(true)} className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest hover:underline transition-all">View All Mentors</button>
+            {allMentors.length >= 3 && (
+              <button onClick={() => setShowBuddyModal(true)} className="text-[10px] font-black text-[#00B6C1] uppercase tracking-widest hover:underline transition-all">View All Mentors</button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
