@@ -1434,7 +1434,7 @@ function AdminDashboardContent() {
                 ) : activeTab === 'provisioning' ? (
                     <motion.div key="provisioning" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-12 max-w-3xl mx-auto">
                         <header className="text-center pt-8">
-                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight mb-4 text-center">Provision Access</h2>
+                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight mb-4 text-center">Account Creation</h2>
                             <p className="text-gray-400 font-medium max-w-md mx-auto italic text-sm">Deploy secure credentials to new team members.</p>
                         </header>
 
@@ -1618,14 +1618,14 @@ function AdminDashboardContent() {
                                 disabled={creatingUser}
                                 className="w-full py-5 bg-[#0E5858] text-white rounded-xl font-black text-[10px] uppercase tracking-[0.3em] hover:bg-[#00B6C1] transition-all"
                             >
-                                {creatingUser ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Provision Account"}
+                                {creatingUser ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Create Account"}
                             </button>
                         </form>
                     </motion.div>
                 ) : activeTab === 'architect' ? (
                     <motion.div key="architect" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="space-y-12">
                         <header>
-                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Content Architect</h2>
+                            <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Content Uploader</h2>
                             <p className="text-gray-400 font-medium mt-3 italic text-sm">Synchronize resources across the academy.</p>
                         </header>
 
@@ -1683,7 +1683,7 @@ function AdminDashboardContent() {
                     <motion.div key="registry" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-12">
                         <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
                             <div>
-                                <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Unified Registry</h2>
+                                <h2 className="text-4xl font-serif text-[#0E5858] tracking-tight">Registry</h2>
                                 <p className="text-gray-400 font-medium mt-3 italic text-sm">Full historical searchable directory of all academy members.</p>
                             </div>
                             <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">

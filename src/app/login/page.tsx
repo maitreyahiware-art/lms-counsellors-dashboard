@@ -51,9 +51,7 @@ export default function LoginPage() {
 
         const role = profile?.role;
 
-        if (role === 'nutripreneur') {
-            router.push('/nutripreneur');
-        } else if (role === 'admin' || role === 'moderator') {
+        if (role === 'admin' || role === 'moderator') {
             router.push('/admin');
         } else {
             router.push('/');

@@ -13,10 +13,12 @@ import {
     AlertCircle,
     Brain,
     Clock,
-    Send
+    Send,
+    Mic
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import GeminiVivaRoom from "@/components/certification/GeminiVivaRoom";
 
 const sections = [
     {
@@ -66,6 +68,7 @@ const sections = [
 export default function CertificationPage() {
     const router = useRouter();
     const [started, setStarted] = useState(false);
+    const [mode, setMode] = useState<'written' | 'viva'>('written');
     const [currentSection, setCurrentSection] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
@@ -131,24 +134,24 @@ export default function CertificationPage() {
                     animate={{ opacity: 1, scale: 1 }}
                     className="premium-card bg-white p-12 text-center flex flex-col items-center"
                 >
-                    <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl ${feedback.totalScore >= 70 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
-                        {feedback.totalScore >= 70 ? <Award size={48} /> : <AlertCircle size={48} />}
+                    <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl ${feedback?.totalScore >= 70 ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                        {feedback?.totalScore >= 70 ? <Award size={48} /> : <AlertCircle size={48} />}
                     </div>
 
                     <h1 className="text-4xl font-serif text-[#0E5858] mb-4">
-                        {feedback.totalScore >= 70 ? "Certification Achieved!" : "Audit Under Review"}
+                        {feedback?.totalScore >= 70 ? "Certification Achieved!" : "Audit Under Review"}
                     </h1>
 
                     <div className="flex items-center gap-6 mb-10">
                         <div className="text-center">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Final Score</p>
-                            <p className="text-5xl font-serif text-[#0E5858]">{feedback.totalScore}%</p>
+                            <p className="text-5xl font-serif text-[#0E5858]">{feedback?.totalScore}%</p>
                         </div>
                         <div className="h-12 w-px bg-gray-100"></div>
                         <div className="text-center">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status</p>
-                            <p className={`text-xl font-bold uppercase tracking-wider ${feedback.totalScore >= 70 ? 'text-green-500' : 'text-red-500'}`}>
-                                {feedback.totalScore >= 70 ? "Expert" : "Needs Revision"}
+                            <p className={`text-xl font-bold uppercase tracking-wider ${feedback?.totalScore >= 70 ? 'text-green-500' : 'text-red-500'}`}>
+                                {feedback?.totalScore >= 70 ? "Expert" : "Needs Revision"}
                             </p>
                         </div>
                     </div>
@@ -159,7 +162,7 @@ export default function CertificationPage() {
                             Expert Auditor Feedback
                         </h3>
                         <div className="prose prose-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-                            {feedback.feedback}
+                            {feedback?.feedback}
                         </div>
                     </div>
 
@@ -206,17 +209,59 @@ export default function CertificationPage() {
                     ))}
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center gap-6">
                     <button
-                        onClick={() => setStarted(true)}
-                        className="group relative px-12 py-5 bg-[#0E5858] text-white font-bold rounded-[2rem] shadow-2xl hover:bg-[#00B6C1] transition-all duration-500 overflow-hidden"
+                        onClick={() => { setMode('written'); setStarted(true); }}
+                        className="group relative px-10 py-5 bg-[#FAFCEE] text-[#0E5858] border border-[#0E5858]/10 font-bold rounded-[2rem] hover:bg-[#0E5858] hover:text-white transition-all duration-500 overflow-hidden"
+                    >
+                        <span className="relative z-10 flex items-center gap-3">
+                            <FileText size={18} /> Written Audit 
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => { setMode('viva'); setStarted(true); }}
+                        className="group relative px-10 py-5 bg-[#0E5858] text-white font-bold rounded-[2rem] shadow-2xl hover:bg-[#00B6C1] transition-all duration-500 overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         <span className="relative z-10 flex items-center gap-3">
-                            Initialize Certification <ChevronRight size={18} />
+                            <Mic size={18} /> Conversational Viva <ChevronRight size={18} />
                         </span>
                     </button>
                 </div>
+            </main>
+        );
+    }
+
+    if (started && mode === 'viva') {
+        return (
+            <main className="p-8 lg:p-12 xl:p-20 max-w-4xl mx-auto min-h-screen">
+                <header className="mb-12 text-center">
+                     <h1 className="text-4xl font-serif text-[#0E5858] tracking-tight">Conversational <span className="text-[#00B6C1]">Viva</span></h1>
+                     <p className="text-gray-400 mt-4">Speak directly with Aria, your AI Examiner. Ensure your environment is quiet.</p>
+                </header>
+                <GeminiVivaRoom onComplete={async (score: number, feedbackText: string, vivaTranscript: any[]) => {
+                    // Save to Supabase
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (session) {
+                            await supabase.from('certification_attempts').insert([{
+                                user_id: session.user.id,
+                                score: score,
+                                full_feedback: feedbackText,
+                                answers: vivaTranscript, // Store full transcript in the answers JSON column
+                                status: score >= 70 ? 'passed' : 'failed'
+                            }]);
+                        }
+                    } catch (dbErr) {
+                        console.warn('Failed to save viva results to DB:', dbErr);
+                    }
+
+                    setFeedback({ 
+                        totalScore: score,
+                        feedback: feedbackText,
+                    });
+                    setSubmitted(true);
+                }} />
             </main>
         );
     }

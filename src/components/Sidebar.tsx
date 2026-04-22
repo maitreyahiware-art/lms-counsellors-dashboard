@@ -35,9 +35,9 @@ const adminNavItems = [
     { name: 'Training Modules', href: '/training', icon: GraduationCap },
     { name: 'Educators Module', href: '/educators', icon: BookOpen },
     { name: 'Content Bank', href: '/content-bank', icon: BarChart3 },
-    { name: 'Provision Keys', href: '/admin?tab=provisioning', icon: UserPlus },
-    { name: 'Content Architect', href: '/admin?tab=architect', icon: LayoutDashboard },
-    { name: 'Counsellor Registry', href: '/admin?tab=registry', icon: ClipboardList },
+    { name: 'Account Creation', href: '/admin?tab=provisioning', icon: UserPlus },
+    { name: 'Content Uploader', href: '/admin?tab=architect', icon: LayoutDashboard },
+    { name: 'Registry', href: '/admin?tab=registry', icon: ClipboardList },
 ];
 
 function getInitials(name: string): string {
