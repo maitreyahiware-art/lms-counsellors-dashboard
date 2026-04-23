@@ -68,13 +68,13 @@ export const syllabusData: Module[] = [
                 content: 'Study the core platform to understand the client interface.',
                 layout: 'grid',
                 links: [
-                    { label: 'BN Website', url: 'https://www.balancenutrition.in/', subtitle: 'Explore our main platform where clients book programs and track their health journey.' },
+                    { label: 'BN App - Client Journey', url: 'https://www.balancenutrition.in/', icon: 'activity', subtitle: 'Explore our main platform where clients book programs and track their health journey.' },
                     { label: 'BN Cleanse', url: 'https://bncleanse.com/', subtitle: 'Our specialized detox and cleanse program platform for rapid health resets.' },
                     { label: 'BN Recipes', icon: 'target', url: 'https://www.balancenutrition.in/recipes', subtitle: 'A database of nutritionist-approved recipes provided to all clients.' },
                     { label: 'BN Health Score', icon: 'activity', url: 'https://www.balancenutrition.in/health-score', subtitle: 'The core diagnostic tool used to quantify and monitor client health status.' },
                     { label: 'BN Health Reads', icon: 'globe', url: 'https://www.balancenutrition.in/health-reads', subtitle: 'Educational blog and research articles for client knowledge and engagement.' },
-                    { label: 'BN Program Catalogue', url: '/documents/BN_PROGRAM_CATALOGUE.pdf', icon: 'file-text', subtitle: 'Our complete program catalogue and pricing strategy.' },
-                    { label: 'BN Product Catalogue', url: '/documents/BN_SHOP_PRODUCT_CATALOGUE.pdf', icon: 'file-text', subtitle: 'Overview of all proprietary BN physical products and supplements.' }
+                    { label: 'BN Program Catalogue', url: '/documents/BN_PROGRAM_CATALOGUE.pdf', icon: 'book-open', subtitle: 'Our complete program catalogue and pricing strategy.' },
+                    { label: 'BN Product Catalogue', url: '/documents/BN_SHOP_PRODUCT_CATALOGUE.pdf', icon: 'shop', subtitle: 'Overview of all proprietary BN physical products and supplements.' }
                 ]
             },
             {
@@ -95,10 +95,10 @@ export const syllabusData: Module[] = [
                 links: [
                     { label: 'Instagram @balancenutrition.in', url: 'balancenutrition.in', icon: 'instagram', isCopyOnly: true },
                     { label: 'Instagram @nutritionwithkhyati', url: 'nutritionwithkhyati', icon: 'instagram', isCopyOnly: true },
-                    { label: 'LinkedIn BN', url: 'https://www.linkedin.com/company/balance-nutrition-weight-loss-&-more/' },
-                    { label: 'LinkedIn Khyati', url: 'https://www.linkedin.com/in/nutritionistkhyatirupani' },
-                    { label: 'YouTube', url: 'https://youtube.com/c/BalanceNutrition' },
-                    { label: 'Facebook', url: 'https://www.facebook.com/khyati.rupani.3?mibextid=wwXIfr' }
+                    { label: 'LinkedIn BN', url: 'https://www.linkedin.com/company/balance-nutrition-weight-loss-&-more/', icon: 'linkedin' },
+                    { label: 'LinkedIn Khyati', url: 'https://www.linkedin.com/in/nutritionistkhyatirupani', icon: 'linkedin' },
+                    { label: 'YouTube', url: 'https://youtube.com/c/BalanceNutrition', icon: 'youtube' },
+                    { label: 'Facebook', url: 'https://www.facebook.com/khyati.rupani.3?mibextid=wwXIfr', icon: 'facebook' }
                 ]
             }
         ]

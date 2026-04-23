@@ -145,31 +145,40 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, userName, userEma
             {/* Nav Items */}
             <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
                 {currentNavItems.map((item) => {
-                    const isActive = pathname === item.href || (item.href.includes('?') ? pathname === item.href.split('?')[0] : pathname === item.href);
-
-                    // Better tab detection using useSearchParams
-                    const tabParam = item.href.split('tab=')[1];
+                    const basePath = item.href.split('?')[0];
+                    const hasTab = item.href.includes('tab=');
+                    const tabParam = hasTab ? item.href.split('tab=')[1] : null;
                     const currentTab = searchParams.get('tab');
-                    const isTabActive = tabParam && currentTab === tabParam;
+
+                    const isPathMatch = pathname === basePath || (basePath !== '/' && pathname.startsWith(basePath));
+                    
+                    let isActive = false;
+                    if (isPathMatch) {
+                        if (hasTab) {
+                            isActive = currentTab === tabParam || (!currentTab && tabParam === 'hub');
+                        } else {
+                            isActive = true;
+                        }
+                    }
 
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
-                            className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative ${isActive || isTabActive
+                            className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group relative ${isActive
                                 ? 'bg-gradient-to-r from-[#00B6C1] to-[#00B6C1]/80 text-white shadow-[0_10px_20px_-5px_rgba(0,182,193,0.4)]'
                                 : 'text-[#FAFCEE]/40 hover:bg-white/5 hover:text-white'
                                 }`}
                         >
-                            {(isActive || isTabActive) && (
+                            {isActive && (
                                 <motion.div
                                     layoutId="sidebar-active"
                                     className="absolute left-0 w-1.5 h-6 bg-white rounded-r-full"
                                 />
                             )}
-                            <item.icon size={22} className={`shrink-0 transition-transform duration-500 ${(isActive || isTabActive) ? 'scale-110' : 'group-hover:scale-110'}`} />
+                            <item.icon size={22} className={`shrink-0 transition-transform duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                             {!isCollapsed && (
-                                <span className={`font-medium transition-all ${(isActive || isTabActive) ? 'text-white' : ''}`}>
+                                <span className={`font-medium transition-all ${isActive ? 'text-white' : ''}`}>
                                     {item.name}
                                 </span>
                             )}
