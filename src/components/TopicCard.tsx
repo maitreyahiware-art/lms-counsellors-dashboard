@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     CheckCircle,
@@ -40,8 +40,11 @@ import {
     Headphones,
     Mic,
     Layers,
-    Copy,
-    Instagram
+    Instagram,
+    Linkedin,
+    Youtube,
+    Facebook,
+    Copy
 } from "lucide-react";
 import YouTubePlayer from "./YouTubePlayer";
 import AcademySimulator from "./AcademySimulator";
@@ -61,6 +64,44 @@ interface TopicCardProps {
     userId?: string;
     isEditMode?: boolean;
     onEdit?: (updatedFields: Partial<Topic>) => void;
+}
+
+// Internal component for handling raw HTML5 video elements with auto-pause
+function RawVideoPlayer({ src }: { src: string }) {
+    const videoRef = React.useRef<HTMLVideoElement>(null);
+
+    React.useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        const handlePlay = () => {
+            window.dispatchEvent(new CustomEvent('video-playing', { detail: { id: src } }));
+        };
+
+        const handleGlobalPlay = (e: any) => {
+            if (e.detail?.id !== src && video && !video.paused) {
+                video.pause();
+            }
+        };
+
+        video.addEventListener('play', handlePlay);
+        window.addEventListener('video-playing', handleGlobalPlay);
+
+        return () => {
+            video.removeEventListener('play', handlePlay);
+            window.removeEventListener('video-playing', handleGlobalPlay);
+        };
+    }, [src]);
+
+    return (
+        <video
+            ref={videoRef}
+            src={src}
+            className="w-full h-full object-cover"
+            controls
+            playsInline
+        />
+    );
 }
 
 function getEmbedUrl(url: string | undefined): string | null {
@@ -101,6 +142,20 @@ function getYouTubeVideoId(url: string | undefined): string | null {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function getVideoThumbnail(url: string | undefined): string | null {
+    if (!url) return null;
+    const ytId = getYouTubeVideoId(url);
+    if (ytId) return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    
+    if (url.includes('drive.google.com/file/d/')) {
+        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+        }
+    }
+    return null;
 }
 
 function getDocEmbedUrl(url: string | null): string {
@@ -417,6 +472,15 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                             }`}>
                             <div className="flex justify-between items-center mb-8">
                                 <div className="flex items-center gap-6">
+                                    {/* Back Button */}
+                                    <button
+                                        onClick={() => setSelectedDocument(null)}
+                                        className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/10 mr-4 group"
+                                    >
+                                        <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
+                                    </button>
+
                                     {/* Navigation Controls */}
                                     <div className="flex items-center gap-2">
                                         {(() => {
@@ -708,12 +772,12 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                             }
                                                             if (link.isPopup) {
                                                                 setShowHealthPopup(true);
-                                                            } else if (isDocs) {
-                                                                setSelectedDocument({ url: link.url, label: link.label });
                                                             } else if (isVideo) {
                                                                 setActiveGridVideo(link.url);
-                                                            } else {
+                                                            } else if (isDocs) {
                                                                 setSelectedDocument({ url: link.url, label: link.label });
+                                                            } else {
+                                                                window.open(link.url, '_blank');
                                                             }
                                                             logActivity('click_link', { topicCode: topic.code, contentTitle: link.label });
                                                         }}
@@ -730,11 +794,17 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                 >
                                                                     <X size={20} />
                                                                 </button>
-                                                                <iframe
-                                                                    src={getEmbedUrl(link.url) || link.url}
-                                                                    className="w-full h-full border-0"
-                                                                    allow="fullscreen"
-                                                                />
+                                                                {getYouTubeVideoId(link.url) ? (
+                                                                    <YouTubePlayer videoId={getYouTubeVideoId(link.url)!} onComplete={() => {}} topicCode={topic.code} topicTitle={link.label} />
+                                                                ) : (link.url.toLowerCase().endsWith('.mp4') || link.url.toLowerCase().endsWith('.mov') || link.url.includes('res.cloudinary.com')) ? (
+                                                                    <RawVideoPlayer src={link.url} />
+                                                                ) : (
+                                                                    <iframe
+                                                                        src={getEmbedUrl(link.url) || link.url}
+                                                                        className="w-full h-full border-0"
+                                                                        allow="fullscreen"
+                                                                    />
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <>
@@ -744,14 +814,37 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                             <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center group-hover/grid-card:scale-110 transition-transform z-20">
                                                                                 <Play size={32} className="text-white fill-current translate-x-1" />
                                                                             </div>
-                                                                            <img
-                                                                                src={`https://images.unsplash.com/photo-1576091160550-217359f4bd01?w=800&q=80&auto=format&fit=crop`}
-                                                                                className="w-full h-full object-cover opacity-60 grayscale group-hover/grid-card:grayscale-0 transition-all duration-700"
-                                                                                alt="Video Preview"
-                                                                            />
+                                                                            {getVideoThumbnail(link.url) ? (
+                                                                                <>
+                                                                                    <div className="absolute inset-0 bg-gradient-to-br from-[#0E5858] to-[#00B6C1] opacity-60 group-hover/grid-card:opacity-90 transition-all duration-700 -z-10" />
+                                                                                    <img
+                                                                                        src={getVideoThumbnail(link.url)!}
+                                                                                        className="absolute inset-0 w-full h-full object-cover opacity-60 grayscale group-hover/grid-card:grayscale-0 transition-all duration-700"
+                                                                                        alt="Video Preview"
+                                                                                        onError={(e) => {
+                                                                                            (e.target as HTMLElement).style.opacity = '0';
+                                                                                        }}
+                                                                                    />
+                                                                                </>
+                                                                            ) : (link.url.toLowerCase().endsWith('.mp4') || link.url.toLowerCase().endsWith('.mov') || link.url.includes('res.cloudinary.com')) ? (
+                                                                                <video
+                                                                                    src={`${link.url}#t=0.5`}
+                                                                                    className="absolute inset-0 w-full h-full object-cover opacity-60 grayscale group-hover/grid-card:grayscale-0 transition-all duration-700 pointer-events-none"
+                                                                                    preload="metadata"
+                                                                                    muted
+                                                                                    playsInline
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="absolute inset-0 bg-gradient-to-br from-[#0E5858] to-[#00B6C1] opacity-60 group-hover/grid-card:opacity-90 transition-all duration-700" />
+                                                                            )}
                                                                         </div>
                                                                     ) : (
-                                                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl group-hover/grid-card:scale-110 transition-transform ${link.isCopyOnly ? 'bg-gradient-to-br from-[#E1306C] to-[#833AB4] text-white' : 'bg-white text-[#00B6C1]'}`}>
+                                                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl group-hover/grid-card:scale-110 transition-transform 
+                                                                            ${link.icon === 'instagram' ? 'bg-gradient-to-br from-[#E1306C] to-[#833AB4] text-white' : 
+                                                                              link.icon === 'linkedin' ? 'bg-[#0A66C2] text-white' :
+                                                                              link.icon === 'youtube' ? 'bg-[#FF0000] text-white' :
+                                                                              link.icon === 'facebook' ? 'bg-[#1877F2] text-white' :
+                                                                              link.isCopyOnly ? 'bg-gradient-to-br from-[#E1306C] to-[#833AB4] text-white' : 'bg-white text-[#00B6C1]'}`}>
                                                                             {link.icon === 'shop' && <ShoppingBag size={28} />}
                                                                             {link.icon === 'target' && <Target size={28} />}
                                                                             {link.icon === 'globe' && <Globe size={28} />}
@@ -762,7 +855,11 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                             {link.icon === 'flask' && <FlaskConical size={28} />}
                                                                             {link.icon === 'school' && <School size={28} />}
                                                                             {link.icon === 'instagram' && <Instagram size={28} />}
-                                                                            {!link.icon && <FileText size={28} />}
+                                                                            {link.icon === 'linkedin' && <Linkedin size={28} />}
+                                                                            {link.icon === 'youtube' && <Youtube size={28} />}
+                                                                            {link.icon === 'facebook' && <Facebook size={28} />}
+                                                                            {link.icon === 'book-open' && <BookOpen size={28} />}
+                                                                            {(link.icon === 'file-text' || !link.icon) && <FileText size={28} />}
                                                                         </div>
                                                                     )}
                                                                     {/* Copied Toast */}
@@ -991,10 +1088,16 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                                 setTimeout(() => setCopiedId(null), 2000);
                                                                 return;
                                                             }
+                                                            
+                                                            const isVideo = link.url.toLowerCase().endsWith('.mp4') || link.url.toLowerCase().endsWith('.mov') || link.url.includes('drive.google.com/file/d/');
+                                                            const isDocs = !isVideo && (link.isPopup || link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.toLowerCase().includes('.pdf') || link.label.toLowerCase().includes('catalogue') || link.label.toLowerCase().includes('catelogue'));
+
                                                             if (link.isPopup) {
                                                                 setShowHealthPopup(true);
-                                                            } else {
+                                                            } else if (isDocs) {
                                                                 setSelectedDocument({ url: link.url, label: link.label });
+                                                            } else {
+                                                                window.open(link.url, '_blank');
                                                             }
                                                             logActivity('click_link', { topicCode: topic.code, contentTitle: link.label });
                                                         }}
@@ -1245,6 +1348,8 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                         <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-gray-100 ring-1 ring-black/[0.03]">
                                             {embedUrl.includes('youtube.com') ? (
                                                 <YouTubePlayer videoId={embedUrl.split('/').pop() || ''} onComplete={handleVideoComplete} topicCode={topic.code} topicTitle={topic.title} />
+                                            ) : (embedUrl.toLowerCase().endsWith('.mp4') || embedUrl.toLowerCase().endsWith('.mov') || embedUrl.includes('res.cloudinary.com')) ? (
+                                                <RawVideoPlayer src={embedUrl} />
                                             ) : (
                                                 <iframe
                                                     src={embedUrl}

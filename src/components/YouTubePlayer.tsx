@@ -19,9 +19,24 @@ interface YouTubePlayerProps {
 
 export default function YouTubePlayer({ videoId, onComplete, topicCode, topicTitle }: YouTubePlayerProps) {
     const playerRef = useRef<any>(null);
-    // Use a stable, unique ID for this instance's container
     const [instanceId] = useState(() => `yt-player-${Math.random().toString(36).substr(2, 9)}`);
     const containerId = instanceId;
+
+    // Handle cross-player auto-pause
+    useEffect(() => {
+        const handleGlobalPlay = (e: any) => {
+            if (e.detail?.id !== instanceId && playerRef.current) {
+                try {
+                    if (playerRef.current.getPlayerState() === 1) {
+                        playerRef.current.pauseVideo();
+                    }
+                } catch (err) { /* ignore */ }
+            }
+        };
+
+        window.addEventListener('video-playing', handleGlobalPlay);
+        return () => window.removeEventListener('video-playing', handleGlobalPlay);
+    }, [instanceId]);
 
     useEffect(() => {
         let isMounted = true;
@@ -93,10 +108,13 @@ export default function YouTubePlayer({ videoId, onComplete, topicCode, topicTit
         }
 
         function onPlayerStateChange(event: any) {
-            if (event.data === 1) { // PLAYING
+            // YT.PlayerState.PLAYING is 1
+            if (event.data === 1) {
+                window.dispatchEvent(new CustomEvent('video-playing', { detail: { id: instanceId } }));
                 logActivity('watch_video', { topicCode, contentTitle: topicTitle || 'Video Started' });
             }
-            if (event.data === 0) { // ENDED
+            // YT.PlayerState.ENDED is 0
+            if (event.data === 0) {
                 onComplete();
                 logActivity('watch_video', { topicCode, contentTitle: `${topicTitle || 'Video'} Completed` });
             }
@@ -107,7 +125,6 @@ export default function YouTubePlayer({ videoId, onComplete, topicCode, topicTit
         };
     }, [videoId, onComplete, topicCode, topicTitle]);
 
-    // Proper cleanup on unmount only
     useEffect(() => {
         return () => {
             if (playerRef.current && playerRef.current.destroy) {

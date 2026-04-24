@@ -929,7 +929,6 @@ export default function ModulePage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                                 <button
                                                     onClick={() => {
-                                                        setShowHealthPopup(false);
                                                         setSelectedDocument({ url: '/Doctor_X_BN_Life.pdf', label: 'Nutritional Integration' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
@@ -946,7 +945,6 @@ export default function ModulePage() {
 
                                                 <button
                                                     onClick={() => {
-                                                        setShowHealthPopup(false);
                                                         setSelectedDocument({ url: '/BN_Smart_Clinic_Pitch.pdf', label: 'BN Smart Clinic' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
@@ -963,7 +961,6 @@ export default function ModulePage() {
 
                                                 <button
                                                     onClick={() => {
-                                                        setShowHealthPopup(false);
                                                         setSelectedDocument({ url: '/HCP_Doc.pdf', label: 'HCP Document' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
@@ -982,7 +979,6 @@ export default function ModulePage() {
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                                 <button
                                                     onClick={() => {
-                                                        setShowHealthPopup(false);
                                                         setSelectedDocument({ url: '/Pharma_Pitch_Deck.pdf', label: 'Pharma Partnerships' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
@@ -999,7 +995,6 @@ export default function ModulePage() {
 
                                                 <button
                                                     onClick={() => {
-                                                        setShowHealthPopup(false);
                                                         setSelectedDocument({ url: '/BN_Chemist_Deck.pdf', label: 'Chemist Partnerships' });
                                                     }}
                                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
@@ -1052,7 +1047,6 @@ export default function ModulePage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <button
                                     onClick={() => {
-                                        setShowGymPopup(false);
                                         setSelectedDocument({ url: '/docs/BNXFitnessFirst_Context.pdf', label: 'Gym Partnership Context' });
                                     }}
                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
@@ -1069,7 +1063,6 @@ export default function ModulePage() {
 
                                 <button
                                     onClick={() => {
-                                        setShowGymPopup(false);
                                         setSelectedDocument({ url: '/docs/gym-brochure.pdf', label: 'Gym Brochure' });
                                     }}
                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer"
@@ -1086,7 +1079,6 @@ export default function ModulePage() {
 
                                 <button
                                     onClick={() => {
-                                        setShowGymPopup(false);
                                         setSelectedDocument({ url: '/Gym_Partnerships.pdf', label: 'Gym Partnerships' });
                                     }}
                                     className="p-7 group bg-[#FAFCEE] rounded-3xl border-2 border-transparent hover:border-[#00B6C1]/20 flex flex-col gap-3 text-center items-center transition-all shadow-sm hover:shadow-xl cursor-pointer sm:col-span-2"
@@ -1117,9 +1109,18 @@ export default function ModulePage() {
                     >
                         <div className="w-full max-w-5xl">
                             <div className="flex justify-between items-center mb-8">
-                                <div>
-                                    <h3 className="text-3xl font-serif text-white mb-1">{selectedDocument.label}</h3>
-                                    <p className="text-[#00B6C1] text-xs font-bold uppercase tracking-widest">Document Viewer</p>
+                                <div className="flex items-center gap-6">
+                                    <button
+                                        onClick={() => setSelectedDocument(null)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/10 group"
+                                    >
+                                        <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
+                                    </button>
+                                    <div>
+                                        <h3 className="text-3xl font-serif text-white mb-1">{selectedDocument.label}</h3>
+                                        <p className="text-[#00B6C1] text-xs font-bold uppercase tracking-widest">Document Viewer</p>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setSelectedDocument(null)}

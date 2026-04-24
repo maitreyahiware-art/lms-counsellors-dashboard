@@ -227,10 +227,10 @@ export default function AssignmentForm({ topicCode, questions, persona, onComple
                         </div>
                         <button
                             onClick={() => setStep("define-persona")}
-                            className="w-full py-5 bg-[#0E5858] text-white rounded-2xl text-[11px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-3 shadow-xl shadow-[#0E5858]/20"
+                            className="w-full py-5 bg-[#0E5858] text-white rounded-2xl text-[11px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-3 shadow-xl shadow-[#0E5858]/20 group"
                         >
                             Continue to Create Mine
-                            <ArrowRight size={18} />
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </motion.div>
                 )}
@@ -253,14 +253,24 @@ export default function AssignmentForm({ topicCode, questions, persona, onComple
                                 className="w-full p-6 bg-white border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-[#00B6C1]/20 focus:border-[#00B6C1] outline-none"
                             />
                         </div>
-                        <button
-                            onClick={() => setStep("selection")}
-                            disabled={!userPersona.story || !userPersona.goal}
-                            className={`w-full py-5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all ${!userPersona.story || !userPersona.goal ? 'bg-gray-50 text-gray-300' : 'bg-[#0E5858] text-white'}`}
-                        >
-                            Lock Persona & Select Peers
-                            <ArrowRight size={18} />
-                        </button>
+                        <div className="flex gap-4">
+                            {persona && (
+                                <button
+                                    onClick={() => setStep("persona")}
+                                    className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                    Back
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setStep("selection")}
+                                disabled={!userPersona.story || !userPersona.goal}
+                                className={`flex-[2] py-5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all group ${!userPersona.story || !userPersona.goal ? 'bg-gray-50 text-gray-300' : 'bg-[#0E5858] text-white shadow-xl shadow-[#0E5858]/20'}`}
+                            >
+                                Lock Persona & Select Peers
+                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
                     </motion.div>
                 )}
 
@@ -308,17 +318,25 @@ export default function AssignmentForm({ topicCode, questions, persona, onComple
                                 </div>
                             </div>
                         </div>
-                        <button
-                            onClick={() => {
-                                setStep("questions");
-                                logActivity('start_assignment', { topicCode, contentTitle: 'Peer Audit Task Initialized' });
-                            }}
-                            disabled={selectedCompanies.length < 2 || selectedDieticians.length < 2}
-                            className={`w-full py-5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all ${selectedCompanies.length < 2 || selectedDieticians.length < 2 ? 'bg-gray-50 text-gray-300' : 'bg-[#0E5858] text-white shadow-xl'}`}
-                        >
-                            Initialize Audit Matrix
-                            <ArrowRight size={18} />
-                        </button>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setStep("define-persona")}
+                                className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setStep("questions");
+                                    logActivity('start_assignment', { topicCode, contentTitle: 'Peer Audit Task Initialized' });
+                                }}
+                                disabled={selectedCompanies.length < 2 || selectedDieticians.length < 2}
+                                className={`flex-[2] py-5 rounded-2xl text-[11px] font-bold uppercase tracking-[0.25em] flex items-center justify-center gap-3 transition-all group ${selectedCompanies.length < 2 || selectedDieticians.length < 2 ? 'bg-gray-50 text-gray-300' : 'bg-[#0E5858] text-white shadow-xl shadow-[#0E5858]/20'}`}
+                            >
+                                Initialize Audit Matrix
+                                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
                     </motion.div>
                 )}
 
@@ -386,14 +404,12 @@ export default function AssignmentForm({ topicCode, questions, persona, onComple
                             )}
 
                             <div className="flex gap-4">
-                                {currentQuestionIndex > 0 && (
-                                    <button
-                                        onClick={handlePrev}
-                                        className="flex-1 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] bg-gray-50 text-gray-400 hover:bg-gray-100 transition-all flex items-center justify-center gap-3"
-                                    >
-                                        Previous
-                                    </button>
-                                )}
+                                <button
+                                    onClick={currentQuestionIndex > 0 ? handlePrev : () => setStep("selection")}
+                                    className="flex-1 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] bg-gray-50 text-gray-400 hover:bg-gray-100 transition-all flex items-center justify-center gap-3"
+                                >
+                                    Back
+                                </button>
 
                                 {currentQuestionIndex < questions.length - 1 ? (
                                     <button

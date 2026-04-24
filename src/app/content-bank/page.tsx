@@ -13,8 +13,8 @@ import {
     Play,
     Clock,
     User,
-    X,
-    Maximize2
+    Maximize2,
+    ChevronLeft
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -134,14 +134,7 @@ function ContentBankContent() {
 
         // Category filter
         if (selectedCategory === "All") {
-            // "All" now shows items that ARE NOT in any defined non-empty folder
-            const inAnyFolder = nonEmptyFolders.some(f => 
-                r.code.startsWith(f.prefix) || 
-                r.title.toLowerCase().includes(f.name.toLowerCase()) ||
-                (r.code.includes('P1') && f.prefix === 'P1') ||
-                (r.code.includes('P2') && f.prefix === 'P2')
-            );
-            return !inAnyFolder;
+            return true;
         }
         
         // Exact folder matching
@@ -189,15 +182,24 @@ function ContentBankContent() {
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="relative w-full max-w-6xl aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl"
                         >
-                            <button
-                                onClick={() => setSelectedVideo(null)}
-                                className="absolute top-6 right-6 z-[110] w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all border border-white/10"
-                            >
-                                <X size={24} />
-                            </button>
+                            <div className="absolute top-6 left-10 right-10 flex items-center justify-between z-[110]">
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={() => setSelectedVideo(null)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/10 group"
+                                    >
+                                        <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
+                                    </button>
+                                    <h2 className="text-white text-xl font-serif bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10">{selectedVideo.title}</h2>
+                                </div>
 
-                            <div className="absolute top-6 left-10 z-[110] pointer-events-none">
-                                <h2 className="text-white text-xl font-serif bg-black/40 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10">{selectedVideo.title}</h2>
+                                <button
+                                    onClick={() => setSelectedVideo(null)}
+                                    className="w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all border border-white/10"
+                                >
+                                    <X size={24} />
+                                </button>
                             </div>
 
                             <iframe
@@ -250,15 +252,20 @@ function ContentBankContent() {
             </div>
 
             {resourceModule ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                    {filteredResources.map((resource) => {
-                        const ytId = resource.links ? getYouTubeId(resource.links[0]?.url) : null;
+                <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
+                    <AnimatePresence mode="popLayout">
+                        {filteredResources.map((resource) => {
+                            const ytId = resource.links ? getYouTubeId(resource.links[0]?.url) : null;
 
-                        return (
-                            <motion.div
-                                key={resource.code}
-                                variants={itemVariants}
-                                className="group cursor-pointer flex flex-col"
+                            return (
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                                    transition={{ duration: 0.4 }}
+                                    key={resource.code}
+                                    className="group cursor-pointer flex flex-col"
                                 onClick={() => {
                                     if (ytId) {
                                         setSelectedVideo({ id: ytId, title: resource.title });
@@ -364,7 +371,8 @@ function ContentBankContent() {
                             </motion.div>
                         );
                     })}
-                </div>
+                    </AnimatePresence>
+                </motion.div>
             ) : (
                 <div className="premium-card p-20 text-center flex flex-col items-center border-dashed border-2">
                     <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-6">

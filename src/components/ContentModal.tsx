@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Instagram, Copy, CheckCheck, ExternalLink, Play,
-  Calendar, Tag, Globe, Video, FileText, ChevronDown, ChevronUp, Send
+  Calendar, Tag, Globe, Video, FileText, ChevronDown, ChevronUp, Send, ChevronLeft
 } from "lucide-react";
 import { CleanPost } from "@/data/social_content_clean";
 import { sendToWhatsApp, getPostShareText } from "@/lib/whatsapp";
+import YouTubePlayer from "./YouTubePlayer";
 
 interface ContentModalProps {
   post: CleanPost;
@@ -37,6 +38,7 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
   const [copied, setCopied] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const cat = CATEGORY_COLORS[post.category] ?? CATEGORY_COLORS["General"];
 
   // Close on Escape
@@ -51,6 +53,30 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
+
+  // Handle auto-pause for raw video tag
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handlePlay = () => {
+      window.dispatchEvent(new CustomEvent('video-playing', { detail: { id: 'cloudinary-modal-video' } }));
+    };
+
+    const handleGlobalPlay = (e: any) => {
+      if (e.detail?.id !== 'cloudinary-modal-video' && video) {
+        video.pause();
+      }
+    };
+
+    video.addEventListener('play', handlePlay);
+    window.addEventListener('video-playing', handleGlobalPlay);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      window.removeEventListener('video-playing', handleGlobalPlay);
+    };
+  }, [post.videoUrl]);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(getPostShareText(post));
@@ -87,18 +113,17 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
           {/* ── Media Area ──────────────────────────────────────────────── */}
           <div className="relative w-full bg-[#0E5858]/5 shrink-0">
             {post.videoType === "youtube" && post.youtubeId ? (
-              <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-                <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src={`https://www.youtube.com/embed/${post.youtubeId}?autoplay=0&rel=0`}
-                  title={post.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
+              <div className="relative w-full">
+                <YouTubePlayer
+                  videoId={post.youtubeId}
+                  onComplete={() => {}}
+                  topicTitle={post.title}
                 />
               </div>
             ) : post.videoType === "cloudinary" && post.videoUrl ? (
               <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
                 <video
+                  ref={videoRef}
                   className="absolute inset-0 w-full h-full object-cover"
                   src={post.videoUrl}
                   controls
@@ -127,13 +152,23 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
               </div>
             )}
 
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
-            >
-              <X size={18} />
-            </button>
+            {/* Navigation Header */}
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+              <button
+                onClick={onClose}
+                className="flex items-center gap-2 px-3 py-1.5 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-all backdrop-blur-sm group"
+              >
+                <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+                <span className="text-[9px] font-black uppercase tracking-widest">Back</span>
+              </button>
+
+              <button
+                onClick={onClose}
+                className="w-10 h-10 bg-black/40 hover:bg-black/60 text-white rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             {/* Media Type Badge */}
             <div className="absolute top-4 left-4">

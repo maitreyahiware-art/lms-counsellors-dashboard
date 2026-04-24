@@ -193,15 +193,14 @@ export default function RootLayout({
                 )}
                 <div className="h-6 w-px bg-[#0E5858]/10 mx-2 hidden lg:block" />
                 <button className="relative p-2 text-[#0E5858]/60 hover:text-[#0E5858] transition-colors">
-                  <Bell size={22} />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#FFCC00] rounded-full ring-2 ring-[#FAFCEE]"></span>
+                  < Bell size={2} />
                 </button>
                 <button
                   onClick={handleLogout}
                   className="p-2 text-[#0E5858]/40 hover:text-red-500 transition-colors group relative"
                   title="Logout"
                 >
-                  <LogOut size={22} />
+                  <LogOut size={30} />
                   <span className="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl pointer-events-none">Sign Out</span>
                 </button>
               </div>
