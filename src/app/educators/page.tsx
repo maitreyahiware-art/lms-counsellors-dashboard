@@ -11,13 +11,11 @@ import { CLEAN_POSTS, CleanPost, ContentCategory } from "@/data/social_content_c
 import ContentCard from "@/components/ContentCard";
 import ContentModal from "@/components/ContentModal";
 import EducatorsTour from "@/components/EducatorsTour";
+import { rankByRelevance, RankableItem } from "@/lib/searchRanking";
 
 // ── Health Filter Tabs — 8 official conditions + All ────────────────────────
 const HEALTH_CONDITIONS: { id: string; label: string; icon: React.ElementType; maps: string[] }[] = [
   { id: "all", label: "All Content", icon: Users, maps: [] },
-  { id: "wellness", label: "General Wellness", icon: Sparkles, maps: ["General"] },
-  { id: "transformation", label: "Body Transformation", icon: TrendingUp, maps: [] },
-  { id: "sculpting", label: "Body Sculpting", icon: Dumbbell, maps: [] },
   { id: "pcos", label: "PCOS", icon: Droplets, maps: ["PCOS"] },
   { id: "pregnancy", label: "Pregnancy", icon: Baby, maps: ["Pregnancy"] },
   { id: "menopause", label: "Menopause", icon: Flame, maps: ["Menopause"] },
@@ -176,7 +174,7 @@ export default function EducatorsModulePage() {
       });
     }
 
-    // 3. Search filter (Enhanced Natural Language Search)
+    // 3. Search filter (Enhanced Natural Language Search) + Relevance Ranking
     if (searchQuery.trim().length >= 2) {
       const q = searchQuery.toLowerCase();
 
@@ -201,6 +199,7 @@ export default function EducatorsModulePage() {
         "hormone": ["hormone", "thyroid", "pcos", "menopause", "pregnancy"],
       };
 
+      // Step 1: Filter posts using semantic token matching (existing logic)
       posts = posts.filter((p) => {
         const fullText = `${p.title} ${p.descriptionPlain} ${p.category} ${p.subType} ${p.tags.join(" ")}`.toLowerCase();
 
@@ -217,6 +216,17 @@ export default function EducatorsModulePage() {
 
         return false;
       });
+
+      // Step 2: Rank filtered posts by relevance (title > tags > description top > description body)
+      const rankableItems: (CleanPost & RankableItem)[] = posts.map(p => ({
+        ...p,
+        description: p.descriptionPlain,
+        code: p.id,
+      }));
+
+      posts = rankByRelevance(rankableItems, searchQuery).length > 0
+        ? rankByRelevance(rankableItems, searchQuery) as unknown as CleanPost[]
+        : posts; // fallback: keep original order if ranking returns empty (edge case)
     }
 
     return posts;
