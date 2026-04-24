@@ -27,7 +27,7 @@ export interface Topic {
     caseStudyLinks?: string[];
     caseStudies?: { label: string; url: string; thumbnail?: string }[];
     persona?: { story: string; goal: string };
-    links?: { label: string; url: string; subtitle?: string; icon?: string; isPopup?: boolean; isCopyOnly?: boolean; subLinks?: { label: string; url: string }[] }[];
+    links?: { label: string; url: string; thumbnail?: string; subtitle?: string; icon?: string; isPopup?: boolean; isCopyOnly?: boolean; subLinks?: { label: string; url: string }[] }[];
     layout?: 'default' | 'grid';
     isBooking?: boolean;
     bookingUrl?: string;
@@ -436,22 +436,10 @@ export const syllabusData: Module[] = [
                 links: [{ label: 'Watch Video', url: 'https://youtu.be/DlZCZRNHZfc' }]
             },
             {
-                code: 'VB-04',
-                title: 'Sales Training: Day 2',
-                content: 'Advanced mock phone consultation training sessions.',
-                links: [{ label: 'Watch Video', url: 'https://youtu.be/ImRXwJgQOqk' }]
-            },
-            {
                 code: 'VB-05',
                 title: 'Sales Training: Day 3 (Part 1)',
                 content: 'Analysis of old client calls and OC calls observation.',
                 links: [{ label: 'Watch Video', url: 'https://youtu.be/e_WOl6UuWMg' }]
-            },
-            {
-                code: 'VB-06',
-                title: 'Sales Training: Day 3 (Part 2)',
-                content: 'Handling bad feedback or poor results from old clients.',
-                links: [{ label: 'Watch Video', url: 'https://youtu.be/W2FKSOOA6Q0' }]
             },
             {
                 code: 'VB-07',
@@ -511,7 +499,7 @@ export const syllabusData: Module[] = [
                 code: 'PV-P1-04',
                 title: 'Slim Smart30',
                 content: 'Phase 1: 30-day intensive weight loss walkthrough.',
-                links: [{ label: 'Watch Training', url: 'https://youtu.be/4U56FpjvteM' }]
+                links: [{ label: 'Watch Training', thumbnail: 'https://img.youtube.com/vi/4U56FpjvteM/hqdefault.jpg', url: 'https://www.youtube.com/watch?v=4U56FpjvteM' }]
             },
             {
                 code: 'PV-P2-01',
@@ -523,13 +511,7 @@ export const syllabusData: Module[] = [
                 code: 'PV-P2-02',
                 title: 'Body Transformation Program',
                 content: 'Phase 2: Holistic transformation and lifestyle correction.',
-                links: [{ label: 'Watch Training', url: 'https://www.youtube.com/watch?v=vtLWQ9HI18U' }]
-            },
-            {
-                code: 'PV-P2-03',
-                title: 'Plateau Breaker Program',
-                content: 'Phase 2: Scientific strategies to overcome weight loss plateaus.',
-                links: [{ label: 'Watch Training', url: 'https://www.youtube.com/watch?v=Ex1d94x7b-A' }]
+                links: [{ label: 'Watch Training', thumbnail: 'https://img.youtube.com/vi/vtLWQ9HI18U/hqdefault.jpg', url: 'https://youtu.be/vtLWQ9HI18U' }]
             },
             {
                 code: 'PV-P2-04',
