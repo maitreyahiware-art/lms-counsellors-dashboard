@@ -19864,7 +19864,7 @@ export const CLEAN_POSTS: CleanPost[] = [
   {
     "id": "865",
     "title": "Busting Myth About Perimenopause part 2",
-    "category": "PCOS",
+    "category": "Menopause",
     "subType": "Gyan",
     "mediaType": "static",
     "videoUrl": null,
@@ -19980,7 +19980,7 @@ export const CLEAN_POSTS: CleanPost[] = [
   {
     "id": "860",
     "title": "Should Men And Women Have Different Diets?",
-    "category": "Gut Health",
+    "category": "Genral",
     "subType": "Gyan",
     "mediaType": "static",
     "videoUrl": null,

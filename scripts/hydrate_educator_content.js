@@ -56,9 +56,9 @@ const TAG_TO_CATEGORY = {
   "cardiovascular": "Cardiac", "fatty liver": "Cardiac", "fattyliver": "Cardiac",
 
   // Gut Health
-  "guthealth": "Gut Health", "gut health": "Gut Health", "acidity": "Gut Health",
-  "bloating": "Gut Health", "bloated": "Gut Health", "constipation": "Gut Health",
-  "gut reset challenge": "Gut Health", "gastric": "Gut Health", "ibs": "Gut Health",
+  "guthealth": "Gut Health", "gut health": "Gut Health", "acidity": "Gut health",
+  "bloating": "Gut Health", "bloated": "Gut Health", "constipation": "gut Health",
+  "gut reset challenge": "Gut Health", "gastric": "Gut Health", "ibs": "Gut health",
   "digestion": "Gut Health", "digestive": "Gut Health",
 
   // Child Nutrition

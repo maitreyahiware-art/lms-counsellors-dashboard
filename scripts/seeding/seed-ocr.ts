@@ -38,6 +38,7 @@ async function seed() {
             module_id: 'OCR_ENGAGEMENT',
             title: 'WALLET- BASIC TRAINING BY ANAM',
             content_type: 'video',
+            thumbnail: 'https://img.youtube.com/vi/H-oP7-1fR5c/hqdefault.jpg',
             content: 'https://drive.google.com/file/d/1xrks81pbX0Dk0C100GWttqyOqsauGuLm/view?usp=sharing'
         },
         {
@@ -57,7 +58,7 @@ async function seed() {
         {
             topic_code: 'OCR-DYN-4',
             module_id: 'OCR_ENGAGEMENT',
-            title: 'OCR ENGAGEMENT MEET (Passcode: %Y+nJ49Y)',
+            title: 'OCR ENGAGEMENT MEET',
             content_type: 'video',
             content: 'https://us06web.zoom.us/rec/share/Jb512O55-LZrLAyb1RyYwtOpf0mwWLYgVQJJQTyw7I7oK9nxUabdVZzrtM5FtHSM.UFfAw5Pf4P82M9i-'
         }
