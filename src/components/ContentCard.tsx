@@ -11,6 +11,15 @@ interface ContentCardProps {
   onClick: (post: CleanPost) => void;
 }
 
+function getDriveId(url: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch) return idMatch[1];
+  return null;
+}
+
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
   "Weight Loss":          { bg: "bg-orange-50",   text: "text-orange-600",   bar: "bg-orange-400" },
   "PCOS":                 { bg: "bg-pink-50",     text: "text-pink-600",     bar: "bg-pink-400" },
@@ -57,6 +66,12 @@ export default function ContentCard({ post, clientPhone, onClick }: ContentCardP
         .replace("/upload/", "/upload/so_1/"); // Get frame at 1s to avoid black first frames
     } else if (post.videoType === "youtube" && post.youtubeId) {
       thumbnailUrl = `https://img.youtube.com/vi/${post.youtubeId}/hqdefault.jpg`;
+    } else {
+      // Check if it's a Google Drive link
+      const driveId = getDriveId(post.videoUrl) || (post.instagramUrl ? getDriveId(post.instagramUrl) : null);
+      if (driveId) {
+        thumbnailUrl = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`;
+      }
     }
   }
 
@@ -77,7 +92,7 @@ export default function ContentCard({ post, clientPhone, onClick }: ContentCardP
               src={thumbnailUrl}
               alt={post.title}
               className="w-full h-auto max-h-[300px] object-contain group-hover:scale-105 transition-transform duration-500"
-              loading="lazy"
+              loading="eager"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
           </>

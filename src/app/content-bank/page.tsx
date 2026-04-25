@@ -20,7 +20,7 @@ import {
     Copy
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 
 function getYouTubeId(url: string) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -35,11 +35,51 @@ function getIframeUrl(url: string) {
     return url;
 }
 
+// Codes to hide entirely from the Content Bank grid
+const EXCLUDED_CODES = ['M1-02', 'M3-01', 'M3-04', 'M3-05'];
+
+// Case studies from M3-03
+const CASE_STUDIES = [
+    { label: "Case Study 1", url: "https://docs.google.com/presentation/d/1evTjDAlsTwek7th4ROos1rHo5CpEwczE/edit?usp=drive_link" },
+    { label: "Case Study 2", url: "https://docs.google.com/presentation/d/1zZ1HWrhFWFxtgAzBAlIVmCiFJzp7ozoi/edit?usp=drive_link" },
+    { label: "Case Study 3", url: "https://docs.google.com/presentation/d/1vWqg29CmqDKvsf4iMUr3JSWWD8tiZ0QK/edit?usp=drive_link" },
+    { label: "Case Study 4", url: "https://docs.google.com/presentation/d/1x7CEHyQ_QpG0t_vIE3bMVdQ-tLvFV-BT/edit?usp=drive_link" },
+    { label: "Case Study 5", url: "https://docs.google.com/presentation/d/1wkSSD0O-zVh03L78tcPiumgo6_aOCEh_/" },
+    { label: "Case Study 6", url: "https://docs.google.com/presentation/d/1z7EE9GLwCYa-IPTXooEmM1I2nmWN8jaC/" },
+    { label: "Case Study 7", url: "https://docs.google.com/presentation/d/1H2jTl6f6HWZwg0EjCQemXBvDBy3a6571/" },
+    { label: "Case Study 8", url: "https://docs.google.com/presentation/d/1bYOuG1eAK4gI3i04HNQ_v8wVBSkMpLw-/" },
+    { label: "Case Study 9", url: "https://docs.google.com/presentation/d/12lQ7zOojOnjrIQvWoGV3deg5uEXD-R73/" },
+    { label: "Case Study 10", url: "https://docs.google.com/presentation/d/1yk643b3nqYTHWRyaqy9aE7gUkompH0c9/" },
+    { label: "Case Study 11", url: "https://docs.google.com/presentation/d/1LIe39pHyV0jrJqD6stVnJAkldQSfhF2V/" },
+    { label: "Case Study 12", url: "https://docs.google.com/presentation/d/1bTsF-dbhUi6w7AHP9zQuFrL-AIfQU1jx/" },
+    { label: "Case Study 13", url: "https://docs.google.com/presentation/d/1oOmD5NVRtYcfGRBdPVr6_ll2sMNxIIpD/" },
+    { label: "Case Study 14", url: "https://docs.google.com/presentation/d/1e8RI6bUG3lUmkHHhIj4wP-0FT6KJDcay/" }
+];
+
+function getDriveId(url: string): string | null {
+    if (!url) return null;
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (idMatch) return idMatch[1];
+    return null;
+}
+
+function getSlideThumbnail(url: string): string | null {
+    const id = getDriveId(url);
+    if (!id) return null;
+    // Start with the most generic Drive thumbnail endpoint
+    return `https://drive.google.com/thumbnail?id=${id}&sz=s1000`;
+}
+
 function ContentBankContent() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedVideo, setSelectedVideo] = useState<{ id?: string, url?: string, title: string } | null>(null);
+    const [caseStudiesOpen, setCaseStudiesOpen] = useState(false);
+    const [selectedCaseStudy, setSelectedCaseStudy] = useState<string | null>(null);
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     // Extract resource bank module
     const resourceModule = syllabusData.find(m => m.type === 'resource' || m.id === 'resource-bank');
@@ -119,7 +159,21 @@ function ContentBankContent() {
         }
     });
 
-    const allResources = [...(resourceModule?.topics || []), ...dynamicResources];
+    const EXCLUDED_TITLES = [
+        "training video",
+        "schedule your mock call",
+        "training by counsellor",
+        "refrences&leads",
+        "references & leads",
+        "meet our founders"
+    ];
+
+    const allResources = [...(resourceModule?.topics || []), ...dynamicResources]
+        .filter(r => {
+            const isExcludedCode = EXCLUDED_CODES.includes(r.code);
+            const isExcludedTitle = EXCLUDED_TITLES.some(t => r.title.toLowerCase().includes(t));
+            return !isExcludedCode && !isExcludedTitle;
+        });
 
     // Filter to only non-empty folders
     const nonEmptyFolders = allFolders.filter(f =>
@@ -171,7 +225,7 @@ function ContentBankContent() {
                 tags: (r as any).tags || [],
             })),
             searchQuery
-          )
+        )
         : matchedResources;
 
     const containerVariants: Variants = {
@@ -307,6 +361,22 @@ function ContentBankContent() {
                                     key={resource.code}
                                     className="group cursor-pointer flex flex-col"
                                     onClick={() => {
+                                        // Ecosystem Deep Dive → redirect to Module 1 and scroll to hub
+                                        if (resource.code === 'M1-01' || resource.title.toLowerCase().includes('ecosystem')) {
+                                            router.push('/modules/module-1?from=content-bank#ecosystem-hub');
+                                            return;
+                                        }
+                                        // Case Studies → open case studies overlay
+                                        if (resource.code === 'M3-03') {
+                                            setCaseStudiesOpen(true);
+                                            setSelectedCaseStudy(null);
+                                            return;
+                                        }
+                                        // Day-to-Day Lead Engagement → play Engagement Guide video
+                                        if (resource.code === 'M3-02') {
+                                            setSelectedVideo({ url: 'https://drive.google.com/file/d/1mrrNxIUOXRKXPVYZsDYvf64fp-8gbOS2/preview', title: resource.title });
+                                            return;
+                                        }
                                         if (ytId) {
                                             setSelectedVideo({ id: ytId, title: resource.title });
                                         } else if (resource.links && resource.links[0]?.url && resource.links[0].url !== '#') {
@@ -315,34 +385,46 @@ function ContentBankContent() {
                                     }}
                                 >
                                     {/* Thumbnail Container */}
-                                    <div className="relative aspect-video rounded-[2.5rem] overflow-hidden bg-gray-100 shadow-sm group-hover:shadow-[0_20px_50px_rgba(14,88,88,0.15)] transition-all duration-500 mb-6 group-hover:-translate-y-3">
+                                    <div className="relative aspect-video rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-[#0E5858] via-[#0E5858] to-[#00B6C1] shadow-sm group-hover:shadow-[0_20px_50px_rgba(14,88,88,0.15)] transition-all duration-500 mb-6 group-hover:-translate-y-3">
+                                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,_white_0%,_transparent_70%)]"></div>
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                            <FolderOpen size={64} className="text-white/10 group-hover:text-white/30 transition-all group-hover:scale-110" />
+                                        </div>
+
                                         {resource.links?.[0]?.thumbnail ? (
                                             <img
                                                 src={resource.links[0].thumbnail}
                                                 alt={resource.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                            />
+                                        ) : getDriveId(resource.links[0]?.url) ? (
+                                            <img
+                                                src={`https://drive.google.com/thumbnail?id=${getDriveId(resource.links[0]?.url)}&sz=s1000`}
+                                                alt={resource.title}
+                                                referrerPolicy="no-referrer"
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                             />
                                         ) : ytId ? (
                                             <img
                                                 src={`https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`}
                                                 alt={resource.title}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
                                                     if (!target.src.includes('hqdefault.jpg')) {
                                                         target.src = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+                                                    } else {
+                                                        target.style.display = 'none';
                                                     }
                                                 }}
                                             />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#0E5858] via-[#0E5858] to-[#00B6C1] relative overflow-hidden">
-                                                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,_white_0%,_transparent_70%)]"></div>
-                                                <FolderOpen size={64} className="text-white/10 group-hover:text-white/30 transition-all group-hover:scale-110" />
-                                                {resource.title.includes('Folder') && (
-                                                    <div className="absolute bottom-4 left-0 right-0 text-center">
-                                                        <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/10">Browse Assets</span>
-                                                    </div>
-                                                )}
+                                        ) : null}
+
+                                        {resource.title.includes('Folder') && (
+                                            <div className="absolute bottom-4 left-0 right-0 text-center">
+                                                <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[8px] font-black text-white uppercase tracking-widest border border-white/10">Browse Assets</span>
                                             </div>
                                         )}
 
@@ -431,6 +513,126 @@ function ContentBankContent() {
                     <p className="text-gray-400 max-w-sm">We are currently migrating refined academy manuals and video protocols to the Asset Central.</p>
                 </div>
             )}
+            {/* ── Case Studies Overlay ── */}
+            <AnimatePresence>
+                {caseStudiesOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 md:p-10 bg-black/95 backdrop-blur-xl"
+                    >
+                        <div className="w-full max-w-7xl flex items-center justify-between mb-6 z-[110]">
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => { setCaseStudiesOpen(false); setSelectedCaseStudy(null); }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/10 group"
+                                >
+                                    <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
+                                </button>
+                                <h2 className="text-white text-xl font-serif bg-white/10 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10">Case Studies</h2>
+                            </div>
+                            <button
+                                onClick={() => { setCaseStudiesOpen(false); setSelectedCaseStudy(null); }}
+                                className="w-12 h-12 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center transition-all border border-white/10"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {selectedCaseStudy ? (
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="relative w-full max-w-7xl flex flex-col gap-4 flex-1 min-h-0"
+                            >
+                                <button
+                                    onClick={() => setSelectedCaseStudy(null)}
+                                    className="self-start flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold transition-all"
+                                >
+                                    <ChevronLeft size={14} /> All Cases
+                                </button>
+                                <div className="w-full flex-1 min-h-0 bg-white rounded-3xl overflow-hidden shadow-2xl" style={{ height: '70vh' }}>
+                                    <iframe
+                                        src={selectedCaseStudy.replace('/edit?usp=drive_link', '/embed').replace(/\/$/, '/embed')}
+                                        className="w-full h-full border-0"
+                                        allowFullScreen
+                                    />
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="w-full max-w-7xl overflow-y-auto"
+                                style={{ maxHeight: '78vh' }}
+                            >
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-4">
+                                    {CASE_STUDIES.map((cs, i) => {
+                                        const thumb = getSlideThumbnail(cs.url);
+                                        return (
+                                            <motion.div
+                                                key={i}
+                                                initial={{ opacity: 1, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: i * 0.04 }}
+                                                whileHover={{ y: -8, scale: 1.02 }}
+                                                onClick={() => setSelectedCaseStudy(cs.url)}
+                                                className="group/cs aspect-[4/5] border-gray-100 rounded-[2rem] flex flex-col cursor-pointer shadow-sm hover:shadow-2xl hover:border-[#00B6C1]/30 transition-all duration-500 overflow-hidden relative"
+                                            >
+                                                <div className="h-[65%] relative overflow-hidden bg-gradient-to-br from-[#0E5858] to-[#00B6C1]">
+                                                    {thumb ? (
+                                                        <img
+                                                            src={thumb}
+                                                            alt={cs.label}
+                                                            referrerPolicy="no-referrer"
+                                                            className="w-full h-full object-cover object-top group-hover/cs:scale-110 transition-transform duration-700"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                const id = getDriveId(cs.url);
+                                                                if (!id) return;
+
+                                                                // Cycle through fallback formats if the first one fails
+                                                                if (target.src.includes('drive.google.com/thumbnail')) {
+                                                                    target.src = `https://docs.google.com/presentation/d/${id}/export/png`;
+                                                                } else if (target.src.includes('export/png')) {
+                                                                    target.src = `https://lh3.googleusercontent.com/d/${id}=s1000`;
+                                                                } else {
+                                                                    target.style.opacity = '0';
+                                                                }
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                        <FileText size={40} className="text-white/10" />
+                                                    </div>
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover/cs:opacity-100 transition-opacity" />
+
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/cs:opacity-100 transition-opacity">
+                                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                                                            <Maximize2 size={18} className="text-white" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 p-5 bg-white relative flex flex-col justify-between">
+                                                    <div className="absolute -top-3 left-5 px-3 py-1 bg-[#00B6C1] text-white text-[8px] font-black uppercase tracking-widest rounded-full shadow-lg border border-white/20">
+                                                        Lead Case Study
+                                                    </div>
+                                                    <div className="mt-2">
+                                                        <p className="text-sm font-bold text-[#0E5858] leading-tight group-hover/cs:text-[#00B6C1] transition-colors">{cs.label}</p>
+                                                    </div>
+                                                    <p className="text-[10px] font-medium text-gray-400 mt-1 italic">View Clinical Journal →</p>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                            </motion.div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.main>
     );
 }

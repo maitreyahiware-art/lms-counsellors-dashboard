@@ -25,6 +25,15 @@ export const getPostShareText = (post: CleanPost) => {
   let text = `*${post.title}*\n\n${post.descriptionPlain}\n\n`;
   
   const links: string[] = [];
+  
+  if (post.storySlug) {
+    links.push(`Read Full Story: https://www.balancenutrition.in/success-stories/${post.storySlug}`);
+  }
+  
+  if (post.recipeSlug) {
+    links.push(`View Recipe: https://www.balancenutrition.in/recipes/${post.recipeSlug}`);
+  }
+  
   if (post.instagramUrl) links.push(`View Post: ${post.instagramUrl}`);
   else if (post.videoType === "youtube" && post.youtubeId) links.push(`Watch Video: https://youtube.com/watch?v=${post.youtubeId}`);
   else if (post.videoUrl) links.push(`Watch Video: ${post.videoUrl}`);

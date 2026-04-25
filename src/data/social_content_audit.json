@@ -1,8 +1,8 @@
 {
-  "source": "Live API: https://bn-new-api.balancenutritiononline.com/api/v1/social-posts/all & https://bn-new-api.balancenutritiononline.com/api/v1/success-stories/all",
-  "fetchedAt": "2026-04-22T10:29:22.784Z",
-  "totalRaw": 2492,
-  "accepted": 1927,
+  "source": "Live API: https://bn-new-api.balancenutritiononline.com/api/v1/social-posts/all, https://bn-new-api.balancenutritiononline.com/api/v1/success-stories/all & https://bn-new-api.balancenutritiononline.com/api/v1/recipe/all",
+  "fetchedAt": "2026-04-25T10:23:44.253Z",
+  "totalRaw": 3814,
+  "accepted": 3237,
   "rejected": [
     {
       "id": "2231",
@@ -2830,25 +2830,87 @@
       "keptId": "347",
       "droppedId": "230",
       "title": "\"Healthy alternatives\" to biscuits with your tea!"
+    },
+    {
+      "keptId": "960",
+      "droppedId": "recipe_v2_553",
+      "title": "ABC JUICE"
+    },
+    {
+      "keptId": "recipe_v2_335",
+      "droppedId": "recipe_v2_965",
+      "title": "DALIA PANEER PULAO"
+    },
+    {
+      "keptId": "1048",
+      "droppedId": "recipe_v2_1025",
+      "title": "CARROT TOMATO SOUP"
+    },
+    {
+      "keptId": "1115",
+      "droppedId": "recipe_v2_1195",
+      "title": "POMEGRANATE RAITA"
+    },
+    {
+      "keptId": "recipe_v2_1201",
+      "droppedId": "recipe_v2_1202",
+      "title": "TRICOLOR DHOKLA"
+    },
+    {
+      "keptId": "recipe_v2_1177",
+      "droppedId": "recipe_v2_1392",
+      "title": "BARNYARD MILLET DOSA"
+    },
+    {
+      "keptId": "44",
+      "droppedId": "recipe_v2_1407",
+      "title": "CUCUMBER SEV PURI"
+    },
+    {
+      "keptId": "1045",
+      "droppedId": "recipe_v2_1427",
+      "title": "SATTU NAMKEEN DRINK"
+    },
+    {
+      "keptId": "recipe_v2_1009",
+      "droppedId": "recipe_v2_1527",
+      "title": "ONION VEGGIE POHA"
+    },
+    {
+      "keptId": "1106",
+      "droppedId": "recipe_v2_1553",
+      "title": "FLAXSEED TEA"
+    },
+    {
+      "keptId": "1102",
+      "droppedId": "recipe_v2_1590",
+      "title": "BEETROOT CHILLA"
+    },
+    {
+      "keptId": "1067",
+      "droppedId": "recipe_v2_1594",
+      "title": "ITALIAN MAKHANA BHEL"
     }
   ],
   "categoryBreakdown": {
     "PCOS": 424,
-    "General": 991,
-    "Gut Health": 154,
+    "General": 1015,
+    "Gut Health": 132,
     "Menopause": 9,
-    "Diabetes": 124,
-    "Cardiac": 82,
+    "Diabetes": 1401,
+    "Cardiac": 84,
     "Pregnancy": 34,
     "Thyroid": 71,
-    "Child Nutrition": 38
+    "Child Nutrition": 38,
+    "Gut health": 20,
+    "gut Health": 9
   },
   "subTypeBreakdown": {
     "General": 105,
     "Challenge": 18,
     "Tips": 145,
     "Success Story": 561,
-    "Recipe": 292,
+    "Recipe": 1602,
     "Gyan": 667,
     "Podcast": 139
   },

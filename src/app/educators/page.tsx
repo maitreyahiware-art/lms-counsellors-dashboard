@@ -111,6 +111,67 @@ export default function EducatorsModulePage() {
   const [clientPhone, setClientPhone] = useState("");
   const [tempPhone, setTempPhone] = useState("");
   const [showTour, setShowTour] = useState(false);
+  const [externalPosts, setExternalPosts] = useState<CleanPost[]>([]);
+
+  // Fetch external success stories
+  useEffect(() => {
+    async function fetchSuccessStories() {
+      try {
+        const response = await fetch('https://bn-new-api.balancenutritiononline.com/api/v1/success-stories/all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: 50 }) // Limit to 50 for performance
+        });
+        const json = await response.json();
+        const data = json[0]?.data || [];
+
+        const mapped = data.map((item: any) => {
+          const name = item.client_details?.name || "Success Story";
+          const weightLossVal = item.meta_data?.total_weight_loss;
+          const weightLoss = weightLossVal ? `Weight loss - ${weightLossVal} kg` : "";
+          const imageUrl = item.meta_data?.check_list?.[0]?.before_after_photo?.[0]?.file?.path || null;
+          const description = item.description || "";
+          
+          // Strip HTML tags
+          const plainDesc = description.replace(/<[^>]*>?/gm, '');
+
+          // Map health conditions to categories
+          let category: ContentCategory = "General";
+          const hcs = item.health_conditions || [];
+          if (hcs.includes("PCOS")) category = "PCOS";
+          else if (hcs.includes("Pregnancy")) category = "Pregnancy";
+          else if (hcs.includes("Menopause")) category = "Menopause";
+          else if (hcs.includes("Diabetes")) category = "Diabetes";
+          else if (hcs.includes("Thyroid")) category = "Thyroid";
+          else if (hcs.includes("Cardiac")) category = "Cardiac";
+          else if (hcs.includes("Gut Health") || hcs.includes("Gut")) category = "Gut Health";
+
+          return {
+            id: `SS_${item.id}`,
+            title: `client name - ${name}`,
+            category,
+            subType: "Success Story",
+            mediaType: "static",
+            videoUrl: item.yt_link || null,
+            videoType: item.yt_link ? "youtube" : null,
+            youtubeId: item.yt_link ? (item.yt_link.includes('v=') ? item.yt_link.split('v=')[1]?.split('&')[0] : null) : null,
+            imageUrl,
+            descriptionPlain: weightLoss ? `${weightLoss}\n\n${plainDesc}` : plainDesc,
+            tags: item.tags || [],
+            platforms: item.platforms || [],
+            date: item.created_at || null,
+            instagramUrl: null
+          };
+        });
+
+        setExternalPosts(mapped);
+      } catch (err) {
+        console.error("Failed to fetch external success stories:", err);
+      }
+    }
+
+    fetchSuccessStories();
+  }, []);
 
   // Check if educators tour should be shown
   useEffect(() => {
@@ -135,7 +196,7 @@ export default function EducatorsModulePage() {
 
   // ── Filtered posts: health tab + search ─────────────────────────────────
   const filteredPosts = useMemo(() => {
-    let posts = CLEAN_POSTS;
+    let posts = [...CLEAN_POSTS, ...externalPosts];
 
     if (activeCondition.id !== "all") {
       posts = posts.filter((p) => {

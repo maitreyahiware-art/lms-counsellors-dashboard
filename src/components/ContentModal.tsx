@@ -135,7 +135,7 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
               <img
                 src={post.imageUrl}
                 alt={post.title}
-                className="w-full max-h-72 object-cover"
+                className="w-full max-h-72 object-contain"
               />
             ) : (
               <div className={`w-full h-48 flex flex-col items-center justify-center p-6 text-center ${cat.bg}`}>

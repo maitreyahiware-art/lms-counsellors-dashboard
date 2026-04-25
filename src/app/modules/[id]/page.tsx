@@ -29,7 +29,7 @@ import {
     BrainCircuit
 } from "lucide-react";
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { syllabusData, Module } from "@/data/syllabus";
 import { motion, Variants } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -67,7 +67,9 @@ export default function ModulePage() {
 
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const moduleId = params.id as string;
+    const fromContentBank = searchParams.get('from') === 'content-bank';
 
     const baseModule = (syllabusData as Module[]).find(m => m.id === moduleId);
 
@@ -1188,12 +1190,12 @@ export default function ModulePage() {
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => router.back()}
-                        className="h-12 px-6 rounded-2xl font-bold shadow-lg flex items-center gap-2 transition-all bg-white text-[#0E5858] hover:bg-green-50 border border-green-100"
+                        onClick={() => fromContentBank ? router.push('/content-bank') : router.back()}
+                        className="h-12 px-6 rounded-2xl font-bold shadow-lg flex items-center gap-2 transition-all bg-white text-[#0E5858] hover:bg-[#00B6C1] hover:text-white border border-gray-100"
                         title="Go Back"
                     >
                         <ChevronLeft size={20} />
-                        <span className="hidden md:inline">Back</span>
+                        <span className="hidden md:inline">{fromContentBank ? 'Content Bank' : 'Back'}</span>
                     </button>
 
                     <button
@@ -1396,7 +1398,7 @@ export default function ModulePage() {
                         <div className="flex items-center gap-6 mb-12">
                             <div className="w-1.5 h-10 bg-[#00B6C1] rounded-full"></div>
                             <div>
-                                <h3 className="text-3xl font-serif text-[#0E5858]">BN Ecosystem Hub</h3>
+                                <h3 id="ecosystem-hub" className="text-3xl font-serif text-[#0E5858]">BN Ecosystem Hub</h3>
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Cross-Platform Resource Deep Links</p>
                             </div>
                         </div>

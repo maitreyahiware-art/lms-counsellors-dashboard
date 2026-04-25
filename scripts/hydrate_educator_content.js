@@ -287,13 +287,41 @@ async function main() {
   }
 
   console.log(`📦 Total raw success stories from API: ${allSuccessStories.length}`);
+ 
+  // ── Fetch Recipes ─────────────────────────────────────────────────────────
+  const RECIPE_API_URL = "https://bn-new-api.balancenutritiononline.com/api/v1/recipe/all";
+  let allRecipes = [];
+  for (let page = 1; page <= 15; page++) { // Fetch up to 15 pages of recipes
+    console.log(`  🥗 Fetching recipes page ${page} (limit: ${PAGE_SIZE})...`);
+    try {
+      const res = await fetch(RECIPE_API_URL, {
+        method: "POST",
+        headers: API_HEADERS,
+        body: JSON.stringify({ page, limit: PAGE_SIZE }),
+      });
+      const json = await res.json();
+      const resObj = Array.isArray(json) ? json[0] : json;
+      const posts = resObj?.data || [];
+      if (posts.length === 0) {
+        console.log(`  ✅ Page ${page} returned 0 recipes — done fetching.`);
+        break;
+      }
+      allRecipes = allRecipes.concat(posts);
+      console.log(`     → ${posts.length} recipes (total: ${allRecipes.length})`);
+    } catch (err) {
+      console.error(`  ❌ Error fetching recipes page ${page}:`, err.message);
+      break;
+    }
+  }
+
+  console.log(`📦 Total raw recipes from API: ${allRecipes.length}`);
 
   // ── Process each post ──────────────────────────────────────────────────────
   const cleanPosts = [];
   const auditLog = {
-    source: "Live API: " + API_URL + " & " + SUCCESS_API_URL,
+    source: "Live API: " + API_URL + ", " + SUCCESS_API_URL + " & " + RECIPE_API_URL,
     fetchedAt: new Date().toISOString(),
-    totalRaw: allPosts.length + allSuccessStories.length,
+    totalRaw: allPosts.length + allSuccessStories.length + allRecipes.length,
     accepted: 0,
     rejected: [],
     duplicates: [],
@@ -495,6 +523,7 @@ async function main() {
       instagramUrl: null,
       platforms: [],
       date,
+      storySlug: raw.slug || null,
     };
 
     seenTitleHashes.set(hash, id);
@@ -502,6 +531,86 @@ async function main() {
 
     auditLog.categoryBreakdown[category] = (auditLog.categoryBreakdown[category] || 0) + 1;
     auditLog.subTypeBreakdown["Success Story"] = (auditLog.subTypeBreakdown["Success Story"] || 0) + 1;
+  }
+
+  // Process Recipes
+  for (const raw of allRecipes) {
+    const id = "recipe_v2_" + raw.id;
+    const title = (raw.title || "").trim();
+    if (!title) continue;
+
+    const meta = raw.meta_data || {};
+    const healthMeter = stripHtml(meta.health_meter || "");
+    const method = Array.isArray(meta.method) ? meta.method.join("\n") : "";
+    const ingredients = Array.isArray(raw.ingredients) ? raw.ingredients.join(", ") : "";
+
+    // Construct Nutrition Info
+    let nutrition = "";
+    if (meta.energy || meta.protein || meta.fat || meta.carbs) {
+      nutrition = `\n\nNUTRITION INFO:\n- Energy: ${meta.energy || 0} kcal\n- Protein: ${meta.protein || 0}g\n- Fat: ${meta.fat || 0}g\n- Carbs: ${meta.carbs || 0}g\n- Fiber: ${meta.fiber || 0}g`;
+    }
+
+    const descriptionText = `${healthMeter}\n\nINGREDIENTS:\n${ingredients}\n\nMETHOD:\n${method}${nutrition}`;
+
+    // Media
+    let imageUrl = null;
+    if (raw.recipe_images && raw.recipe_images.length > 0) {
+      imageUrl = raw.recipe_images[0]?.file?.path;
+    } else if (raw.recipe_thumbnail_images && raw.recipe_thumbnail_images.length > 0) {
+      imageUrl = raw.recipe_thumbnail_images[0]?.file?.path;
+    }
+
+    const videoUrl = raw.recipe_video || null;
+
+    // Deduplicate
+    const hash = titleHash(title);
+    if (seenTitleHashes.has(hash)) {
+      auditLog.duplicates.push({ keptId: seenTitleHashes.get(hash), droppedId: id, title });
+      continue;
+    }
+
+    const youtubeId = parseYouTubeId(videoUrl);
+    const videoType = youtubeId
+      ? "youtube"
+      : videoUrl?.includes("cloudinary.com")
+      ? "cloudinary"
+      : videoUrl
+      ? "unknown"
+      : null;
+
+    const cleanTags = parseApiTags(raw.health_tags)
+      .map(t => t.replace(/^#/, "").trim())
+      .filter(t => t.length > 1);
+
+    const category = normalizeCategory(cleanTags, "Recipe", title, descriptionText);
+
+    const recipeSlug = raw.slug || "";
+    const recipeCategoryName = raw.category || "General";
+
+    const cleanPost = {
+      id,
+      title,
+      category,
+      subType: "Recipe",
+      mediaType: videoUrl ? "reel" : "static",
+      videoUrl: videoUrl || null,
+      videoType,
+      youtubeId: youtubeId || null,
+      imageUrl: imageUrl || null,
+      descriptionPlain: descriptionText,
+      tags: cleanTags,
+      instagramUrl: null,
+      platforms: [],
+      date: null,
+      recipeSlug: recipeSlug || null,
+      recipeCategoryName: recipeCategoryName || null,
+    };
+
+    seenTitleHashes.set(hash, id);
+    cleanPosts.push(cleanPost);
+
+    auditLog.categoryBreakdown[category] = (auditLog.categoryBreakdown[category] || 0) + 1;
+    auditLog.subTypeBreakdown["Recipe"] = (auditLog.subTypeBreakdown["Recipe"] || 0) + 1;
   }
 
   auditLog.accepted = cleanPosts.length;
@@ -560,9 +669,12 @@ export interface CleanPost {
   instagramUrl: string | null;
   platforms: string[];
   date: string | null;
+  recipeSlug?: string | null;
+  recipeCategoryName?: string | null;
+  storySlug?: string | null;
 }
 
-export const CLEAN_POSTS: CleanPost[] = ${JSON.stringify(cleanPosts, null, 2)};
+export const CLEAN_POSTS: CleanPost[] = ${JSON.stringify(cleanPosts, null, 2)} as CleanPost[];
 
 export const CATEGORY_COUNTS: Record<ContentCategory, number> = ${JSON.stringify(auditLog.categoryBreakdown, null, 2)} as Record<ContentCategory, number>;
 `;
