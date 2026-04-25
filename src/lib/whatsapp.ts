@@ -31,7 +31,8 @@ export const getPostShareText = (post: CleanPost) => {
   }
   
   if (post.recipeSlug) {
-    links.push(`View Recipe: https://www.balancenutrition.in/recipes/${post.recipeSlug}`);
+    const categoryPath = post.recipeCategoryName ? `${encodeURIComponent(post.recipeCategoryName)}/` : '';
+    links.push(`View Recipe: https://www.balancenutrition.in/recipes/${categoryPath}${post.recipeSlug}`);
   }
   
   if (post.instagramUrl) links.push(`View Post: ${post.instagramUrl}`);
