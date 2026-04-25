@@ -64,7 +64,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
         // Fill remaining answers with empty string and submit
         const unansweredCount = (questions?.length || 0) - answers.length;
         const finalAnswers = [...answers, ...Array(unansweredCount).fill("")];
-        submitAudit(finalAnswers);
+        submitAudit(finalAnswers, true);
     };
 
     const formatTime = (seconds: number) => {
@@ -113,7 +113,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
         }
     };
 
-    const submitAudit = async (finalAnswers: string[]) => {
+    const submitAudit = async (finalAnswers: string[], isTimeout: boolean = false) => {
         setLoading(true);
         try {
             // Secure Grading via Backend
@@ -126,7 +126,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
             const gradeData = await gradeResponse.json();
             if (gradeData.error) throw new Error(gradeData.error);
 
-            const finalScore = gradeData.score;
+            const finalScore = isTimeout ? 0 : gradeData.score;
             setFinalScoreStats({ score: finalScore, total: gradeData.total, results: gradeData.results });
 
             // Save to Supabase
