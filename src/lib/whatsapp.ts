@@ -27,7 +27,7 @@ export const getPostShareText = (post: CleanPost) => {
   const links: string[] = [];
   
   if (post.storySlug) {
-    links.push(`Read Full Story: https://www.balancenutrition.in/success-stories/${post.storySlug}`);
+    links.push(`Read Full Story: https://www.balancenutrition.in/testimonials/${post.storySlug}`);
   }
   
   if (post.recipeSlug) {

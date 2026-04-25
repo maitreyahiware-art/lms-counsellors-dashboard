@@ -146,6 +146,9 @@ export default function EducatorsModulePage() {
           else if (hcs.includes("Cardiac")) category = "Cardiac";
           else if (hcs.includes("Gut Health") || hcs.includes("Gut")) category = "Gut Health";
 
+          const websiteLink = item.meta_data?.check_list?.[0]?.website_link;
+          const storySlug = websiteLink ? websiteLink.split('/').pop() : null;
+
           return {
             id: `SS_${item.id}`,
             title: `client name - ${name}`,
@@ -160,7 +163,8 @@ export default function EducatorsModulePage() {
             tags: item.tags || [],
             platforms: item.platforms || [],
             date: item.created_at || null,
-            instagramUrl: null
+            instagramUrl: null,
+            storySlug
           };
         });
 
