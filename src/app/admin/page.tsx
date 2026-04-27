@@ -49,7 +49,8 @@ import {
     Share2,
     Edit2,
     Bell,
-    Sparkles
+    Sparkles,
+    RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -218,6 +219,10 @@ function AdminDashboardContent() {
     const [editingProfile, setEditingProfile] = useState(false);
     const [editPhone, setEditPhone] = useState("");
     const [editRole, setEditRole] = useState("");
+
+    // Content Cache Controls
+    const [bustingCache, setBustingCache] = useState(false);
+    const [bustResult, setBustResult] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -1362,7 +1367,7 @@ function AdminDashboardContent() {
                             <div>
                                 <p className="text-gray-400 font-medium mt-3 italic">Live monitoring of training progress.</p>
                             </div>
-                            <div className="flex gap-4">
+                            <div className="flex flex-wrap gap-4 items-center">
                                 <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-[#0E5858]/5 text-center min-w-[140px]">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Counsellors</p>
                                     <p className="text-2xl font-serif text-[#0E5858]">{counsellors.length}</p>
@@ -1370,6 +1375,35 @@ function AdminDashboardContent() {
                                 <div className="px-6 py-4 bg-[#0E5858] rounded-2xl shadow-sm text-center min-w-[140px] text-white">
                                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Pass Rate</p>
                                     <p className="text-2xl font-serif text-[#00B6C1]">84%</p>
+                                </div>
+                                {/* Educator Content Cache Refresh */}
+                                <div className="flex flex-col items-center gap-1">
+                                    <button
+                                        id="admin-refresh-content"
+                                        onClick={async () => {
+                                            setBustingCache(true);
+                                            setBustResult(null);
+                                            try {
+                                                const res = await fetch('/api/educators/content', { method: 'DELETE' });
+                                                const data = await res.json();
+                                                setBustResult(res.ok ? '✓ Cache cleared — next visit will re-fetch fresh data.' : '✗ ' + (data.error || 'Failed'));
+                                            } catch (e: any) {
+                                                setBustResult('✗ ' + e.message);
+                                            } finally {
+                                                setBustingCache(false);
+                                            }
+                                        }}
+                                        disabled={bustingCache}
+                                        className="flex items-center gap-2 px-5 py-3 bg-white border border-[#00B6C1]/30 rounded-2xl text-[9px] font-black uppercase tracking-widest text-[#0E5858] hover:bg-[#00B6C1] hover:text-white hover:border-[#00B6C1] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <RefreshCw size={12} className={bustingCache ? 'animate-spin' : ''} />
+                                        {bustingCache ? 'Refreshing…' : 'Refresh Educator Content'}
+                                    </button>
+                                    {bustResult && (
+                                        <p className={`text-[8px] font-bold text-center max-w-[200px] ${bustResult.startsWith('✓') ? 'text-emerald-600' : 'text-red-500'}`}>
+                                            {bustResult}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </header>

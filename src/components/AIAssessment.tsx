@@ -91,7 +91,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
             setTextAnswer("");
             setShowResult(false);
             setTimeLeft(600); // Reset timer
-            
+
             // Log activity
             logActivity('start_quiz', { topicCode: topicCode, contentTitle: topicTitle });
         } catch (error) {
@@ -163,8 +163,8 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                 // This ensures the dashboard progress bars reflect the quiz completion
                 const { error: progressError } = await supabase
                     .from('mentor_progress')
-                    .upsert({ 
-                        user_id: session.user.id, 
+                    .upsert({
+                        user_id: session.user.id,
                         topic_code: topicCode,
                         completed_at: new Date().toISOString()
                     }, { onConflict: 'user_id, topic_code' });
@@ -172,8 +172,8 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                 if (progressError) console.error("Progress upsert failed:", progressError.message);
 
                 // Log activity
-                logActivity('complete_quiz', { 
-                    topicCode: topicCode, 
+                logActivity('complete_quiz', {
+                    topicCode: topicCode,
                     contentTitle: topicTitle,
                     score: finalScore,
                     metadata: { total: gradeData.total, percent: (finalScore / gradeData.total) * 100 }
@@ -241,7 +241,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                     const now = new Date();
                     const completionDate = now.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
                     const certId = `BN-${now.getFullYear()}-${session.user.id.substring(0, 8).toUpperCase()}`;
-                    
+
                     setCertificateData({ userName, completionDate, certificateId: certId });
 
                     // Send certificate email automatically
@@ -412,8 +412,8 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                                         {finalScoreStats && (finalScoreStats.score / finalScoreStats.total) >= 0.7
                                             ? '🎉 Excellent Work!'
                                             : finalScoreStats && (finalScoreStats.score / finalScoreStats.total) >= 0.4
-                                            ? '📚 Keep Practicing!'
-                                            : '⚡ Needs Improvement'}
+                                                ? '📚 Keep Practicing!'
+                                                : '⚡ Needs Improvement'}
                                     </h3>
                                     <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em]">
                                         {finalScoreStats ? Math.round((finalScoreStats.score / finalScoreStats.total) * 100) : 0}% Score · Logged to Dashboard

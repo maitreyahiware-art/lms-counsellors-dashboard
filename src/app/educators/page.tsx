@@ -4,10 +4,10 @@ import { motion, Variants } from "framer-motion";
 import {
   Search, Users, Activity, Target, Droplets, Leaf, Heart, Sparkles,
   Video, Trophy, ClipboardList, Phone, Flame, Baby, Stethoscope,
-  Lightbulb, BookOpen, Mic, TrendingUp, Dumbbell
+  Lightbulb, BookOpen, Mic, TrendingUp, Dumbbell, RefreshCw
 } from "lucide-react";
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { CLEAN_POSTS, CleanPost, ContentCategory } from "@/data/social_content_clean";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { CleanPost, ContentCategory } from "@/data/social_content_clean";
 import ContentCard from "@/components/ContentCard";
 import ContentModal from "@/components/ContentModal";
 import EducatorsTour from "@/components/EducatorsTour";
@@ -102,6 +102,21 @@ const KANBAN_COLUMNS: {
     },
   ];
 
+// ── Skeleton Card ───────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-2xl p-3 border border-gray-100 animate-pulse space-y-2">
+      <div className="w-full h-28 bg-gray-100 rounded-xl" />
+      <div className="h-3 bg-gray-100 rounded w-3/4" />
+      <div className="h-3 bg-gray-100 rounded w-1/2" />
+      <div className="flex gap-2 pt-1">
+        <div className="h-5 w-14 bg-gray-100 rounded-full" />
+        <div className="h-5 w-10 bg-gray-100 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 export default function EducatorsModulePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,71 +126,35 @@ export default function EducatorsModulePage() {
   const [clientPhone, setClientPhone] = useState("");
   const [tempPhone, setTempPhone] = useState("");
   const [showTour, setShowTour] = useState(false);
-  const [externalPosts, setExternalPosts] = useState<CleanPost[]>([]);
 
-  // Fetch external success stories
-  useEffect(() => {
-    async function fetchSuccessStories() {
-      try {
-        const response = await fetch('https://bn-new-api.balancenutritiononline.com/api/v1/success-stories/all', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ limit: 50 }) // Limit to 50 for performance
-        });
-        const json = await response.json();
-        const data = json[0]?.data || [];
+  // ── Dynamic content state ──────────────────────────────────────────────
+  const [allPosts, setAllPosts] = useState<CleanPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const hasFetched = useRef(false);
 
-        const mapped = data.map((item: any) => {
-          const name = item.client_details?.name || "Success Story";
-          const weightLossVal = item.meta_data?.total_weight_loss;
-          const weightLoss = weightLossVal ? `Weight loss - ${weightLossVal} kg` : "";
-          const imageUrl = item.meta_data?.check_list?.[0]?.before_after_photo?.[0]?.file?.path || null;
-          const description = item.description || "";
-          
-          // Strip HTML tags
-          const plainDesc = description.replace(/<[^>]*>?/gm, '');
-
-          // Map health conditions to categories
-          let category: ContentCategory = "General";
-          const hcs = item.health_conditions || [];
-          if (hcs.includes("PCOS")) category = "PCOS";
-          else if (hcs.includes("Pregnancy")) category = "Pregnancy";
-          else if (hcs.includes("Menopause")) category = "Menopause";
-          else if (hcs.includes("Diabetes")) category = "Diabetes";
-          else if (hcs.includes("Thyroid")) category = "Thyroid";
-          else if (hcs.includes("Cardiac")) category = "Cardiac";
-          else if (hcs.includes("Gut Health") || hcs.includes("Gut")) category = "Gut Health";
-
-          const websiteLink = item.meta_data?.check_list?.[0]?.website_link;
-          const storySlug = websiteLink ? websiteLink.split('/').pop() : null;
-
-          return {
-            id: `SS_${item.id}`,
-            title: `client name - ${name}`,
-            category,
-            subType: "Success Story",
-            mediaType: "static",
-            videoUrl: item.yt_link || null,
-            videoType: item.yt_link ? "youtube" : null,
-            youtubeId: item.yt_link ? (item.yt_link.includes('v=') ? item.yt_link.split('v=')[1]?.split('&')[0] : null) : null,
-            imageUrl,
-            descriptionPlain: weightLoss ? `${weightLoss}\n\n${plainDesc}` : plainDesc,
-            tags: item.tags || [],
-            platforms: item.platforms || [],
-            date: item.created_at || null,
-            instagramUrl: null,
-            storySlug
-          };
-        });
-
-        setExternalPosts(mapped);
-      } catch (err) {
-        console.error("Failed to fetch external success stories:", err);
-      }
+  const loadContent = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch("/api/educators/content");
+      if (!res.ok) throw new Error(`Failed to load content (${res.status})`);
+      const json = await res.json();
+      setAllPosts(json.posts || []);
+      setFetchedAt(json.fetchedAt || null);
+    } catch (err: any) {
+      setFetchError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    fetchSuccessStories();
   }, []);
+
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    loadContent();
+  }, [loadContent]);
 
   // Check if educators tour should be shown
   useEffect(() => {
@@ -195,23 +174,30 @@ export default function EducatorsModulePage() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
 
+  // ── Last updated label ──────────────────────────────────────────────────
+  const lastUpdatedLabel = useMemo(() => {
+    if (!fetchedAt) return null;
+    const diffMs = Date.now() - fetchedAt;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffMins < 2) return "just now";
+    if (diffHrs < 1) return `${diffMins}m ago`;
+    return `${diffHrs}h ago`;
+  }, [fetchedAt]);
+
   // ── Active category filter mapping ───────────────────────────────────────
   const activeCondition = HEALTH_CONDITIONS.find((c) => c.id === activeTab)!;
 
   // ── Filtered posts: health tab + search ─────────────────────────────────
   const filteredPosts = useMemo(() => {
-    let posts = [...CLEAN_POSTS, ...externalPosts];
+    let posts = [...allPosts];
 
     if (activeCondition.id !== "all") {
       posts = posts.filter((p) => {
-        // Direct category map match
         if (activeCondition.maps.length > 0 && activeCondition.maps.includes(p.category)) {
           return true;
         }
-
-        // Special Semantic matches for the new tabs
         const searchText = `${p.title} ${p.descriptionPlain} ${p.tags.join(" ")}`.toLowerCase();
-
         if (activeCondition.id === "transformation") {
           return p.subType === "Success Story" || searchText.includes("transformation") || searchText.includes("lost");
         }
@@ -221,7 +207,6 @@ export default function EducatorsModulePage() {
         if (activeCondition.id === "wellness") {
           return p.category === "General" || searchText.includes("wellness") || searchText.includes("habit") || searchText.includes("lifestyle");
         }
-
         return false;
       });
     }
@@ -231,7 +216,6 @@ export default function EducatorsModulePage() {
       posts = posts.filter(p => {
         const isVideo = !!(p.videoUrl || p.videoType === "youtube" || p.mediaType === "reel" || (p.instagramUrl && p.instagramUrl.includes("reel")));
         const hasImage = !!p.imageUrl;
-
         if (activeFormat === "video") return isVideo;
         if (activeFormat === "blog") return !isVideo && hasImage;
         if (activeFormat === "static") return !isVideo && !hasImage;
@@ -239,15 +223,12 @@ export default function EducatorsModulePage() {
       });
     }
 
-    // 3. Search filter (Enhanced Natural Language Search) + Relevance Ranking
+    // 3. Search filter + Relevance Ranking
     if (searchQuery.trim().length >= 2) {
       const q = searchQuery.toLowerCase();
-
-      // Stop words to ignore in conversational queries
       const stopWords = new Set(["i", "need", "want", "to", "something", "looking", "for", "a", "the", "in", "on", "at", "my", "me", "is", "and", "or", "some", "can", "you", "give", "show", "tell"]);
       const rawTokens = q.split(/[\s.,!?]+/).filter(t => t.length > 1 && !stopWords.has(t));
 
-      // Basic synonym expansion for common health/nutrition queries
       const synMap: Record<string, string[]> = {
         "morning": ["breakfast", "morning", "wake", "tea", "coffee"],
         "eat": ["food", "recipe", "snack", "meal", "hunger", "hungry", "eat", "dinner", "lunch", "breakfast"],
@@ -264,38 +245,30 @@ export default function EducatorsModulePage() {
         "hormone": ["hormone", "thyroid", "pcos", "menopause", "pregnancy"],
       };
 
-      // Step 1: Filter posts using semantic token matching (existing logic)
       posts = posts.filter((p) => {
         const fullText = `${p.title} ${p.descriptionPlain} ${p.category} ${p.subType} ${p.tags.join(" ")}`.toLowerCase();
-
-        // 1. Direct substring match (if they typed an exact title phrase)
         if (fullText.includes(q)) return true;
-
-        // 2. Semantic token match (Every non-stop word must match either directly or via a synonym)
         if (rawTokens.length > 0) {
           return rawTokens.every(token => {
             const termsToCheck = [token, ...(synMap[token] || [])];
             return termsToCheck.some(term => fullText.includes(term));
           });
         }
-
         return false;
       });
 
-      // Step 2: Rank filtered posts by relevance (title > tags > description top > description body)
       const rankableItems: (CleanPost & RankableItem)[] = posts.map(p => ({
         ...p,
         description: p.descriptionPlain,
         code: p.id,
       }));
-
       posts = rankByRelevance(rankableItems, searchQuery).length > 0
         ? rankByRelevance(rankableItems, searchQuery) as unknown as CleanPost[]
-        : posts; // fallback: keep original order if ranking returns empty (edge case)
+        : posts;
     }
 
     return posts;
-  }, [activeTab, activeFormat, searchQuery, activeCondition]);
+  }, [activeTab, activeFormat, searchQuery, activeCondition, allPosts]);
 
   // ── Posts per Kanban column ──────────────────────────────────────────────
   const getColumnPosts = useCallback(
@@ -336,8 +309,29 @@ export default function EducatorsModulePage() {
           <h1 className="text-5xl lg:text-6xl font-serif text-[#0E5858] mb-6 leading-tight">
             Content <span className="text-[#00B6C1]">CRM Library</span>
           </h1>
+
+          {/* Live data badge */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {isLoading ? (
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
+                Loading content library…
+              </span>
+            ) : fetchError ? (
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-red-400 uppercase tracking-widest">
+                ⚠️ {fetchError} —
+                <button onClick={loadContent} className="underline hover:text-red-600">retry</button>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                Live · {totalCount} posts · updated {lastUpdatedLabel}
+              </span>
+            )}
+          </div>
+
           <p className="text-gray-400 text-sm font-medium mb-8 max-w-xl mx-auto">
-            {totalCount} posts ready to use · Search, filter by health condition and share with clients.
+            {isLoading ? "Syncing content from BN servers…" : `${totalCount} posts ready to use · Search, filter by health condition and share with clients.`}
           </p>
 
           {/* Search */}
@@ -459,14 +453,17 @@ export default function EducatorsModulePage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-bold text-[#0E5858] truncate">{col.title}</h3>
                       <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                        {posts.length} {posts.length === 1 ? "item" : "items"} · {col.description}
+                        {isLoading ? "Loading…" : `${posts.length} ${posts.length === 1 ? "item" : "items"} · ${col.description}`}
                       </p>
                     </div>
                   </div>
 
                   {/* Column cards */}
                   <div className="p-3 flex-1 overflow-y-auto space-y-3 max-h-[72vh]" style={{ scrollbarWidth: "thin" }}>
-                    {posts.length === 0 ? (
+                    {isLoading ? (
+                      // Skeleton loader
+                      Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+                    ) : posts.length === 0 ? (
                       <div className="h-48 flex flex-col items-center justify-center text-center p-4 opacity-40">
                         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 text-gray-300">
                           <Search size={20} />
