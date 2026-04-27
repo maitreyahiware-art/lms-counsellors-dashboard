@@ -94,8 +94,12 @@ function extractMediaUrl(field: any): string | null {
 
 function parseYouTubeId(url: string | null): string | null {
   if (!url) return null;
+  // Handle full URLs
   const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
+  if (m) return m[1];
+  // Handle bare IDs (11 characters, alphanumeric + underscores/dashes)
+  if (url.length === 11 && /^[A-Za-z0-9_-]{11}$/.test(url)) return url;
+  return null;
 }
 
 function extractInstagramUrl(instaAccount: any): string | null {

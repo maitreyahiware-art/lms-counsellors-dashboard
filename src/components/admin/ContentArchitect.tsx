@@ -147,7 +147,6 @@ export default function ContentArchitect({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <a href={content.content} target="_blank" className="p-2 text-gray-300 hover:text-[#00B6C1] transition-all"><ExternalLink size={12} /></a>
                                 <button
                                     onClick={() => {
                                         setContentForm({

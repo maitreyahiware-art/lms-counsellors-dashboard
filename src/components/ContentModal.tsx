@@ -121,10 +121,14 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
                 />
               </div>
             ) : post.videoType === "cloudinary" && post.videoUrl ? (
-              <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+              <div 
+                className={`relative w-full bg-black/90 flex items-center justify-center overflow-hidden ${
+                  post.mediaType === "reel" ? "aspect-[9/16] max-h-[65vh]" : "aspect-video"
+                }`}
+              >
                 <video
                   ref={videoRef}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   src={post.videoUrl}
                   controls
                   playsInline
@@ -132,11 +136,13 @@ export default function ContentModal({ post, clientPhone, onClose }: ContentModa
                 />
               </div>
             ) : post.imageUrl ? (
-              <img
-                src={post.imageUrl}
-                alt={post.title}
-                className="w-full max-h-72 object-contain"
-              />
+              <div className="bg-black/5 flex items-center justify-center">
+                <img
+                  src={post.imageUrl}
+                  alt={post.title}
+                  className="w-full max-h-[60vh] object-contain"
+                />
+              </div>
             ) : (
               <div className={`w-full h-48 flex flex-col items-center justify-center p-6 text-center ${cat.bg}`}>
                 {post.instagramUrl ? (
