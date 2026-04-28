@@ -33,7 +33,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
     const [answers, setAnswers] = useState<string[]>([]);
     const [textAnswer, setTextAnswer] = useState("");
     const [showResult, setShowResult] = useState(false);
-    const [finalScoreStats, setFinalScoreStats] = useState<{ score: number, total: number, results?: any[] } | null>(null);
+    const [finalScoreStats, setFinalScoreStats] = useState<{ score: number, total: number, results?: any[], isTimeout?: boolean } | null>(null);
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes default
     const [completionType, setCompletionType] = useState<'training_complete' | 'transition_to_role' | null>(null);
     const [nextModuleId, setNextModuleId] = useState<string | null>(null);
@@ -126,8 +126,13 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
             const gradeData = await gradeResponse.json();
             if (gradeData.error) throw new Error(gradeData.error);
 
-            const finalScore = isTimeout ? 0 : gradeData.score;
-            setFinalScoreStats({ score: finalScore, total: gradeData.total, results: gradeData.results });
+            const finalScore = gradeData.score;
+            setFinalScoreStats({ 
+                score: finalScore, 
+                total: gradeData.total, 
+                results: gradeData.results,
+                isTimeout: isTimeout 
+            });
 
             // Save to Supabase
             const { data: { session } } = await supabase.auth.getSession();
@@ -154,7 +159,14 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                     topic_code: topicCode,
                     score: finalScore,
                     total_questions: gradeData.total,
-                    raw_data: { questions, answers: finalAnswers, gradedResults: gradeData.results, time_spent: 600 - timeLeft }
+                    is_timeout: isTimeout,
+                    raw_data: { 
+                        questions, 
+                        answers: finalAnswers, 
+                        gradedResults: gradeData.results, 
+                        time_spent: 600 - timeLeft,
+                        was_timeout: isTimeout 
+                    }
                 }]);
 
                 if (insertError) throw new Error(`Database save failed: ${insertError.message}`);
@@ -404,19 +416,25 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                                             />
                                         </svg>
                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="text-3xl font-black text-[#0E5858]">{finalScoreStats?.score || 0}</span>
+                                            <span className={`text-3xl font-black ${finalScoreStats?.isTimeout ? 'text-amber-600' : 'text-[#0E5858]'}`}>
+                                                {finalScoreStats?.score || 0}
+                                            </span>
                                             <span className="text-[9px] font-bold text-gray-400 uppercase">/ {finalScoreStats?.total || 0}</span>
                                         </div>
                                     </div>
                                     <h3 className="text-2xl font-serif text-[#0E5858] mb-2">
-                                        {finalScoreStats && (finalScoreStats.score / finalScoreStats.total) >= 0.7
-                                            ? '🎉 Excellent Work!'
-                                            : finalScoreStats && (finalScoreStats.score / finalScoreStats.total) >= 0.4
-                                                ? '📚 Keep Practicing!'
-                                                : '⚡ Needs Improvement'}
+                                        {finalScoreStats?.isTimeout ? (
+                                            '⏰ Time Expired'
+                                        ) : (
+                                            finalScoreStats && (finalScoreStats.score / finalScoreStats.total) >= 0.7
+                                                ? '🎉 Excellent Work!'
+                                                : finalScoreStats && (finalScoreStats.score / finalScoreStats.total) >= 0.4
+                                                    ? '📚 Keep Practicing!'
+                                                    : '⚡ Needs Improvement'
+                                        )}
                                     </h3>
                                     <p className="text-[10px] font-black text-[#00B6C1] uppercase tracking-[0.3em]">
-                                        {finalScoreStats ? Math.round((finalScoreStats.score / finalScoreStats.total) * 100) : 0}% Score · Logged to Dashboard
+                                        {finalScoreStats?.isTimeout ? 'Partial Progress Saved' : `${finalScoreStats ? Math.round((finalScoreStats.score / finalScoreStats.total) * 100) : 0}% Score`} · Logged to Dashboard
                                     </p>
                                 </div>
 
