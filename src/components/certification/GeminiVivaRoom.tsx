@@ -124,7 +124,7 @@ export default function GeminiVivaRoom({ onComplete }: GeminiVivaRoomProps) {
                         </div>
                         <h2 className="text-3xl font-serif text-white mb-3">Gemini Live Voice Viva</h2>
                         <p className="text-white/50 max-w-md mb-3 leading-relaxed">
-                            You will speak directly with <strong className="text-[#00B6C1]">Aria</strong>, your AI Examiner, powered by Gemini.
+                            You will speak directly with <strong className="text-[#00B6C1]">Aria</strong>, your AI Examiner.
                             The conversation is fully bidirectional — just speak naturally.
                         </p>
                         <div className="flex flex-col gap-2 text-white/30 text-xs mb-8 max-w-sm">

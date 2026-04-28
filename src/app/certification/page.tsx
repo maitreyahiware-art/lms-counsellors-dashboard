@@ -195,8 +195,8 @@ export default function CertificationPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
                     {[
-                        { icon: FileText, title: "45 Questions", desc: "Covers History, Nutrition & MIS" },
-                        { icon: Clock, title: "Un-timed", desc: "Take your time for quality depth" },
+                        { icon: FileText, title: "15 Questions", desc: "Covers History, Nutrition & MIS" },
+                        { icon: Clock, title: "10 Mins", desc: "Take your time for quality depth" },
                         { icon: Brain, title: "AI Graded", desc: "Real-time auditing of your logic" }
                     ].map((idx, i) => (
                         <div key={i} className="premium-card bg-white p-8 flex flex-col items-center text-center">
@@ -211,20 +211,12 @@ export default function CertificationPage() {
 
                 <div className="flex justify-center gap-6">
                     <button
-                        onClick={() => { setMode('written'); setStarted(true); }}
-                        className="group relative px-10 py-5 bg-[#FAFCEE] text-[#0E5858] border border-[#0E5858]/10 font-bold rounded-[2rem] hover:bg-[#0E5858] hover:text-white transition-all duration-500 overflow-hidden"
-                    >
-                        <span className="relative z-10 flex items-center gap-3">
-                            <FileText size={18} /> Written Audit 
-                        </span>
-                    </button>
-                    <button
                         onClick={() => { setMode('viva'); setStarted(true); }}
                         className="group relative px-10 py-5 bg-[#0E5858] text-white font-bold rounded-[2rem] shadow-2xl hover:bg-[#00B6C1] transition-all duration-500 overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                         <span className="relative z-10 flex items-center gap-3">
-                            <Mic size={18} /> Conversational Viva <ChevronRight size={18} />
+                            <Mic size={18} /> Start Viva <ChevronRight size={18} />
                         </span>
                     </button>
                 </div>
