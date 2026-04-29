@@ -177,6 +177,13 @@ function getDocEmbedUrl(url: string | null): string {
         }
         return url.replace(/\/(edit|view|present|view\?usp=sharing).*$/, '/preview');
     }
+    
+    // Safety check: Ensure local document URLs have a leading slash so they resolve from the root 'public' directory
+    // instead of resolving relative to the current dynamic route (which causes a 404).
+    if (!url.startsWith('http') && !url.startsWith('/')) {
+        return '/' + url;
+    }
+    
     return url;
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Brain, CheckCircle2, ChevronRight, Loader2, Lock, Clock, GraduationCap, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +31,11 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
     const [loading, setLoading] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
     const [answers, setAnswers] = useState<string[]>([]);
+
+    // Refs so the timer closure always reads the *current* values (avoids stale-closure bug)
+    const answerTokenRef = useRef<string | null>(null);
+    const answersRef = useRef<string[]>([]);
+    const questionsRef = useRef<Question[] | null>(null);
     const [textAnswer, setTextAnswer] = useState("");
     const [showResult, setShowResult] = useState(false);
     const [finalScoreStats, setFinalScoreStats] = useState<{ score: number, total: number, results?: any[], isTimeout?: boolean } | null>(null);
@@ -61,10 +66,12 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
     }, [questions, showResult]);
 
     const handleAutoSubmit = () => {
-        // Fill remaining answers with empty string and submit
-        const unansweredCount = (questions?.length || 0) - answers.length;
-        const finalAnswers = [...answers, ...Array(unansweredCount).fill("")];
-        submitAudit(finalAnswers, true);
+        // Use refs to read the latest state values — avoids stale closure from setInterval
+        const currentAnswers = answersRef.current;
+        const currentQuestions = questionsRef.current;
+        const unansweredCount = (currentQuestions?.length || 0) - currentAnswers.length;
+        const finalAnswers = [...currentAnswers, ...Array(unansweredCount).fill("")];
+        submitAudit(finalAnswers, true, answerTokenRef.current);
     };
 
     const formatTime = (seconds: number) => {
@@ -85,9 +92,12 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
             });
             const data = await response.json();
             setQuestions(data.questions);
+            questionsRef.current = data.questions;
             setAnswerToken(data.answerToken);
+            answerTokenRef.current = data.answerToken;
             setCurrentStep(0);
             setAnswers([]);
+            answersRef.current = [];
             setTextAnswer("");
             setShowResult(false);
             setTimeLeft(600); // Reset timer
@@ -104,6 +114,7 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
     const handleAnswer = async (option: string) => {
         const newAnswers = [...answers, option];
         setAnswers(newAnswers);
+        answersRef.current = newAnswers; // keep ref in sync
         setTextAnswer("");
 
         if (currentStep < (questions?.length || 0) - 1) {
@@ -113,14 +124,16 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
         }
     };
 
-    const submitAudit = async (finalAnswers: string[], isTimeout: boolean = false) => {
+    const submitAudit = async (finalAnswers: string[], isTimeout: boolean = false, tokenOverride?: string | null) => {
         setLoading(true);
+        // Use tokenOverride when called from the timer (avoids stale closure)
+        const tokenToUse = tokenOverride !== undefined ? tokenOverride : answerToken;
         try {
             // Secure Grading via Backend
             const gradeResponse = await fetch("/api/grade-exam", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ answerToken, userAnswers: finalAnswers })
+                body: JSON.stringify({ answerToken: tokenToUse, userAnswers: finalAnswers })
             });
 
             const gradeData = await gradeResponse.json();
@@ -159,13 +172,12 @@ export default function AIAssessment({ topicTitle, topicContent, topicCode, onCo
                     topic_code: topicCode,
                     score: finalScore,
                     total_questions: gradeData.total,
-                    is_timeout: isTimeout,
-                    raw_data: { 
-                        questions, 
-                        answers: finalAnswers, 
-                        gradedResults: gradeData.results, 
+                    raw_data: {
+                        questions,
+                        answers: finalAnswers,
+                        gradedResults: gradeData.results,
                         time_spent: 600 - timeLeft,
-                        was_timeout: isTimeout 
+                        was_timeout: isTimeout
                     }
                 }]);
 
