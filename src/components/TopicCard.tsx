@@ -762,7 +762,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                             {displayLinks.map((link) => {
                                                 const isVideo = link.url.toLowerCase().endsWith('.mp4') || link.url.toLowerCase().endsWith('.mov') || link.url.includes('drive.google.com/file/d/');
-                                                const isDocs = !isVideo && (link.isPopup || link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.toLowerCase().includes('.pdf') || link.label.toLowerCase().includes('catalogue') || link.label.toLowerCase().includes('catelogue'));
+                                                const isDocs = !isVideo && (link.isPopup || link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.toLowerCase().includes('.pdf') || link.label.toLowerCase().includes('catalogue') || link.label.toLowerCase().includes('catelgoue'));
 
                                                 return (
                                                     <motion.div
@@ -1097,7 +1097,7 @@ export default function TopicCard({ topic, index, isCompleted, onToggleComplete,
                                                             }
                                                             
                                                             const isVideo = link.url.toLowerCase().endsWith('.mp4') || link.url.toLowerCase().endsWith('.mov') || link.url.includes('drive.google.com/file/d/');
-                                                            const isDocs = !isVideo && (link.isPopup || link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.toLowerCase().includes('.pdf') || link.label.toLowerCase().includes('catalogue') || link.label.toLowerCase().includes('catelogue'));
+                                                            const isDocs = !isVideo && (link.isPopup || link.url.includes('drive.google.com') || link.url.includes('docs.google.com') || link.url.toLowerCase().includes('.pdf') || link.label.toLowerCase().includes('catalogue') || link.label.toLowerCase().includes('catelgoue'));
 
                                                             if (link.isPopup) {
                                                                 setShowHealthPopup(true);
